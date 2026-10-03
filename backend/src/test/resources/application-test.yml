@@ -1,0 +1,30 @@
+# Testes de integração rodam contra um PostgreSQL real (local ou o serviço do pipeline de CI).
+spring:
+  datasource:
+    url: ${TEST_DB_URL:jdbc:postgresql://localhost:5432/escalas_coelho_test}
+    username: ${TEST_DB_USER:postgres}
+    password: ${TEST_DB_PASSWORD:postgres}
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+
+management:
+  server:
+    port: ""
+
+app:
+  jwt:
+    # Chave exclusiva de teste (não usada em nenhum ambiente real).
+    secret: dGVzdGUtZXNjYWxhcy1jb2VsaG8tY2hhdmUtc29tZW50ZS1wYXJhLXRlc3Rlcw==
+  admin:
+    senha: senha-de-teste
+  seed:
+    habilitado: true
+  escala:
+    geracao-automatica:
+      # Nos testes a geração é chamada explicitamente (sem agendamento nem execução ao iniciar).
+      habilitada: false
+  chamada:
+    turn:
+      urls: turn:turn.teste.local:3478
+      segredo: segredo-turn-de-teste

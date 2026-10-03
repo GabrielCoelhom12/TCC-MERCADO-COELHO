@@ -1,0 +1,75 @@
+server:
+  port: ${PORT:8080}
+  shutdown: graceful
+  forward-headers-strategy: framework
+
+spring:
+  application:
+    name: escalas-coelho
+  datasource:
+    # PostgreSQL em servidor (local, container ou nuvem). Configure pelas variáveis de ambiente.
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/escalas_coelho}
+    username: ${DB_USER:postgres}
+    password: ${DB_PASSWORD:postgres}
+  jpa:
+    hibernate:
+      ddl-auto: update
+    open-in-view: false
+    properties:
+      hibernate:
+        format_sql: false
+  servlet:
+    multipart:
+      # Fotos (2 MB) e imagens do chat (5 MB) são validadas no serviço; o limite do servidor fica um pouco acima
+      # para devolver a mensagem amigável.
+      max-file-size: 6MB
+      max-request-size: 6MB
+  jackson:
+    serialization:
+      write-dates-as-timestamps: false
+
+# Observabilidade: health/info públicos; métricas Prometheus na porta de gerência (não exposta à internet).
+management:
+  server:
+    port: ${MANAGEMENT_PORT:8081}
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus,metrics
+  endpoint:
+    health:
+      probes:
+        enabled: true
+  metrics:
+    tags:
+      application: ${spring.application.name}
+
+app:
+  jwt:
+    # Base64 com >= 32 bytes. Sem valor definido, uma chave aleatória é gerada a cada inicialização
+    # (tokens deixam de valer após reiniciar). Em produção, defina APP_JWT_SECRET.
+    secret: ${APP_JWT_SECRET:}
+    expiracao-horas: 10
+  admin:
+    # Senha do usuário "gestor" criado no primeiro start. Sem valor definido, uma senha aleatória é gerada e
+    # exibida uma única vez no log.
+    senha: ${APP_ADMIN_SENHA:}
+  ws:
+    # Origens extras aceitas no WebSocket do chat (a própria origem da aplicação é sempre aceita).
+    origens: ${APP_WS_ORIGENS:http://localhost:5173}
+  escala:
+    geracao-automatica:
+      # Cria sozinho o rascunho das próximas semanas (liga/desliga e antecedência ficam em Parâmetros).
+      habilitada: ${APP_GERACAO_AUTOMATICA:true}
+      cron: "0 0 6 * * *"
+  chamada:
+    # Chamadas de voz (WebRTC). STUN público por padrão; TURN opcional, necessário em redes que bloqueiam
+    # conexão direta (ex.: coturn com "use-auth-secret" e o mesmo segredo abaixo).
+    stun: ${APP_STUN_URLS:stun:stun.l.google.com:19302}
+    turn:
+      urls: ${APP_TURN_URLS:}
+      segredo: ${APP_TURN_SEGREDO:}
+    tempo-toque-segundos: 30
+  seed:
+    # Popula o banco com o cenário hipotético do Supermercado Coelho na primeira execução.
+    habilitado: ${APP_SEED:true}
