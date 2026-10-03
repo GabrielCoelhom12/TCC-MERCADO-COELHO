@@ -1,0 +1,129 @@
+name: CI/CD
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  backend:
+    name: Backend (testes + cobertura ≥ 75%)
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_DB: escalas_coelho_test
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U postgres"
+          --health-interval 5s
+          --health-retries 10
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: maven
+      # jvm.config usa o repositório de certificados do Windows (rede corporativa local); não se aplica ao runner Linux.
+      - run: rm -f .mvn/jvm.config
+      - name: Testes, cobertura (JaCoCo) e empacotamento
+        run: mvn -B verify
+        env:
+          TEST_DB_URL: jdbc:postgresql://localhost:5432/escalas_coelho_test
+      - uses: actions/upload-artifact@v4
+        with:
+          name: backend-analise
+          path: |
+            backend/target/classes
+            backend/target/site/jacoco/jacoco.xml
+
+  frontend:
+    name: Frontend (tipos + testes + cobertura ≥ 25%)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm run test:coverage
+      - uses: actions/upload-artifact@v4
+        with:
+          name: frontend-cobertura
+          path: frontend/coverage/lcov.info
+
+  analise-estatica:
+    name: SonarCloud (qualidade e segurança)
+    needs: [backend, frontend]
+    runs-on: ubuntu-latest
+    env:
+      SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+    steps:
+      - if: env.SONAR_TOKEN == ''
+        run: echo "::warning::SONAR_TOKEN não configurado — análise SonarCloud ignorada (veja docs/deploy.md)."
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/download-artifact@v4
+        with:
+          name: backend-analise
+          path: backend/target
+      - uses: actions/download-artifact@v4
+        with:
+          name: frontend-cobertura
+          path: frontend/coverage
+      - name: Análise SonarCloud
+        if: env.SONAR_TOKEN != ''
+        uses: SonarSource/sonarqube-scan-action@v5
+        with:
+          args: >
+            -Dsonar.organization=${{ vars.SONAR_ORGANIZATION }}
+            -Dsonar.projectKey=${{ vars.SONAR_PROJECT_KEY }}
+
+  imagem:
+    name: Imagem Docker (publicada no GHCR a cada push na main)
+    needs: [backend, frontend]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        if: github.event_name == 'push'
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/${{ github.repository }}
+          tags: |
+            type=sha
+            type=raw,value=latest,enable={{is_default_branch}}
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: ${{ github.event_name == 'push' }}
+          tags: ${{ steps.meta.outputs.tags }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
