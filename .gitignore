@@ -1,0 +1,11 @@
+backend/target/
+backend/data/
+backend/src/main/resources/static/
+frontend/node_modules/
+frontend/dist/
+frontend/coverage/
+frontend/*.tsbuildinfo
+.env
+*.log
+.idea/
+.vscode/

@@ -1,0 +1,11 @@
+**/node_modules
+**/target
+**/coverage
+**/dist
+backend/data
+backend/.mvn
+backend/src/main/resources/static
+.git
+.github
+.env
+*.log
