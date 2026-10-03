@@ -71,6 +71,61 @@ flowchart TB
     repo --> db
 ```
 
+## Implantação
+
+Como o sistema roda em produção (detalhes e variáveis em [deploy.md](deploy.md)). Os contêineres e as portas
+seguem o [`docker-compose.yml`](../docker-compose.yml); itens tracejados são opcionais ou dependem do provedor de
+hospedagem, ainda a definir.
+
+```mermaid
+flowchart TB
+    gestor["👤 Gestor<br/>[Navegador]"]
+    dev["👤 Desenvolvedor"]
+
+    subgraph github["GitHub"]
+        repo["Repositório<br/>[código-fonte]"]
+        actions["GitHub Actions<br/>[CI/CD: testes, cobertura,<br/>build da imagem]"]
+        ghcr[("GHCR<br/>[registro de imagens]<br/>tags latest e sha")]
+    end
+
+    sonar["SonarCloud<br/>[análise estática e segurança]"]
+
+    subgraph servidor["Servidor Linux com Docker (provedor a definir)"]
+        proxy["Proxy reverso<br/>[Nginx · TLS]<br/>portas 80/443"]
+
+        subgraph compose["Docker Compose · rede interna"]
+            app["app<br/>[imagem escalas-coelho]<br/>SPA + API · 8080<br/>métricas/health · 8081"]
+            db[("db<br/>[PostgreSQL 17]<br/>5432 · volume dados-postgres")]
+            prom["prometheus<br/>[Prometheus 3.5] · 9090"]
+            graf["grafana<br/>[Grafana 12.1] · 3000<br/>volume dados-grafana"]
+        end
+    end
+
+    turn["coturn<br/>[servidor TURN]<br/>3478 UDP/TCP"]
+
+    dev -- "git push / Pull Request" --> repo
+    repo -- "dispara o workflow" --> actions
+    actions -- "relatórios de cobertura" --> sonar
+    actions -- "push da imagem (main)" --> ghcr
+    ghcr -. "docker pull da imagem" .-> app
+
+    gestor -- "HTTPS 443<br/>páginas, API e WebSocket /ws" --> proxy
+    proxy -- "HTTP 8080<br/>repassa o upgrade do WebSocket" --> app
+    app -- "JDBC 5432" --> db
+    prom -- "scrape a cada 15 s<br/>GET /actuator/prometheus · 8081" --> app
+    graf -- "PromQL" --> prom
+    gestor -. "áudio WebRTC<br/>direto entre navegadores ou via TURN" .-> turn
+```
+
+| Elemento | Exposição | Observação |
+|----------|-----------|------------|
+| Proxy reverso | Pública (80/443) | Termina o TLS, que o navegador exige para liberar o microfone nas chamadas de voz. |
+| `app` | Interna (8080 via proxy) | Uma única instância, porque o broker do chat é em memória. Segredos vêm do ambiente (`.env` / provedor). |
+| Porta 8081 | Somente rede interna | Health check do provedor e coleta do Prometheus; nunca exposta à internet. |
+| `db` | Somente rede interna | Dados persistidos no volume `dados-postgres`; pode ser trocado por um PostgreSQL gerenciado. |
+| Prometheus / Grafana | Restrita | O compose publica 9090 e 3000; em produção, restringir por firewall ou publicar só o Grafana atrás do proxy, com senha (`GRAFANA_SENHA`). |
+| coturn | Pública (opcional) | Só necessário em redes que bloqueiam conexão direta entre navegadores. |
+
 ## Decisões
 
 | Decisão | Motivo |

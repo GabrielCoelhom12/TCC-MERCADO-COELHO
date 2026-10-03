@@ -8,7 +8,7 @@ Sistema web de **geração, validação e otimização financeira de escalas de 
 | Documento | Conteúdo |
 |-----------|----------|
 | [docs/requisitos.md](docs/requisitos.md) | Fluxos de negócio, requisitos funcionais e não funcionais, user stories |
-| [docs/arquitetura.md](docs/arquitetura.md) | Diagramas C4 (contexto, contêineres e componentes) e decisões |
+| [docs/arquitetura.md](docs/arquitetura.md) | Diagramas C4 (contexto, contêineres e componentes), diagrama de implantação e decisões |
 | [docs/deploy.md](docs/deploy.md) | Variáveis de ambiente, Docker Compose, pipeline CI/CD, SonarCloud e monitoramento |
 
 ## Stack (definição explícita)
