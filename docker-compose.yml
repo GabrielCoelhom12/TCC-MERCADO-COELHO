@@ -1,0 +1,59 @@
+# Ambiente completo: aplicação + PostgreSQL + Prometheus + Grafana.
+# Uso: copie .env.example para .env, ajuste as senhas e rode "docker compose up -d --build".
+services:
+  db:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: escalas_coelho
+      POSTGRES_USER: ${DB_USER:-escalas}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?Defina DB_PASSWORD no .env}
+    volumes:
+      - dados-postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d escalas_coelho"]
+      interval: 10s
+      retries: 5
+
+  app:
+    build: .
+    image: escalas-coelho:local
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DB_URL: jdbc:postgresql://db:5432/escalas_coelho
+      DB_USER: ${DB_USER:-escalas}
+      DB_PASSWORD: ${DB_PASSWORD}
+      APP_JWT_SECRET: ${APP_JWT_SECRET:?Defina APP_JWT_SECRET no .env}
+      APP_ADMIN_SENHA: ${APP_ADMIN_SENHA:-}
+      APP_SEED: ${APP_SEED:-true}
+      APP_TURN_URLS: ${APP_TURN_URLS:-}
+      APP_TURN_SEGREDO: ${APP_TURN_SEGREDO:-}
+    ports:
+      - "8080:8080"
+    # A porta 8081 (métricas/health) fica só na rede interna, acessível ao Prometheus.
+
+  prometheus:
+    image: prom/prometheus:v3.5.0
+    restart: unless-stopped
+    volumes:
+      - ./monitoramento/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    ports:
+      - "9090:9090"
+
+  grafana:
+    image: grafana/grafana:12.1.1
+    restart: unless-stopped
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_SENHA:?Defina GRAFANA_SENHA no .env}
+    volumes:
+      - ./monitoramento/grafana:/etc/grafana/provisioning:ro
+      - dados-grafana:/var/lib/grafana
+    ports:
+      - "3000:3000"
+
+volumes:
+  dados-postgres:
+  dados-grafana:
