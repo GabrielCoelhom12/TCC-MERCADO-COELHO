@@ -38,7 +38,7 @@ export default function Painel() {
     <div className="stack">
       <div className="cabecalho">
         <div>
-          <h1>Painel financeiro da mão de obra</h1>
+          <h1>Painel de custos da mão de obra</h1>
           <p>Custo da equipe escalada comparado ao limite de cada dia.</p>
         </div>
         <div className="spacer" />

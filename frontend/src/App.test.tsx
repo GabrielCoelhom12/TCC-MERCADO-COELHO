@@ -41,7 +41,7 @@ describe('App', () => {
     renderizar(<App />, '/usuarios');
 
     // Rota protegida redireciona para o painel e o item não aparece no menu.
-    expect(await screen.findByRole('heading', { name: /Painel financeiro/ })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: /Painel de custos/ })).toBeInTheDocument();
     expect(screen.queryByRole('link', { name: /Usuários/ })).not.toBeInTheDocument();
   });
 

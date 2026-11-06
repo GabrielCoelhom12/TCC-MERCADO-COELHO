@@ -6,7 +6,7 @@ import type { FaixaHoraria, Parametros } from '../types';
 
 type Campo = { chave: keyof Parametros; rotulo: string; ajuda: string; passo?: string };
 
-const FINANCEIRO: Campo[] = [
+const CUSTOS: Campo[] = [
   { chave: 'percentualTetoFolha', rotulo: 'Teto da folha do dia (% da receita)', ajuda: 'Quanto da receita prevista do dia pode ser gasto com a equipe.', passo: '0.1' },
   { chave: 'fatorDomingo', rotulo: 'Acréscimo de custo aos domingos', ajuda: 'Ex.: 1,5 = o custo da hora no domingo é 50% maior.', passo: '0.05' },
   { chave: 'fatorFeriado', rotulo: 'Acréscimo de custo aos feriados', ajuda: 'Valor padrão; cada feriado pode ter o seu.', passo: '0.05' },
@@ -64,7 +64,7 @@ export default function ParametrosPage() {
 
       <div className="card">
         <h2>Custos</h2>
-        <div className="form-grid">{FINANCEIRO.map(campo)}</div>
+        <div className="form-grid">{CUSTOS.map(campo)}</div>
         <div style={{ marginTop: 16 }}>
           <label className="campo">Quando uma alocação ultrapassar o limite de custo do dia</label>
           <div className="row" style={{ marginTop: 6 }}>

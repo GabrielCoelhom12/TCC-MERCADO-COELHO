@@ -4,8 +4,8 @@
 
 O Supermercado Coelho (Joinville/SC) monta as escalas de trabalho manualmente. Isso gera quadros superdimensionados
 em dias de baixo movimento, falta de pessoal em picos e risco de infração trabalhista (interjornada, repouso semanal,
-folga dominical). O sistema gera, valida e otimiza financeiramente as escalas, respeitando a CLT e o teto de folha
-definido sobre a receita projetada de cada dia.
+folga dominical). O sistema gera e valida as escalas, respeitando a CLT, cobrindo o movimento previsto e mantendo o custo da equipe
+dentro do teto de folha definido sobre a receita projetada de cada dia.
 
 ## Fluxos de negócio
 
@@ -16,7 +16,7 @@ O sistema tem três fluxos de negócio completos, cada um coberto por testes de 
 |---|-------|------------------|-------|
 | 1 | **Cadastros e regras** | Gestor cadastra setores com demanda mínima, colaboradores (salário, encargos, disponibilidade, ausências), modelos de turno, feriados, projeções de receita e parâmetros CLT. | `CadastrosIntegracaoTest` |
 | 2 | **Ciclo da escala** | O sistema cria o rascunho da semana (ou o gestor cria a escala de um período) → o motor gera a sugestão de menor custo que cobre o movimento previsto → o gestor ajusta células na matriz com validação instantânea → aprova (somente sem erros) → pode reabrir. | `EscalaIntegracaoTest` |
-| 3 | **Análise financeira** | Gestor consulta capacidade diária (L_min, L_max, teto), simula um quadro proposto contra o recomendado pelo motor e acompanha o painel consolidado (custo × teto). | `MotorIntegracaoTest` |
+| 3 | **Custo da mão de obra** | Gestor consulta capacidade diária (L_min, L_max, teto), simula um quadro proposto contra o recomendado pelo motor e acompanha o painel consolidado (custo × teto). | `MotorIntegracaoTest` |
 
 ## Requisitos funcionais
 
@@ -29,7 +29,7 @@ O sistema tem três fluxos de negócio completos, cada um coberto por testes de 
 | RF05 | Manter modelos de turno (horário, intervalo, aplicação em dias úteis ou domingos/feriados). |
 | RF06 | Manter feriados e importar automaticamente os nacionais e os municipais de Joinville de um ano. |
 | RF07 | Manter projeções de receita padrão por perfil de dia e projeções específicas por data. |
-| RF08 | Manter os parâmetros operacionais: fatores de domingo/feriado, % de teto da folha, limites CLT e modo financeiro (BLOQUEAR/ALERTAR). |
+| RF08 | Manter os parâmetros operacionais: fatores de domingo/feriado, % de teto da folha, limites CLT e comportamento ao ultrapassar o limite de custo (BLOQUEAR/ALERTAR). |
 | RF09 | Criar, renomear e excluir escalas de até 62 dias sem sobreposição de período. |
 | RF10 | Gerar automaticamente a escala alocando exatamente L_min por setor, ao menor custo, respeitando as regras CLT e informando déficits. |
 | RF11 | Editar a matriz colaborador × dia (modelo de turno, horário personalizado ou folga) com revalidação imediata. |
@@ -38,7 +38,7 @@ O sistema tem três fluxos de negócio completos, cada um coberto por testes de 
 | RF14 | Aprovar a escala somente quando não houver violações de severidade ERRO e bloquear a edição de escalas aprovadas, que podem ser reabertas. |
 | RF15 | Calcular a capacidade diária: fator F_d, receita projetada, teto da folha, L_min e L_max. |
 | RF16 | Simular o custo de um quadro proposto e compará-lo ao recomendado pelo motor, mostrando a economia. |
-| RF17 | Exibir o painel financeiro do período com custo × teto e a situação de cada dia. |
+| RF17 | Exibir o painel de custos do período com custo × teto e a situação de cada dia. |
 | RF18 | Permitir que administradores criem e editem usuários (nome, login, perfil, senha, foto e situação), mantendo sempre ao menos um administrador ativo. Usuários desativados não conseguem entrar. |
 | RF19 | Exigir senha forte (8 a 64 caracteres, com maiúscula, minúscula, número e caractere especial), exibindo os requisitos durante a digitação e avisando quando o Caps Lock estiver ativo. |
 | RF20 | Aceitar foto de usuários e colaboradores em PNG ou JPEG de até 2 MB, verificada pelo conteúdo do arquivo e regravada no servidor como JPEG 256×256 (sem metadados). |
@@ -76,7 +76,7 @@ Como gestor, quero alterar o turno de um colaborador na matriz e ver na hora se 
 - *Quando* altero uma célula, *então* a validação é refeita e as violações aparecem com a regra, o dia e o colaborador.
 
 **US03 — Impedir superdimensionamento** (RF13)
-Como gestor financeiro, quero que o sistema impeça alocações que estourem o teto de folha do dia.
+Como gerente da loja, quero que o sistema impeça alocações que estourem o teto de folha do dia.
 - *Dado* o modo BLOQUEAR, *quando* adiciono um operador além de L_max, *então* a alocação é recusada com o motivo.
 
 **US04 — Aprovar somente escalas válidas** (RF14)

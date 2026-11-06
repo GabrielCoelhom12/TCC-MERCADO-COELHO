@@ -16,7 +16,7 @@ const GRUPOS: Grupo[] = [
   {
     titulo: 'Operação',
     itens: [
-      { para: '/', rotulo: 'Painel financeiro', Icone: LayoutDashboard, exato: true },
+      { para: '/', rotulo: 'Painel de custos', Icone: LayoutDashboard, exato: true },
       { para: '/escalas', rotulo: 'Escalas', Icone: CalendarDays },
       { para: '/movimento', rotulo: 'Movimento e previsão', Icone: TrendingUp },
       { para: '/simulador', rotulo: 'Simulador de custos', Icone: Calculator },
