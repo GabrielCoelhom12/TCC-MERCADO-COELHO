@@ -1,0 +1,26 @@
+name: Wiki
+
+# Publica a pasta docs/ na Wiki do GitHub: docs/README.md vira a página inicial (Home) e os links entre os
+# documentos viram links entre páginas. A Wiki precisa existir — crie a primeira página uma vez pela interface.
+on:
+  push:
+    branches: [main]
+    paths: ["docs/**"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: wiki
+  cancel-in-progress: true
+
+jobs:
+  publicar:
+    name: Publica docs/ na Wiki
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: Andrew-Chen-Wang/github-wiki-action@v5
+        with:
+          path: docs/

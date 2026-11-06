@@ -2,16 +2,22 @@
 
 Trabalho de Conclusão de Curso — Gabriel Coelho — Engenharia de Software — 2026
 
-Sistema web de **geração, validação e otimização financeira de escalas de trabalho** para o Supermercado Coelho
+Sistema web de **geração e validação de escalas de trabalho** para o Supermercado Coelho: monta a escala que cobre o
+movimento previsto da loja, respeita a CLT e mantém o custo da equipe dentro do limite de cada dia
 (PAC VII / PAC VIII — Engenharia de Software, Católica SC). Linha de projeto: **Web Apps**.
 
 [![CI/CD](../../actions/workflows/ci.yml/badge.svg)](../../actions/workflows/ci.yml)
+
+A documentação completa está na **[Wiki do projeto](../../wiki)**, publicada automaticamente a partir de `docs/`:
 
 | Documento | Conteúdo |
 |-----------|----------|
 | [docs/requisitos.md](docs/requisitos.md) | Fluxos de negócio, requisitos funcionais e não funcionais, user stories |
 | [docs/arquitetura.md](docs/arquitetura.md) | Diagramas C4 (contexto, contêineres e componentes), diagrama de implantação e decisões |
-| [docs/deploy.md](docs/deploy.md) | Variáveis de ambiente, Docker Compose, pipeline CI/CD, SonarCloud e monitoramento |
+| [docs/deploy.md](docs/deploy.md) | Ambientes, pipeline CI/CD, provisionamento no Azure (Terraform), rollback e monitoramento |
+| [docs/conformidade.md](docs/conformidade.md) | LGPD, segurança (OWASP), acessibilidade (WCAG) e licenças |
+
+Licença: [MIT](LICENSE) (os logotipos do Supermercado Coelho não estão incluídos).
 
 ## Stack (definição explícita)
 
@@ -22,13 +28,13 @@ Sistema web de **geração, validação e otimização financeira de escalas de 
 | Frontend | **React 18 + TypeScript (SPA) com Vite** · React Router |
 | Testes   | JUnit 5 + AssertJ + MockMvc (backend, cobertura ≥ 75%) · Vitest + Testing Library (frontend, ≥ 25%) |
 | Qualidade | GitHub Actions (CI/CD) · JaCoCo · SonarCloud |
-| Operação | Docker · Spring Actuator + Micrometer → Prometheus → Grafana |
+| Operação | Docker Compose · Caddy (HTTPS) · Azure (VM provisionada com Terraform) · Spring Actuator + Micrometer → Prometheus → Grafana |
 
 ## Os três pilares do artigo
 
 1. **Cadastros e regras sindicais** — setores com demanda mínima por perfil de dia, colaboradores (salário, encargos,
    disponibilidade, ausências), modelos de turno, feriados, projeções de receita e parâmetros CLT.
-2. **Motor de cálculo e otimização financeira** (`backend/.../motor`), Java puro e testado:
+2. **Motor de cálculo do custo da escala** (`backend/.../motor`), Java puro e testado:
    - `C_escala(d) = Σ [ S_i × H_i,d × F_d ]`, com `S_i = salário / carga mensal × (1 + encargos)`;
    - `F_d` = 1,0 em dias úteis, fator de domingo/feriado configurável;
    - teto do dia = `R_proj(d) × % da folha`; `L_max = ⌊teto / custo médio do operador⌋`; `L_min = Σ demandas mínimas`;
@@ -101,7 +107,8 @@ backend/src/main/java/br/com/coelho/escalas/
 frontend/src/
   pages/        Painel, Escalas, MatrizEscala, Simulador, Funcionarios, Setores, Turnos, Calendario, Parametros
   components/   Layout e componentes de interface reutilizáveis
-docs/           requisitos, arquitetura (C4) e deploy
+docs/           requisitos, arquitetura (C4), deploy e conformidade — publicados na Wiki
+infra/          Terraform (Azure), Caddyfile e script de atualização da VM
 monitoramento/  Prometheus e Grafana
-.github/        pipeline de CI/CD
+.github/        pipelines de CI/CD e da Wiki
 ```
