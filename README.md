@@ -1,5 +1,7 @@
 # Escalas · Supermercado Coelho
 
+Trabalho de Conclusão de Curso — Gabriel Coelho — Engenharia de Software — 2026
+
 Sistema web de **geração, validação e otimização financeira de escalas de trabalho** para o Supermercado Coelho
 (PAC VII / PAC VIII — Engenharia de Software, Católica SC). Linha de projeto: **Web Apps**.
 
