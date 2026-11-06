@@ -10,7 +10,7 @@ const conversa = (id: number, extra: Partial<ConversaChat> = {}): ConversaChat =
 });
 
 const mensagem = (id: number, conversaId: number, autorId: number, extra: Partial<MensagemChat> = {}): MensagemChat => ({
-  id, conversaId, autorId, autorNome: autorId === EU ? 'Eu' : 'Ana', texto: 'Oi', imagem: null, escala: null, chamada: null,
+  id, conversaId, autorId, autorNome: autorId === EU ? 'Eu' : 'Ana', texto: 'Oi', imagem: null, escala: null,
   enviadaEm: '2026-10-09T08:00:00', ...extra,
 });
 
@@ -66,11 +66,6 @@ describe('aplicarEvento', () => {
     expect(r[0].naoLidas).toBe(0);
   });
 
-  it('eventos de chamada não alteram a lista de conversas', () => {
-    const lista = [conversa(1)];
-    expect(aplicarEvento(lista, { tipo: 'SINAL', chamadaId: 3, sinal: { tipo: 'ice', dados: '{}' } }, EU, null)).toBe(lista);
-  });
-
   it('soma as não lidas de todas as conversas', () => {
     expect(totalNaoLidas([conversa(1, { naoLidas: 2 }), conversa(2, { naoLidas: 3 })])).toBe(5);
   });
@@ -83,10 +78,5 @@ describe('previa', () => {
     expect(previa(mensagem(1, 1, 7, { texto: null, imagem: '/x' }), EU)).toBe('Imagem');
     expect(previa(mensagem(1, 1, 7, { texto: null, escala: { id: 3, nome: 'Semana 1' } }), EU)).toBe('Escala: Semana 1');
     expect(previa(null, EU)).toBe('Nenhuma mensagem ainda');
-    const chamada = (resultado: 'ATENDIDA' | 'RECUSADA' | 'PERDIDA') => ({ resultado, duracaoSegundos: 30 });
-    expect(previa(mensagem(1, 1, 7, { texto: null, chamada: chamada('ATENDIDA') }), EU)).toBe('Chamada de voz');
-    expect(previa(mensagem(1, 1, 7, { texto: null, chamada: chamada('PERDIDA') }), EU)).toBe('Chamada perdida');
-    expect(previa(mensagem(1, 1, EU, { texto: null, chamada: chamada('PERDIDA') }), EU)).toBe('Você: Chamada não atendida');
-    expect(previa(mensagem(1, 1, EU, { texto: null, chamada: chamada('RECUSADA') }), EU)).toBe('Você: Chamada recusada');
   });
 });

@@ -1,6 +1,5 @@
 import { Navigate, Route, Routes } from 'react-router-dom';
 import { useAuth } from './auth';
-import { ChamadaProvider } from './chat/ChamadaProvider';
 import { ChatProvider } from './chat/ChatProvider';
 import Layout from './components/Layout';
 import Login from './pages/Login';
@@ -28,25 +27,23 @@ export default function App() {
   }
   return (
     <ChatProvider>
-      <ChamadaProvider>
-        <Routes>
-          <Route element={<Layout />}>
-            <Route index element={<Painel />} />
-            <Route path="escalas" element={<Escalas />} />
-            <Route path="escalas/:id" element={<MatrizEscala />} />
+      <Routes>
+        <Route element={<Layout />}>
+          <Route index element={<Painel />} />
+          <Route path="escalas" element={<Escalas />} />
+          <Route path="escalas/:id" element={<MatrizEscala />} />
           <Route path="movimento" element={<Movimento />} />
-            <Route path="simulador" element={<Simulador />} />
-            <Route path="mensagens" element={<Mensagens />} />
-            <Route path="funcionarios" element={<Funcionarios />} />
-            <Route path="setores" element={<Setores />} />
-            <Route path="turnos" element={<Turnos />} />
-            <Route path="calendario" element={<Calendario />} />
-            <Route path="parametros" element={<ParametrosPage />} />
-            {usuario.perfil === 'ADMIN' && <Route path="usuarios" element={<Usuarios />} />}
-            <Route path="*" element={<Navigate to="/" replace />} />
-          </Route>
-        </Routes>
-      </ChamadaProvider>
+          <Route path="simulador" element={<Simulador />} />
+          <Route path="mensagens" element={<Mensagens />} />
+          <Route path="funcionarios" element={<Funcionarios />} />
+          <Route path="setores" element={<Setores />} />
+          <Route path="turnos" element={<Turnos />} />
+          <Route path="calendario" element={<Calendario />} />
+          <Route path="parametros" element={<ParametrosPage />} />
+          {usuario.perfil === 'ADMIN' && <Route path="usuarios" element={<Usuarios />} />}
+          <Route path="*" element={<Navigate to="/" replace />} />
+        </Route>
+      </Routes>
     </ChatProvider>
   );
 }

@@ -28,12 +28,8 @@ public class ChatService {
     public record EscalaMencionada(Long id, String nome) {
     }
 
-    /** Registro de chamada de voz no histórico: ATENDIDA (com duração), RECUSADA ou PERDIDA. */
-    public record RegistroChamada(String resultado, Integer duracaoSegundos) {
-    }
-
     public record MensagemChat(Long id, Long conversaId, Long autorId, String autorNome, String texto, String imagem,
-                               EscalaMencionada escala, RegistroChamada chamada, LocalDateTime enviadaEm) {
+                               EscalaMencionada escala, LocalDateTime enviadaEm) {
     }
 
     public record ConversaChat(Long id, Conversa.Tipo tipo, String nome, String foto, List<Contato> participantes,
@@ -231,16 +227,6 @@ public class ChatService {
         });
     }
 
-    /** Registra o resultado de uma chamada de voz como mensagem do chamador (entra nas não lidas de quem recebeu). */
-    @Transactional
-    public void registrarChamada(Long conversaId, Usuario chamador, String resultado, Integer duracaoSegundos) {
-        ParticipanteConversa p = participacao(chamador, conversaId);
-        Mensagem m = nova(p, null);
-        m.setChamadaResultado(resultado);
-        m.setChamadaDuracaoSegundos(duracaoSegundos);
-        publicar(p, m);
-    }
-
     private Mensagem nova(ParticipanteConversa autor, String texto) {
         Mensagem m = new Mensagem();
         m.setConversa(autor.getConversa());
@@ -308,7 +294,6 @@ public class ChatService {
         return new MensagemChat(m.getId(), m.getConversa().getId(), m.getAutor().getId(), m.getAutor().getNome(), m.getTexto(),
                 m.getImagemId() == null ? null : "/api/chat/mensagens/" + m.getId() + "/imagem",
                 m.getEscalaId() == null ? null : new EscalaMencionada(m.getEscalaId(), m.getEscalaNome()),
-                m.getChamadaResultado() == null ? null : new RegistroChamada(m.getChamadaResultado(), m.getChamadaDuracaoSegundos()),
                 m.getEnviadaEm());
     }
 

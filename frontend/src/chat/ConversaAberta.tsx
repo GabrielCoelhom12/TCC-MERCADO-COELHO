@@ -1,28 +1,18 @@
 import { Fragment, useCallback, useEffect, useRef, useState, type KeyboardEvent } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowLeft, CalendarDays, ImagePlus, Phone, PhoneIncoming, PhoneMissed, Send, Users, X } from 'lucide-react';
+import { ArrowLeft, CalendarDays, ImagePlus, Send, Users, X } from 'lucide-react';
 import { api } from '../api';
 import Avatar from '../components/Avatar';
 import { Modal, mensagemErro, useToast } from '../components/ui';
 import { dataLonga } from '../format';
 import type { ConversaChat, Escala, MensagemChat } from '../types';
-import { useChamada } from './ChamadaProvider';
 import { useChat } from './ChatProvider';
-import { textoChamada } from './estado';
 import { useImagemProtegida } from './imagem';
 import { chaveDia, hora, rotuloDia } from './tempo';
 
 const PAGINA = 50;
 const TIPOS_IMAGEM = ['image/png', 'image/jpeg'];
 const LIMITE_IMAGEM = 5 * 1024 * 1024;
-
-/** "45 s", "3 min" ou "3 min 12 s". */
-export function duracao(segundos: number | null) {
-  if (segundos === null) return '';
-  if (segundos < 60) return `${segundos} s`;
-  const resto = segundos % 60;
-  return `${Math.floor(segundos / 60)} min${resto ? ` ${resto} s` : ''}`;
-}
 
 export default function ConversaAberta({ conversa, onVoltar, onGerenciar }: {
   conversa: ConversaChat;
@@ -31,7 +21,6 @@ export default function ConversaAberta({ conversa, onVoltar, onGerenciar }: {
 }) {
   const chat = useChat();
   const { meuId, online, ouvir, aplicar } = chat;
-  const chamada = useChamada();
   const [mensagens, setMensagens] = useState<MensagemChat[] | null>(null);
   const [temMais, setTemMais] = useState(false);
   const [ampliada, setAmpliada] = useState<string | null>(null);
@@ -124,13 +113,6 @@ export default function ConversaAberta({ conversa, onVoltar, onGerenciar }: {
                 {conversa.participantes.length} participantes{onlineNoGrupo ? ` · ${onlineNoGrupo} online` : ''}
               </button>}
         </div>
-        {direta && outro && chamada.disponivel && (
-          <button className="icone botao-ligar" onClick={() => void chamada.ligar(id)}
-            disabled={!online.has(outro.id) || !!chamada.estado} aria-label="Ligar"
-            title={chamada.estado ? 'Você já está em uma chamada' : online.has(outro.id) ? `Ligar para ${outro.nome}` : `${outro.nome} está offline`}>
-            <Phone size={18} strokeWidth={1.9} aria-hidden />
-          </button>
-        )}
       </header>
 
       <div className="chat-mensagens" ref={lista}>
@@ -143,21 +125,6 @@ export default function ConversaAberta({ conversa, onVoltar, onGerenciar }: {
           const minha = m.autorId === meuId;
           const agrupada = !novoDia && anterior?.autorId === m.autorId;
           const autor = conversa.participantes.find((p) => p.id === m.autorId);
-          if (m.chamada) {
-            const atendida = m.chamada.resultado === 'ATENDIDA';
-            const texto = atendida && m.chamada.duracaoSegundos !== null
-              ? `Chamada de voz · ${duracao(m.chamada.duracaoSegundos)}` : textoChamada(m, meuId);
-            return (
-              <Fragment key={m.id}>
-                {novoDia && <div className="separador-dia"><span>{rotuloDia(m.enviadaEm)}</span></div>}
-                <div className={`registro-chamada ${atendida ? '' : 'perdida'}`}>
-                  {atendida ? <PhoneIncoming size={15} aria-hidden /> : <PhoneMissed size={15} aria-hidden />}
-                  <span>{texto}</span>
-                  <time>{hora(m.enviadaEm)}</time>
-                </div>
-              </Fragment>
-            );
-          }
           return (
             <Fragment key={m.id}>
               {novoDia && <div className="separador-dia"><span>{rotuloDia(m.enviadaEm)}</span></div>}

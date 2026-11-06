@@ -29,8 +29,6 @@ services:
       APP_JWT_SECRET: ${APP_JWT_SECRET:?Defina APP_JWT_SECRET no .env}
       APP_ADMIN_SENHA: ${APP_ADMIN_SENHA:-}
       APP_SEED: ${APP_SEED:-true}
-      APP_TURN_URLS: ${APP_TURN_URLS:-}
-      APP_TURN_SEGREDO: ${APP_TURN_SEGREDO:-}
     ports:
       - "8080:8080"
     # A porta 8081 (métricas/health) fica só na rede interna, acessível ao Prometheus.

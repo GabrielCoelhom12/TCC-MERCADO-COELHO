@@ -11,7 +11,7 @@ const bruno: Contato = { id: 8, nome: 'Bruno Lima', foto: null, online: false };
 const eu: Contato = { id: EU, nome: 'Gerência', foto: null, online: true };
 
 const msg = (id: number, autorId: number, texto: string | null, extra: Partial<MensagemChat> = {}): MensagemChat => ({
-  id, conversaId: 1, autorId, autorNome: autorId === EU ? 'Gerência' : 'Ana Souza', texto, imagem: null, escala: null, chamada: null,
+  id, conversaId: 1, autorId, autorNome: autorId === EU ? 'Gerência' : 'Ana Souza', texto, imagem: null, escala: null,
   enviadaEm: '2026-10-09T08:00:00', ...extra,
 });
 

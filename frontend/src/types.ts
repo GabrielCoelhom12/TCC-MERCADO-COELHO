@@ -274,8 +274,6 @@ export interface MensagemChat {
   /** URL protegida da imagem anexada (exige o token). */
   imagem: string | null;
   escala: { id: number; nome: string } | null;
-  /** Registro automático de chamada de voz. */
-  chamada: { resultado: 'ATENDIDA' | 'RECUSADA' | 'PERDIDA'; duracaoSegundos: number | null } | null;
   enviadaEm: string;
 }
 
@@ -292,25 +290,8 @@ export interface ConversaChat {
   atualizadaEm: string;
 }
 
-export type StatusChamada = 'TOCANDO' | 'EM_ANDAMENTO' | 'ENCERRADA' | 'RECUSADA' | 'PERDIDA';
-
-export interface Chamada {
-  id: number;
-  conversaId: number;
-  chamador: Contato;
-  destinatario: Contato;
-  status: StatusChamada;
-  iniciadaEm: string;
-  atendidaEm: string | null;
-  encerradaEm: string | null;
-}
-
-export type TipoSinal = 'offer' | 'answer' | 'ice';
-
 export type EventoChat =
   | { tipo: 'MENSAGEM'; conversaId: number; mensagem: MensagemChat }
-  | { tipo: 'CHAMADA'; conversaId: number; chamada: Chamada }
-  | { tipo: 'SINAL'; chamadaId: number; sinal: { tipo: TipoSinal; dados: string } }
   | { tipo: 'CONVERSA'; conversaId: number; conversa: ConversaChat }
   | { tipo: 'SAIU'; conversaId: number }
   | { tipo: 'LEITURA'; conversaId: number; usuarioId: number; mensagemId: number };

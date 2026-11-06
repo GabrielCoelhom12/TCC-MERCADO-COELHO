@@ -101,8 +101,6 @@ flowchart TB
         end
     end
 
-    turn["coturn<br/>[servidor TURN]<br/>3478 UDP/TCP"]
-
     dev -- "git push / Pull Request" --> repo
     repo -- "dispara o workflow" --> actions
     actions -- "relatórios de cobertura" --> sonar
@@ -114,17 +112,15 @@ flowchart TB
     app -- "JDBC 5432" --> db
     prom -- "scrape a cada 15 s<br/>GET /actuator/prometheus · 8081" --> app
     graf -- "PromQL" --> prom
-    gestor -. "áudio WebRTC<br/>direto entre navegadores ou via TURN" .-> turn
 ```
 
 | Elemento | Exposição | Observação |
 |----------|-----------|------------|
-| Proxy reverso | Pública (80/443) | Termina o TLS, que o navegador exige para liberar o microfone nas chamadas de voz. |
+| Proxy reverso | Pública (80/443) | Termina o TLS; senhas, tokens e mensagens do chat nunca trafegam em texto aberto. |
 | `app` | Interna (8080 via proxy) | Uma única instância, porque o broker do chat é em memória. Segredos vêm do ambiente (`.env` / provedor). |
 | Porta 8081 | Somente rede interna | Health check do provedor e coleta do Prometheus; nunca exposta à internet. |
 | `db` | Somente rede interna | Dados persistidos no volume `dados-postgres`; pode ser trocado por um PostgreSQL gerenciado. |
 | Prometheus / Grafana | Restrita | O compose publica 9090 e 3000; em produção, restringir por firewall ou publicar só o Grafana atrás do proxy, com senha (`GRAFANA_SENHA`). |
-| coturn | Pública (opcional) | Só necessário em redes que bloqueiam conexão direta entre navegadores. |
 
 ## Decisões
 
@@ -137,5 +133,4 @@ flowchart TB
 | **Porta de gerência separada (8081)** | Métricas e health check ficam fora da porta pública. |
 | **Previsão explicável (estatística), não um modelo opaco** | Média ponderada recente do mesmo dia da semana + efeitos medidos no próprio histórico (início do mês, véspera de feriado), com a justificativa de cada número. Funciona com poucas semanas de dados, é testável com cenários exatos e o gestor entende e confia na previsão; sem histórico, vale a configuração manual. |
 | **Demanda por faixa com escolha gulosa de turnos** | Pessoas por faixa = ⌈clientes ÷ (capacidade × horas)⌉; a cada passo, o modelo de turno que cobre mais faixas descobertas. Simples de explicar e próximo do ótimo para os poucos modelos de turno de uma loja. Abaixo do previsto é alerta (o gestor decide); abaixo do piso manual é erro. |
-| **Chamadas de voz com WebRTC** | O áudio vai direto entre os navegadores; o servidor só controla o estado da chamada e repassa a sinalização (offer/answer/ICE) pelo mesmo WebSocket do chat. Credenciais TURN temporárias (HMAC), sem segredo no navegador. |
 | **Chat: envio por REST, entrega por WebSocket** | As mensagens passam pela mesma validação, autorização e testes da API; o WebSocket (STOMP) só entrega eventos, e apenas após o commit. O broker é em memória: para mais de uma instância da aplicação, trocar por um broker externo (ex.: RabbitMQ). |

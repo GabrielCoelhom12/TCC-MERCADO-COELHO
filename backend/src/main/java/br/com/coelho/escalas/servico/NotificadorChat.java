@@ -10,7 +10,7 @@ import java.util.Collection;
 import java.util.List;
 
 /**
- * Entrega eventos do chat e das chamadas em /user/queue/chat de cada destinatário. Dentro de uma transação, o envio
+ * Entrega eventos do chat em /user/queue/chat de cada destinatário. Dentro de uma transação, o envio
  * espera o commit: ninguém recebe aviso de algo que acabou desfeito.
  */
 @Component

@@ -62,14 +62,6 @@ app:
       # Cria sozinho o rascunho das próximas semanas (liga/desliga e antecedência ficam em Parâmetros).
       habilitada: ${APP_GERACAO_AUTOMATICA:true}
       cron: "0 0 6 * * *"
-  chamada:
-    # Chamadas de voz (WebRTC). STUN público por padrão; TURN opcional, necessário em redes que bloqueiam
-    # conexão direta (ex.: coturn com "use-auth-secret" e o mesmo segredo abaixo).
-    stun: ${APP_STUN_URLS:stun:stun.l.google.com:19302}
-    turn:
-      urls: ${APP_TURN_URLS:}
-      segredo: ${APP_TURN_SEGREDO:}
-    tempo-toque-segundos: 30
   seed:
     # Popula o banco com o cenário hipotético do Supermercado Coelho na primeira execução.
     habilitado: ${APP_SEED:true}

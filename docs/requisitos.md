@@ -45,11 +45,10 @@ O sistema tem três fluxos de negócio completos, cada um coberto por testes de 
 | RF21 | Permitir conversas privadas entre usuários e grupos livres (criar, renomear, adicionar pessoas e sair), com entrega das mensagens em tempo real. |
 | RF22 | Anexar imagens (PNG/JPEG até 5 MB, regravadas no servidor) e mencionar escalas nas mensagens, com link para a matriz. |
 | RF23 | Exibir quem está online, o contador de mensagens não lidas (no menu e por conversa) e a indicação de leitura nas conversas privadas. |
-| RF24 | Permitir chamadas de voz entre os participantes de uma conversa privada (ligar, atender, recusar, silenciar e desligar), com áudio direto entre os navegadores, aviso visível em qualquer tela e registro no histórico (duração, perdida ou recusada). |
-| RF25 | Registrar o fechamento de cada dia (clientes e vendas por faixa de horário configurável) e corrigi-lo depois, destacando os dias pendentes. |
-| RF26 | Prever o movimento dos próximos dias a partir dos fechamentos (média recente do mesmo dia da semana, efeitos aprendidos de início do mês e véspera de feriado, feriados e pico por faixa), com a explicação de cada previsão. |
-| RF27 | Calcular as pessoas necessárias por faixa nos setores que acompanham o movimento (capacidade de atendimento), escolher os turnos que cobrem os picos e alertar quando uma edição manual deixar um pico descoberto. |
-| RF28 | Criar automaticamente, como rascunho, a escala das próximas semanas (antecedência configurável), sem alterar escalas existentes. |
+| RF24 | Registrar o fechamento de cada dia (clientes e vendas por faixa de horário configurável) e corrigi-lo depois, destacando os dias pendentes. |
+| RF25 | Prever o movimento dos próximos dias a partir dos fechamentos (média recente do mesmo dia da semana, efeitos aprendidos de início do mês e véspera de feriado, feriados e pico por faixa), com a explicação de cada previsão. |
+| RF26 | Calcular as pessoas necessárias por faixa nos setores que acompanham o movimento (capacidade de atendimento), escolher os turnos que cobrem os picos e alertar quando uma edição manual deixar um pico descoberto. |
+| RF27 | Criar automaticamente, como rascunho, a escala das próximas semanas (antecedência configurável), sem alterar escalas existentes. |
 
 ## Requisitos não funcionais
 
@@ -111,13 +110,7 @@ Como gestor, quero conversar com outros gestores dentro do sistema para combinar
 - *Quando* menciono uma escala, *então* quem recebe abre a matriz dela com um clique.
 - *Quando* a outra pessoa lê a minha mensagem, *então* vejo a indicação "Lida".
 
-**US11 — Ligar para resolver na hora** (RF24)
-Como gestor, quero ligar para outro gestor pelo sistema para resolver uma troca de turno urgente sem sair da tela.
-- *Dado* que a pessoa está online, *quando* ligo, *então* ela vê o aviso de chamada em qualquer tela e pode atender ou recusar.
-- *Quando* ninguém atende em 30 segundos, *então* a chamada é encerrada e aparece como "Chamada perdida" na conversa.
-- *Quando* a chamada termina, *então* o histórico mostra a duração.
-
-**US12 — Escala que acompanha o movimento** (RF25–RF28)
+**US11 — Escala que acompanha o movimento** (RF24–RF27)
 Como gerente, quero que o sistema entenda os dias e horários de maior movimento e monte a escala sozinho, para eu só revisar.
 - *Quando* lanço o fechamento do dia (clientes e vendas por faixa), *então* a previsão dos próximos dias passa a considerá-lo.
 - *Dado* um histórico em que o início do mês vende mais, *então* a previsão mostra o efeito aprendido ("+12%, aprendido de 22 dias").

@@ -70,7 +70,6 @@ class ChatWebSocketTest extends IntegracaoTest {
         String ids = usuariosCriados.stream().map(String::valueOf).reduce((a, b) -> a + "," + b).orElseThrow();
         String conversas = "select conversa_id from participante_conversa where usuario_id in (" + ids + ")";
         jdbc.update("delete from mensagem where conversa_id in (" + conversas + ")");
-        jdbc.update("delete from chamada where conversa_id in (" + conversas + ")");
         jdbc.update("delete from anexo_imagem where conversa_id in (" + conversas + ")");
         List<Long> idsConversas = jdbc.queryForList(conversas, Long.class);
         if (!idsConversas.isEmpty()) {
@@ -136,54 +135,6 @@ class ChatWebSocketTest extends IntegracaoTest {
         sessaoAna.disconnect();
         JsonNode offline = aguardar(presencas, e -> e.path("usuarioId").asLong() == ana && !e.path("online").asBoolean());
         assertThat(offline).isNotNull();
-    }
-
-    @Test
-    void chamadaDeVozESinalizacaoChegamEmTempoReal() throws Exception {
-        long ana = criarUsuario("ana");
-        String tokenGestor = token();
-        BlockingQueue<JsonNode> eventosAna = inscrever(conectarComo("ana"), "/user/queue/chat");
-        Thread.sleep(400);
-
-        usarToken(tokenGestor);
-        long conversa = corpo(post("/api/chat/conversas/diretas", Map.of("usuarioId", ana))).get("id").asLong();
-        long chamada = corpo(post("/api/chat/conversas/" + conversa + "/chamadas", Map.of()).andExpect(status().isCreated()))
-                .get("id").asLong();
-
-        JsonNode convite = aguardar(eventosAna, e -> e.path("tipo").asText().equals("CHAMADA"));
-        assertThat(convite.at("/chamada/id").asLong()).isEqualTo(chamada);
-        assertThat(convite.at("/chamada/status").asText()).isEqualTo("TOCANDO");
-
-        post("/api/chat/chamadas/" + chamada + "/sinal", Map.of("tipo", "offer", "dados", "{\"sdp\":\"v=0\"}"))
-                .andExpect(status().isNoContent());
-        JsonNode sinal = aguardar(eventosAna, e -> e.path("tipo").asText().equals("SINAL"));
-        assertThat(sinal.path("chamadaId").asLong()).isEqualTo(chamada);
-        assertThat(sinal.at("/sinal/tipo").asText()).isEqualTo("offer");
-        assertThat(sinal.at("/sinal/dados").asText()).isEqualTo("{\"sdp\":\"v=0\"}");
-    }
-
-    @Test
-    void quemFechaAPaginaDerrubaAChamada() throws Exception {
-        long ana = criarUsuario("ana");
-        String tokenGestor = token();
-        StompSession sessaoAna = conectarComo("ana");
-        BlockingQueue<JsonNode> eventosAna = inscrever(sessaoAna, "/user/queue/chat");
-        Thread.sleep(400);
-
-        usarToken(tokenGestor);
-        long conversa = corpo(post("/api/chat/conversas/diretas", Map.of("usuarioId", ana))).get("id").asLong();
-        post("/api/chat/conversas/" + conversa + "/chamadas", Map.of()).andExpect(status().isCreated());
-        aguardar(eventosAna, e -> e.path("tipo").asText().equals("CHAMADA"));
-
-        sessaoAna.disconnect();
-        long limite = System.currentTimeMillis() + 5000;
-        String resultado = "";
-        while (System.currentTimeMillis() < limite && resultado.isEmpty()) {
-            Thread.sleep(200);
-            JsonNode ultimas = corpo(get("/api/chat/conversas/" + conversa + "/mensagens"));
-            resultado = ultimas.isEmpty() ? "" : ultimas.get(ultimas.size() - 1).at("/chamada/resultado").asText();
-        }
-        assertThat(resultado).isEqualTo("PERDIDA");
     }
 
     @Test

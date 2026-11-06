@@ -10,8 +10,6 @@
 | `APP_ADMIN_SENHA` | recomendada | Senha do usuário `gestor` criado no primeiro start. Sem ela, é gerada e exibida uma vez no log. |
 | `APP_SEED` | — | `true` carrega o cenário de demonstração quando o banco está vazio. Use `false` em produção real. |
 | `PORT` / `MANAGEMENT_PORT` | — | Porta HTTP (8080) e porta de métricas/health (8081). |
-| `APP_TURN_URLS` / `APP_TURN_SEGREDO` | recomendada | Servidor TURN para chamadas de voz em redes que bloqueiam conexão direta (ex.: `turn:turn.seudominio.com:3478`) e o segredo compartilhado (`static-auth-secret` do coturn). |
-| `APP_STUN_URLS` | — | Servidores STUN (padrão: STUN público do Google). |
 | `APP_GERACAO_AUTOMATICA` | — | `false` desliga o agendamento do rascunho semanal (a opção também pode ser desligada em Parâmetros). Roda todo dia às 6h e ao iniciar. |
 | `APP_WS_ORIGENS` | — | Origens extras aceitas no WebSocket do chat (a própria origem da aplicação é sempre aceita). |
 
@@ -59,14 +57,6 @@ com Docker (AWS, Azure, GCP, VPS institucional):
 5. O chat usa WebSocket em `/ws`: o proxy reverso/balanceador precisa repassar o *upgrade* de conexão
    (no Nginx: `proxy_set_header Upgrade $http_upgrade; proxy_set_header Connection "upgrade";`). Rode uma única
    instância da aplicação (o broker de mensagens do chat é em memória).
-
-### Chamadas de voz em produção
-
-- O navegador só libera o microfone em **HTTPS** (ou `localhost`).
-- Sem TURN, a chamada funciona quando os dois lados conseguem se conectar diretamente (a maioria das redes domésticas
-  e móveis). Em redes corporativas, suba um [coturn](https://github.com/coturn/coturn) com
-  `use-auth-secret` e `static-auth-secret=<segredo>` (portas 3478/UDP-TCP e a faixa de retransmissão) e informe
-  `APP_TURN_URLS` e o mesmo segredo em `APP_TURN_SEGREDO`. O backend gera credenciais válidas por 12 horas.
 
 ## Desenvolvimento local (sem Docker)
 

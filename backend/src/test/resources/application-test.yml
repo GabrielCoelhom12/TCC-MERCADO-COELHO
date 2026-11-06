@@ -24,7 +24,3 @@ app:
     geracao-automatica:
       # Nos testes a geração é chamada explicitamente (sem agendamento nem execução ao iniciar).
       habilitada: false
-  chamada:
-    turn:
-      urls: turn:turn.teste.local:3478
-      segredo: segredo-turn-de-teste

@@ -1,7 +1,6 @@
 package br.com.coelho.escalas.servico;
 
 import br.com.coelho.escalas.repositorio.UsuarioRepository;
-import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.context.event.EventListener;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Component;
@@ -23,19 +22,13 @@ public class PresencaChat {
     public record Presenca(Long usuarioId, boolean online) {
     }
 
-    /** Publicado quando a última conexão de um usuário cai (ex.: fechou a página). */
-    public record UsuarioFicouOffline(String login) {
-    }
-
     private final Map<String, Integer> conexoes = new ConcurrentHashMap<>();
     private final UsuarioRepository usuarios;
     private final SimpMessagingTemplate mensageiro;
-    private final ApplicationEventPublisher eventos;
 
-    public PresencaChat(UsuarioRepository usuarios, SimpMessagingTemplate mensageiro, ApplicationEventPublisher eventos) {
+    public PresencaChat(UsuarioRepository usuarios, SimpMessagingTemplate mensageiro) {
         this.usuarios = usuarios;
         this.mensageiro = mensageiro;
-        this.eventos = eventos;
     }
 
     public boolean online(String login) {
@@ -56,10 +49,8 @@ public class PresencaChat {
         if (usuario == null) {
             return;
         }
-        Integer restantes = conexoes.computeIfPresent(usuario.getName(), (login, n) -> n > 1 ? n - 1 : null);
-        if (restantes == null) {
+        if (conexoes.computeIfPresent(usuario.getName(), (login, n) -> n > 1 ? n - 1 : null) == null) {
             avisar(usuario.getName(), false);
-            eventos.publishEvent(new UsuarioFicouOffline(usuario.getName()));
         }
     }
 

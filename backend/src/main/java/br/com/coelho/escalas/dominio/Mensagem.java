@@ -37,11 +37,6 @@ public class Mensagem {
 
     private String escalaNome;
 
-    /** Mensagem automática de chamada de voz: resultado (ATENDIDA, RECUSADA, PERDIDA) e duração. */
-    private String chamadaResultado;
-
-    private Integer chamadaDuracaoSegundos;
-
     @Column(nullable = false)
     private LocalDateTime enviadaEm = LocalDateTime.now();
 }

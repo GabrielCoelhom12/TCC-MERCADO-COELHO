@@ -33,19 +33,6 @@ export function aplicarEvento(conversas: ConversaChat[], evento: EventoChat, meu
         leituras: { ...c.leituras, [evento.usuarioId]: evento.mensagemId },
         naoLidas: evento.usuarioId === meuId ? 0 : c.naoLidas,
       });
-    default:
-      return conversas; // eventos de chamada são tratados pelo ChamadaProvider
-  }
-}
-
-/** Texto do registro de uma chamada, do ponto de vista de quem lê. */
-export function textoChamada(m: MensagemChat, meuId: number | undefined) {
-  if (!m.chamada) return '';
-  const minha = m.autorId === meuId; // o autor do registro é quem ligou
-  switch (m.chamada.resultado) {
-    case 'ATENDIDA': return 'Chamada de voz';
-    case 'RECUSADA': return 'Chamada recusada';
-    default: return minha ? 'Chamada não atendida' : 'Chamada perdida';
   }
 }
 
@@ -54,7 +41,6 @@ export const totalNaoLidas = (conversas: ConversaChat[]) => conversas.reduce((s,
 /** Texto curto da última mensagem para a lista de conversas. */
 export function previa(m: MensagemChat | null, meuId: number | undefined) {
   if (!m) return 'Nenhuma mensagem ainda';
-  const conteudo = m.chamada ? textoChamada(m, meuId)
-    : m.texto ?? (m.imagem ? 'Imagem' : m.escala ? `Escala: ${m.escala.nome}` : '');
+  const conteudo = m.texto ?? (m.imagem ? 'Imagem' : m.escala ? `Escala: ${m.escala.nome}` : '');
   return m.autorId === meuId ? `Você: ${conteudo}` : conteudo;
 }

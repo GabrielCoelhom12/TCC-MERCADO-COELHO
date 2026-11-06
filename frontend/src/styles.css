@@ -471,58 +471,6 @@ button.icone.ativo { background: var(--laranja-fundo); border-color: var(--laran
   .chat-mensagens { padding: 14px 12px 8px; }
 }
 
-/* ---------- chamada de voz ---------- */
-.botao-ligar { margin-left: auto; width: 40px; height: 40px; border-radius: 12px; color: var(--laranja-escuro); }
-.botao-ligar:hover:not(:disabled) { background: var(--laranja-fundo); border-color: var(--laranja-claro); }
-
-.registro-chamada {
-  align-self: center; display: inline-flex; align-items: center; gap: 8px; margin: 8px 0; padding: 6px 14px;
-  border-radius: 999px; background: #fff; border: 1px solid var(--borda); font-size: 12.5px; color: var(--tinta-2);
-}
-.registro-chamada svg { color: #15803d; }
-.registro-chamada.perdida svg { color: var(--erro); }
-.registro-chamada time { color: var(--tinta-3); font-size: 11px; }
-
-.painel-chamada {
-  position: fixed; right: 24px; bottom: calc(24px + env(safe-area-inset-bottom, 0px)); z-index: 70; width: 300px;
-  padding: 18px; border-radius: 20px; color: #fff;
-  background: linear-gradient(160deg, #2a2b25, var(--preto));
-  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.06);
-  animation: painel-entrar 0.3s cubic-bezier(0.22, 1, 0.36, 1);
-}
-@keyframes painel-entrar { from { opacity: 0; transform: translateY(16px) scale(0.97); } to { opacity: 1; transform: none; } }
-.painel-chamada-topo { display: flex; align-items: center; gap: 14px; }
-.painel-chamada-texto { display: flex; flex-direction: column; min-width: 0; }
-.painel-chamada-texto strong { font-family: var(--fonte-display); font-size: 20px; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.painel-status { font-size: 13px; color: #c9c9c2; font-variant-numeric: tabular-nums; }
-.fase-em-andamento .painel-status { color: #4ade80; font-weight: 600; }
-.fase-encerrada .painel-status { color: #fca5a5; }
-.painel-avatar { position: relative; display: inline-flex; border-radius: 50%; }
-.painel-avatar.pulsando::before, .painel-avatar.pulsando::after {
-  content: ''; position: absolute; inset: 0; border-radius: 50%; border: 2px solid var(--laranja);
-  animation: pulso 1.8s ease-out infinite;
-}
-.painel-avatar.pulsando::after { animation-delay: 0.9s; }
-@keyframes pulso { from { transform: scale(1); opacity: 0.9; } to { transform: scale(1.7); opacity: 0; } }
-.painel-acoes { display: flex; justify-content: center; gap: 22px; margin-top: 18px; }
-.acao-chamada {
-  width: 52px; height: 52px; border-radius: 50%; padding: 0; justify-content: center; border: none; color: #fff;
-  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.3);
-}
-.acao-chamada:hover:not(:disabled) { border: none; filter: brightness(1.1); transform: translateY(-1px); }
-.acao-chamada.atender, .acao-chamada.atender:hover:not(:disabled) { background: #16a34a; animation: chamar-atencao 1.6s ease-in-out infinite; }
-.acao-chamada.desligar, .acao-chamada.desligar:hover:not(:disabled) { background: #dc2626; }
-.acao-chamada.mudo, .acao-chamada.mudo:hover:not(:disabled) { background: #3a3b34; }
-.acao-chamada.mudo.ativo, .acao-chamada.mudo.ativo:hover:not(:disabled) { background: #fff; color: var(--preto); }
-@keyframes chamar-atencao { 0%, 100% { transform: rotate(0); } 10%, 30% { transform: rotate(-12deg); } 20%, 40% { transform: rotate(12deg); } 50% { transform: rotate(0); } }
-
-@media (prefers-reduced-motion: reduce) {
-  .painel-avatar.pulsando::before, .painel-avatar.pulsando::after, .acao-chamada.atender { animation: none; }
-}
-@media (max-width: 800px) {
-  .painel-chamada { left: 12px; right: 12px; width: auto; bottom: calc(12px + env(safe-area-inset-bottom, 0px)); }
-}
-
 /* ---------- movimento e previsão ---------- */
 .movimento-topo { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(260px, 1fr); gap: 16px; align-items: start; }
 .tabela-fechamento input[type=number] { width: 130px; text-align: right; }
