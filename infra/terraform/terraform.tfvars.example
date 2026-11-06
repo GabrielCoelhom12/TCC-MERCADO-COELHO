@@ -1,0 +1,17 @@
+# Copie para terraform.tfvars (ignorado pelo Git) e preencha. Nunca versione este arquivo preenchido.
+subscription_id = "00000000-0000-0000-0000-000000000000"
+
+# Os valores vão para um arquivo de ambiente do Docker Compose: evite os caracteres $, aspas e espaços.
+# Gere com: openssl rand -base64 24
+db_password   = ""
+# Gere com: openssl rand -base64 48
+jwt_secret    = ""
+# 8+ caracteres com maiúscula, minúscula, número e caractere especial.
+admin_senha   = ""
+grafana_senha = ""
+
+# Opcionais
+# localizacao = "brazilsouth"
+# tamanho_vm  = "Standard_B2s"
+# dominio     = "escalas.seudominio.com.br"
+# app_seed    = true

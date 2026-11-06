@@ -1,5 +1,7 @@
-# Ambiente completo: aplicação + PostgreSQL + Prometheus + Grafana.
-# Uso: copie .env.example para .env, ajuste as senhas e rode "docker compose up -d --build".
+# Base comum aos dois ambientes: aplicação + PostgreSQL + Prometheus + Grafana, todos só na rede interna.
+#  - Desenvolvimento: "docker compose up -d --build" também carrega o docker-compose.override.yml (build local e
+#    portas publicadas em localhost).
+#  - Produção: docker-compose.prod.yml (imagem do GHCR atrás do proxy HTTPS), aplicado pelo pipeline — ver docs/deploy.md.
 services:
   db:
     image: postgres:17-alpine
@@ -16,8 +18,7 @@ services:
       retries: 5
 
   app:
-    build: .
-    image: escalas-coelho:local
+    image: ${IMAGEM:-escalas-coelho}:${IMAGEM_TAG:-local}
     restart: unless-stopped
     depends_on:
       db:
@@ -29,8 +30,6 @@ services:
       APP_JWT_SECRET: ${APP_JWT_SECRET:?Defina APP_JWT_SECRET no .env}
       APP_ADMIN_SENHA: ${APP_ADMIN_SENHA:-}
       APP_SEED: ${APP_SEED:-true}
-    ports:
-      - "8080:8080"
     # A porta 8081 (métricas/health) fica só na rede interna, acessível ao Prometheus.
 
   prometheus:
@@ -38,8 +37,6 @@ services:
     restart: unless-stopped
     volumes:
       - ./monitoramento/prometheus.yml:/etc/prometheus/prometheus.yml:ro
-    ports:
-      - "9090:9090"
 
   grafana:
     image: grafana/grafana:12.1.1
@@ -49,8 +46,6 @@ services:
     volumes:
       - ./monitoramento/grafana:/etc/grafana/provisioning:ro
       - dados-grafana:/var/lib/grafana
-    ports:
-      - "3000:3000"
 
 volumes:
   dados-postgres:

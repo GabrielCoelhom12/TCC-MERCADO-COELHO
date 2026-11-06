@@ -1,0 +1,26 @@
+# Ambiente de produção (VM no Azure). Usado só pelo infra/atualizar.sh, que o pipeline executa a cada push na main:
+#   docker compose --env-file /etc/escalas/env -f docker-compose.yml -f docker-compose.prod.yml up -d
+# A aplicação usa a imagem publicada no GHCR (IMAGEM no /etc/escalas/env, IMAGEM_TAG = sha-<commit>) e só o proxy (Caddy) fica exposto à internet, em 80/443.
+services:
+  grafana:
+    environment:
+      GF_SERVER_ROOT_URL: https://${APP_HOST:?Defina APP_HOST}/grafana/
+      GF_SERVER_SERVE_FROM_SUB_PATH: "true"
+
+  caddy:
+    image: caddy:2.10-alpine
+    restart: unless-stopped
+    depends_on:
+      - app
+    environment:
+      APP_HOST: ${APP_HOST}
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"
+    volumes:
+      - ./infra/Caddyfile:/etc/caddy/Caddyfile:ro
+      - dados-caddy:/data
+
+volumes:
+  dados-caddy:

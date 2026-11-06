@@ -5,6 +5,11 @@ on:
     branches: [main]
   pull_request:
   workflow_dispatch:
+    inputs:
+      commit:
+        description: "Commit já publicado a reimplantar (rollback). Vazio = só roda o pipeline."
+        required: false
+        default: ""
 
 permissions:
   contents: read
@@ -127,3 +132,61 @@ jobs:
           tags: ${{ steps.meta.outputs.tags }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+  infra:
+    name: Infraestrutura (Terraform fmt + validate)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: infra/terraform
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hashicorp/setup-terraform@v3
+      - run: terraform fmt -check -recursive
+      - run: terraform init -backend=false -input=false
+      - run: terraform validate
+
+  deploy:
+    name: Deploy em produção (Azure)
+    needs: [imagem, analise-estatica, infra]
+    # Push na main publica o commit; o disparo manual com "commit" preenchido volta para uma versão anterior.
+    if: >-
+      vars.AZURE_VM != '' &&
+      ((github.event_name == 'push' && github.ref == 'refs/heads/main') ||
+       (github.event_name == 'workflow_dispatch' && inputs.commit != ''))
+    runs-on: ubuntu-latest
+    environment:
+      name: producao
+      url: ${{ vars.APP_URL }}
+    permissions:
+      contents: read
+      id-token: write
+    concurrency:
+      group: deploy-producao
+      cancel-in-progress: false
+    steps:
+      - uses: azure/login@v2
+        with:
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+      - name: Atualiza a VM (infra/atualizar.sh via run-command, sem SSH)
+        env:
+          COMMIT: ${{ inputs.commit || github.sha }}
+        run: |
+          case "$COMMIT" in *[!0-9a-f]*) echo "::error::commit inválido"; exit 1;; esac
+          # Atualiza o checkout antes, para executar o atualizar.sh da própria versão publicada.
+          script="cd /opt/escalas && git fetch --quiet origin && git checkout --quiet --force $COMMIT && sh infra/atualizar.sh $COMMIT"
+          saida=$(az vm run-command invoke \
+            --resource-group "${{ vars.AZURE_RESOURCE_GROUP }}" --name "${{ vars.AZURE_VM }}" \
+            --command-id RunShellScript --scripts "$script" \
+            --query "value[0].message" -o tsv)
+          echo "$saida"
+          echo "$saida" | grep -q "publicada" || { echo "::error::a atualização da VM falhou"; exit 1; }
+      - name: Verifica a aplicação no ar
+        run: |
+          for i in $(seq 1 30); do
+            curl -fsS -o /dev/null "${{ vars.APP_URL }}" && { echo "No ar: ${{ vars.APP_URL }}"; exit 0; }
+            sleep 10
+          done
+          echo "::error::a aplicação não respondeu em ${{ vars.APP_URL }}"; exit 1

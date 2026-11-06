@@ -9,3 +9,9 @@ frontend/*.tsbuildinfo
 *.log
 .idea/
 .vscode/
+
+# Terraform: estado (contém os segredos) e variáveis preenchidas ficam só na máquina de quem provisiona.
+infra/terraform/.terraform/
+infra/terraform/*.tfstate*
+infra/terraform/terraform.tfvars
+infra/terraform/.terraform.lock.hcl

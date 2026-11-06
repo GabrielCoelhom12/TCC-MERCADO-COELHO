@@ -1,0 +1,23 @@
+# Proxy reverso de produção. O Caddy emite e renova sozinho o certificado HTTPS (Let's Encrypt) para APP_HOST
+# e redireciona HTTP para HTTPS.
+{$APP_HOST} {
+	encode zstd gzip
+
+	# Grafana (com login) no mesmo domínio; o Prometheus não é exposto.
+	handle /grafana* {
+		reverse_proxy grafana:3000
+	}
+
+	# SPA, API REST e WebSocket do chat (/ws) — o Caddy repassa o upgrade de conexão automaticamente.
+	handle {
+		reverse_proxy app:8080
+	}
+
+	header {
+		Strict-Transport-Security "max-age=31536000"
+		X-Content-Type-Options "nosniff"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		X-Frame-Options "DENY"
+		-Server
+	}
+}

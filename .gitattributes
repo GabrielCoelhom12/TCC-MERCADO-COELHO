@@ -1,0 +1,3 @@
+# Scripts e configuração executados na VM Linux de produção.
+*.sh text eol=lf
+infra/** text eol=lf

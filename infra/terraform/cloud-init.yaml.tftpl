@@ -1,0 +1,26 @@
+#cloud-config
+# Preparação da VM na primeira inicialização: Docker, segredos em /etc/escalas/env e primeira publicação.
+package_update: true
+packages:
+  - docker.io
+  - docker-compose-v2
+  - git
+
+write_files:
+  - path: /etc/escalas/env
+    permissions: "0600"
+    owner: root:root
+    content: |
+      APP_HOST=${host}
+      IMAGEM=${imagem}
+      DB_USER=escalas
+      DB_PASSWORD=${db_password}
+      APP_JWT_SECRET=${jwt_secret}
+      APP_ADMIN_SENHA=${admin_senha}
+      APP_SEED=${app_seed}
+      GRAFANA_SENHA=${grafana_senha}
+
+runcmd:
+  - systemctl enable --now docker
+  - git clone https://github.com/${repositorio}.git /opt/escalas
+  - sh /opt/escalas/infra/atualizar.sh origin/main

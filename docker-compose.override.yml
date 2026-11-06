@@ -1,0 +1,14 @@
+# Ambiente de desenvolvimento: carregado automaticamente por "docker compose up" junto com o docker-compose.yml.
+services:
+  app:
+    build: .
+    ports:
+      - "8080:8080"
+
+  prometheus:
+    ports:
+      - "9090:9090"
+
+  grafana:
+    ports:
+      - "3000:3000"
