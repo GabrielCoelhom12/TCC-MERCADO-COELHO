@@ -48,9 +48,9 @@ flowchart TB
     spa["SPA"]
 
     subgraph api["API REST (Spring Boot)"]
-        seg["seguranca<br/>JwtFiltro · JwtService · SecurityConfig"]
-        ctrl["api<br/>Controllers REST + TratadorErros"]
-        serv["servico<br/>EscalaService · ContextoService · ChatService<br/>PresencaChat · CalendarioFeriados"]
+        seg["seguranca<br/>JwtFiltro · AutenticadorJwt · JwtService · SecurityConfig"]
+        ctrl["api<br/>Controllers REST + TratadorErros<br/>(somente HTTP)"]
+        serv["servico<br/>Escalas: EscalaService · MotorService · MovimentoService · ContextoService<br/>Cadastros: Funcionario · Setor · TurnoModelo · Feriado · Projecao · Parametros · Usuario<br/>Chat: ChatService · PresencaChat · NotificadorChat"]
         ws["config/seguranca<br/>WebSocketConfig · AutenticacaoStomp"]
         motor["motor (Java puro)<br/>MotorFinanceiro · ValidadorEscala · GeradorEscala<br/>SimuladorCusto · PrevisaoMovimento · PlanejadorDemanda"]
         repo["repositorio<br/>Spring Data JPA"]
@@ -63,13 +63,17 @@ flowchart TB
     spa -. "STOMP /ws" .-> ws
     serv -- "eventos após o commit" --> ws
     ctrl --> serv
-    ctrl --> repo
     serv --> motor
     serv --> repo
     motor --> dom
     repo --> dom
     repo --> db
 ```
+
+As setas mostram o único sentido permitido das dependências: **api → servico → motor / repositorio → dominio**.
+Os controllers só tratam HTTP (rota, validação da entrada, código de status); regras de negócio e transações ficam nos
+serviços; o motor não conhece banco nem web. Essas regras são verificadas a cada build pelo `ArquiteturaTest`
+(ArchUnit), de modo que uma dependência fora do desenho quebra o pipeline.
 
 ## Implantação
 
@@ -140,14 +144,16 @@ O modelo de dados está em [modelo-de-dados.md](modelo-de-dados.md).
 |------------|-----------------------|
 | **Java 21** | Tipagem forte e `BigDecimal` para valores monetários sem erro de arredondamento; `record` deixa os DTOs e os resultados do motor imutáveis e curtos. Versão LTS. |
 | **Spring Boot 3.5** | Reúne em um só projeto API REST, segurança, JPA, validação, WebSocket, agendamento (geração automática da escala) e métricas, com convenções que reduzem configuração. |
-| **Spring Security + JWT (JJWT)** | Autenticação stateless: o mesmo token vale para a API REST e para a conexão WebSocket do chat, sem sessão guardada no servidor. |
+| **Spring Security + JWT (JJWT)** | Autenticação stateless: o mesmo token vale para a API REST e para a conexão WebSocket do chat, sem sessão guardada no servidor. O token só identifica o usuário; situação e perfil são conferidos no banco a cada requisição. |
 | **Spring Data JPA (Hibernate)** | Repositórios com consultas parametrizadas (protege contra SQL injection) e mapeamento das entidades sem SQL manual para o CRUD. |
 | **PostgreSQL 17** | Banco relacional robusto e gratuito, com integridade referencial e restrições únicas que protegem as regras (ex.: um feriado por data). Usado também nos testes, para que eles rodem no mesmo banco da produção. |
 | **React 18 + TypeScript** | A matriz colaborador × dia é uma tela muito interativa (validação a cada clique); componentes React e tipos compartilhados com a API evitam erros de contrato em tempo de compilação. |
 | **Vite** | Build rápido e servidor de desenvolvimento com proxy para a API. |
 | **STOMP sobre WebSocket** | Entrega em tempo real das mensagens do chat e da presença online, com o broker já embutido no Spring. |
 | **JUnit 5, AssertJ, MockMvc e JaCoCo** | Testes unitários do motor e de integração da API inteira contra o PostgreSQL; o JaCoCo bloqueia o build abaixo de 75%. |
+| **ArchUnit** | Transforma o desenho em camadas em teste automatizado: o build falha se um controller acessar um repositório ou se o motor depender do banco. |
 | **Vitest + Testing Library** | Mesma configuração do Vite; testa as telas como o usuário as usa (por papel, rótulo e texto). |
+| **ESLint (typescript-eslint)** | Análise estática do frontend no pipeline (regras de TypeScript e de React Hooks), sem nenhum aviso tolerado. |
 | **Docker e Docker Compose** | Uma imagem com SPA + API e o mesmo conjunto de contêineres em desenvolvimento e produção. |
 | **GitHub Actions** | Pipeline junto do código: testes, cobertura, SonarCloud, imagem e deploy, sem servidor de CI próprio. |
 | **SonarCloud** | Análise estática e de segurança gratuita para repositório público, com os relatórios de cobertura dos dois lados. |
@@ -159,9 +165,9 @@ O modelo de dados está em [modelo-de-dados.md](modelo-de-dados.md).
 
 | Decisão | Motivo |
 |---------|--------|
-| Arquitetura em camadas, com o **motor isolado** do Spring e do banco | O núcleo de custo e de regras trabalhistas é testado com cenários em memória (`motor/*Test`), sem infraestrutura. |
+| Arquitetura em camadas, com o **motor isolado** do Spring e do banco | O núcleo de custo e de regras trabalhistas é testado com cenários em memória (`motor/*Test`), sem infraestrutura. O sentido das dependências é verificado pelo `ArquiteturaTest`. |
 | **SPA + API na mesma imagem** | Um único artefato para implantar e versionar; o Spring serve o build do Vite e encaminha as rotas da SPA (`SpaController`). |
-| **JWT stateless** | Escala horizontal sem sessão no servidor; segredo fornecido pelo ambiente (`APP_JWT_SECRET`). |
+| **JWT stateless**, com o usuário conferido a cada requisição | Escala horizontal sem sessão no servidor; segredo fornecido pelo ambiente (`APP_JWT_SECRET`). Como situação e perfil vêm do banco (`AutenticadorJwt`), desativar uma conta ou mudar o perfil vale na hora, sem esperar o token expirar. |
 | **PostgreSQL** em todos os ambientes, inclusive nos testes de integração | Mesmo dialeto em testes e produção; atende à exigência de persistência real. |
 | **Porta de gerência separada (8081)** | Métricas e health check ficam fora da porta pública. |
 | **Previsão explicável (estatística), não um modelo opaco** | Média ponderada recente do mesmo dia da semana + efeitos medidos no próprio histórico (início do mês, véspera de feriado), com a justificativa de cada número. Funciona com poucas semanas de dados, é testável com cenários exatos e o gestor entende e confia na previsão; sem histórico, vale a configuração manual. |

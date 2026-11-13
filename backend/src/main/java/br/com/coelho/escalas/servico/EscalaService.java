@@ -11,6 +11,7 @@ import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
 import java.util.Comparator;
 import java.util.List;
@@ -23,6 +24,7 @@ public class EscalaService {
     /** Janela extra carregada antes/depois do período para regras de continuidade (domingos, interjornada...). */
     private static final int MARGEM_DIAS = 21;
     private static final int MAX_DIAS_ESCALA = 62;
+    private static final DateTimeFormatter DIA_MES = DateTimeFormatter.ofPattern("dd/MM");
 
     public record EscalaRequest(String nome, LocalDate dataInicio, LocalDate dataFim, String observacao) {
     }
@@ -315,7 +317,6 @@ public class EscalaService {
     }
 
     private static String nomePadrao(LocalDate inicio, LocalDate fim) {
-        var fmt = java.time.format.DateTimeFormatter.ofPattern("dd/MM");
-        return "Escala " + fmt.format(inicio) + " a " + fmt.format(fim);
+        return "Escala " + DIA_MES.format(inicio) + " a " + DIA_MES.format(fim);
     }
 }

@@ -32,7 +32,7 @@ export function logar() {
 
 export function renderizar(ui: ReactElement, rota = '/') {
   return render(
-    <MemoryRouter initialEntries={[rota]}>
+    <MemoryRouter initialEntries={[rota]} future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
       <AuthProvider>
         <ToastProvider>{ui}</ToastProvider>
       </AuthProvider>

@@ -22,7 +22,9 @@ O sistema trata dados pessoais de **colaboradores** do supermercado e dos **usu�
   telefone nem dado sensível (art. 5º, II). Ausências registram o motivo (férias, atestado, folga acordada) e uma
   observação livre, que **não deve conter diagnóstico** ou CID — orientação repassada aos gestores do parceiro.
 - **Controle de acesso:** toda a API exige autenticação JWT (`SecurityConfig`); a gestão de usuários é restrita ao
-  perfil `ADMIN`. No chat, cada usuário só recebe eventos das conversas de que participa.
+  perfil `ADMIN`. A situação e o perfil do usuário são conferidos no banco a cada requisição (`AutenticadorJwt`):
+  uma conta desativada perde o acesso imediatamente, mesmo com um token ainda dentro da validade. No chat, cada
+  usuário só recebe eventos das conversas de que participa.
 - **Senhas:** armazenadas apenas como hash **BCrypt**, com política de senha forte (`SenhaForteValidator`).
 - **Imagens:** fotos e anexos são validados e **regravados em JPEG** no servidor (`Imagens`), o que descarta metadados
   como localização (EXIF). Imagens do chat só são servidas a participantes da conversa.
@@ -68,8 +70,10 @@ O sistema trata dados pessoais de **colaboradores** do supermercado e dos **usu�
 | Spring Boot, Spring Security, Spring Data, Micrometer, JJWT | Apache 2.0 |
 | Driver JDBC do PostgreSQL | BSD-2-Clause |
 | Lombok | MIT |
+| ArchUnit (somente nos testes) | Apache 2.0 |
 | React, React DOM, React Router | MIT |
 | @stomp/stompjs | Apache 2.0 |
 | lucide-react (ícones) | ISC |
+| ESLint, typescript-eslint (somente no desenvolvimento) | MIT |
 | Fontes Albert Sans e Newsreader (@fontsource) | SIL Open Font License 1.1 |
 | PostgreSQL, Prometheus, Grafana, Caddy (imagens Docker) | PostgreSQL License, Apache 2.0, AGPL 3.0 (usado sem modificação), Apache 2.0 |

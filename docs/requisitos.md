@@ -39,7 +39,7 @@ O sistema tem três fluxos de negócio completos, cada um coberto por testes de 
 | RF15 | Calcular a capacidade diária: fator F_d, receita projetada, teto da folha, L_min e L_max. |
 | RF16 | Simular o custo de um quadro proposto e compará-lo ao recomendado pelo motor, mostrando a economia. |
 | RF17 | Exibir o painel de custos do período com custo × teto e a situação de cada dia. |
-| RF18 | Permitir que administradores criem e editem usuários (nome, login, perfil, senha, foto e situação), mantendo sempre ao menos um administrador ativo. Usuários desativados não conseguem entrar. |
+| RF18 | Permitir que administradores criem e editem usuários (nome, login, perfil, senha, foto e situação), mantendo sempre ao menos um administrador ativo. Usuários desativados não conseguem entrar, e o token que já tinham deixa de valer na hora. |
 | RF19 | Exigir senha forte (8 a 64 caracteres, com maiúscula, minúscula, número e caractere especial), exibindo os requisitos durante a digitação e avisando quando o Caps Lock estiver ativo. |
 | RF20 | Aceitar foto de usuários e colaboradores em PNG ou JPEG de até 2 MB, verificada pelo conteúdo do arquivo e regravada no servidor como JPEG 256×256 (sem metadados). |
 | RF21 | Permitir conversas privadas entre usuários e grupos livres (criar, renomear, adicionar pessoas e sair), com entrega das mensagens em tempo real. |
@@ -58,7 +58,7 @@ O sistema tem três fluxos de negócio completos, cada um coberto por testes de 
 | RNF02 | Persistência em PostgreSQL (servidor), configurada por variáveis de ambiente. |
 | RNF03 | Segurança: senhas com BCrypt, API stateless com JWT, nenhum segredo versionado, validação de entrada em todas as rotas. |
 | RNF04 | Cobertura de testes de no mínimo 75% no backend e 25% no frontend, verificada no pipeline. |
-| RNF05 | Pipeline de CI/CD (GitHub Actions) com testes, cobertura, análise estática (SonarCloud) e publicação da imagem Docker. |
+| RNF05 | Pipeline de CI/CD (GitHub Actions) com testes, cobertura, análise estática (ESLint e SonarCloud), verificação da arquitetura (ArchUnit) e publicação da imagem Docker. |
 | RNF06 | Observabilidade: health check e métricas Prometheus (Spring Actuator + Micrometer), visualizadas no Grafana. |
 | RNF07 | Interface web responsiva em português, com retorno ao usuário (carregamento, erros e confirmações). |
 | RNF08 | Implantação em contêiner (Docker), com a SPA e a API servidas por uma única imagem. |
@@ -96,6 +96,7 @@ aparece na matriz, mas deixa a decisão com o gestor.
 | Usuário ou senha incorretos | Login recusado com "Usuário ou senha inválidos." (HTTP 401), sem dizer qual dos dois está errado. |
 | Usuário desativado tenta entrar | Login recusado com "Usuário desativado. Procure um administrador." |
 | Sessão expirada (token com mais de 10 h) | A API responde 401; o frontend apaga a sessão e volta para a tela de login. |
+| Usuário desativado enquanto está logado | A requisição seguinte responde 401 (a situação é conferida a cada requisição) e o frontend volta para a tela de login. |
 | Aprovar escala com erros | Recusado (HTTP 422) com a lista de violações que impedem a aprovação. |
 | Editar célula de escala aprovada | Recusado: "A escala está aprovada. Reabra-a para editar." |
 | Alocação que estoura o custo do dia (modo BLOQUEAR) | A célula não é gravada e o gestor vê o motivo. |

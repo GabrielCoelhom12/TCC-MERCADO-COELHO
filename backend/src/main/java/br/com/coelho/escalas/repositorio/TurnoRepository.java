@@ -2,8 +2,6 @@ package br.com.coelho.escalas.repositorio;
 
 import br.com.coelho.escalas.dominio.Turno;
 import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.data.jpa.repository.Modifying;
-import org.springframework.data.jpa.repository.Query;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -18,7 +16,9 @@ public interface TurnoRepository extends JpaRepository<Turno, Long> {
 
     boolean existsByFuncionario_Id(Long funcionarioId);
 
-    @Modifying
-    @Query("delete from Turno t where t.escala.id = :escalaId")
+    /**
+     * Remove os turnos um a um, pelo contexto de persistência (e não com um "delete" em lote direto no banco), para que
+     * nenhuma entidade já carregada na transação continue apontando para um turno que deixou de existir.
+     */
     void deleteByEscalaId(Long escalaId);
 }

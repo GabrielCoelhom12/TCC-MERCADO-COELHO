@@ -28,7 +28,7 @@ Licença: [MIT](LICENSE) (os logotipos do Supermercado Coelho não estão inclu�
 | Banco    | PostgreSQL 17 |
 | Frontend | **React 18 + TypeScript (SPA) com Vite** · React Router |
 | Testes   | JUnit 5 + AssertJ + MockMvc (backend, cobertura ≥ 75%) · Vitest + Testing Library (frontend, ≥ 25%) |
-| Qualidade | GitHub Actions (CI/CD) · JaCoCo · SonarCloud |
+| Qualidade | GitHub Actions (CI/CD) · JaCoCo · ArchUnit (regras de arquitetura) · ESLint · SonarCloud |
 | Operação | Docker Compose · Caddy (HTTPS) · Azure (VM provisionada com Terraform) · Spring Actuator + Micrometer → Prometheus → Grafana |
 
 ## Os três pilares do artigo
@@ -82,12 +82,15 @@ Build único (piloto em *shadow mode*): `npm run build` no frontend grava a SPA 
 Testes:
 
 ```powershell
-cd backend;  mvn verify               # unitários + integração (PostgreSQL) + verificação de cobertura ≥ 75%
+cd backend;  mvn verify               # unitários + integração (PostgreSQL) + arquitetura + cobertura ≥ 75%
+cd frontend; npm run typecheck        # checagem de tipos (TypeScript)
+cd frontend; npm run lint             # análise estática (ESLint), sem avisos
 cd frontend; npm run test:coverage    # Vitest + verificação de cobertura ≥ 25%
 ```
 
 Os testes do backend seguem os fluxos de negócio: `CadastrosIntegracaoTest`, `EscalaIntegracaoTest` e
-`MotorIntegracaoTest` (API completa contra o PostgreSQL), além dos testes unitários do motor.
+`MotorIntegracaoTest` (API completa contra o PostgreSQL), além dos testes unitários do motor. O `ArquiteturaTest`
+garante que as camadas só dependem umas das outras no sentido previsto (veja [docs/arquitetura.md](docs/arquitetura.md)).
 
 ### Rede corporativa (proxy com inspeção SSL)
 
@@ -97,18 +100,27 @@ roda em Linux). Para o npm, defina
 
 ## Estrutura
 
+As dependências do backend seguem um único sentido: `api → servico → motor / repositorio → dominio`.
+
 ```
 backend/src/main/java/br/com/coelho/escalas/
+  api/          controllers REST (somente HTTP) e tratamento uniforme de erros
+  servico/      regras de negócio e transações: escalas, movimento, cadastros, usuários e chat
+  motor/        MotorFinanceiro, ValidadorEscala, GeradorEscala, SimuladorCusto, PrevisaoMovimento e
+                PlanejadorDemanda (Java puro, sem dependência de banco)
+  repositorio/  acesso a dados (Spring Data JPA)
   dominio/      entidades JPA
-  motor/        MotorFinanceiro, ValidadorEscala, GeradorEscala, SimuladorCusto (sem dependência de banco)
-  servico/      orquestração (EscalaService, ContextoService)
-  api/          controllers REST
-  seguranca/    JWT
-  config/       dados iniciais e encaminhamento da SPA
+  seguranca/    autenticação JWT (API e WebSocket) e política de senha
+  config/       dados iniciais, WebSocket e encaminhamento da SPA
+backend/src/test/   testes unitários do motor, de integração da API e de arquitetura
 frontend/src/
-  pages/        Painel, Escalas, MatrizEscala, Simulador, Funcionarios, Setores, Turnos, Calendario, Parametros
+  pages/        uma tela por arquivo: Painel, Escalas, MatrizEscala, Movimento, Simulador, Mensagens, Funcionarios,
+                Setores, Turnos, Calendario, Parametros, Usuarios e Login
+  chat/         estado, conexão em tempo real (STOMP) e componentes do chat
   components/   Layout e componentes de interface reutilizáveis
-docs/           requisitos, arquitetura (C4), deploy e conformidade — publicados na Wiki
+  api.ts        cliente HTTP e sessão        auth.tsx   contexto de autenticação
+  types.ts      tipos do contrato da API     format.ts  formatação de datas, moeda e rótulos
+docs/           requisitos, arquitetura (C4), modelo de dados, deploy e conformidade — publicados na Wiki
 infra/          Terraform (Azure), Caddyfile e script de atualização da VM
 monitoramento/  Prometheus e Grafana
 .github/        pipelines de CI/CD e da Wiki

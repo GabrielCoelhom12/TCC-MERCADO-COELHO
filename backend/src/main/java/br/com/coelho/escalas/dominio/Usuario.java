@@ -5,6 +5,8 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import java.util.Locale;
+
 @Entity
 @Getter
 @Setter
@@ -40,5 +42,10 @@ public class Usuario {
         this.senhaHash = senhaHash;
         this.nome = nome;
         this.perfil = perfil;
+    }
+
+    /** Logins são únicos sem diferenciar maiúsculas de minúsculas nem espaços nas pontas. */
+    public static String normalizarLogin(String login) {
+        return login.trim().toLowerCase(Locale.ROOT);
     }
 }

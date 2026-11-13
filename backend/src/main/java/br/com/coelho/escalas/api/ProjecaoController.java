@@ -1,23 +1,23 @@
 package br.com.coelho.escalas.api;
 
-import br.com.coelho.escalas.dominio.ProjecaoReceita;
 import br.com.coelho.escalas.dominio.ProjecaoReceitaData;
 import br.com.coelho.escalas.dominio.TipoDia;
-import br.com.coelho.escalas.repositorio.ProjecaoReceitaDataRepository;
-import br.com.coelho.escalas.repositorio.ProjecaoReceitaRepository;
-import br.com.coelho.escalas.servico.NaoEncontradoException;
-import br.com.coelho.escalas.servico.RegraNegocioException;
+import br.com.coelho.escalas.servico.ProjecaoService;
+import br.com.coelho.escalas.servico.ProjecaoService.DadosProjecaoData;
+import br.com.coelho.escalas.servico.ProjecaoService.Projecoes;
 import jakarta.validation.Valid;
-import jakarta.validation.constraints.DecimalMin;
-import jakarta.validation.constraints.NotNull;
 import org.springframework.http.HttpStatus;
-import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.ResponseStatus;
+import org.springframework.web.bind.annotation.RestController;
 
 import java.math.BigDecimal;
-import java.time.LocalDate;
-import java.util.EnumMap;
-import java.util.List;
 import java.util.Map;
 
 /** Projeções de faturamento (R_proj) informadas pela administração. */
@@ -25,64 +25,36 @@ import java.util.Map;
 @RequestMapping("/api/projecoes")
 public class ProjecaoController {
 
-    public record ProjecaoDataRequest(@NotNull LocalDate data, @NotNull @DecimalMin("0") BigDecimal valor, String observacao) {
-    }
+    private final ProjecaoService projecoes;
 
-    public record Projecoes(Map<TipoDia, BigDecimal> padrao, List<ProjecaoReceitaData> especificas) {
-    }
-
-    private final ProjecaoReceitaRepository padrao;
-    private final ProjecaoReceitaDataRepository especificas;
-
-    public ProjecaoController(ProjecaoReceitaRepository padrao, ProjecaoReceitaDataRepository especificas) {
-        this.padrao = padrao;
-        this.especificas = especificas;
+    public ProjecaoController(ProjecaoService projecoes) {
+        this.projecoes = projecoes;
     }
 
     @GetMapping
     public Projecoes listar() {
-        Map<TipoDia, BigDecimal> mapa = new EnumMap<>(TipoDia.class);
-        for (TipoDia t : TipoDia.values()) {
-            mapa.put(t, BigDecimal.ZERO);
-        }
-        padrao.findAll().forEach(p -> mapa.put(p.getTipoDia(), p.getValor()));
-        return new Projecoes(mapa, especificas.findAllByOrderByDataAsc());
+        return projecoes.listar();
     }
 
     @PutMapping("/padrao")
-    @Transactional
     public Projecoes salvarPadrao(@RequestBody Map<TipoDia, BigDecimal> valores) {
-        valores.forEach((tipo, valor) -> {
-            if (valor == null || valor.signum() < 0) {
-                throw new RegraNegocioException("Projeção inválida para " + tipo.getRotulo() + ".");
-            }
-            ProjecaoReceita p = padrao.findByTipoDia(tipo).orElseGet(() -> new ProjecaoReceita(tipo, valor));
-            p.setValor(valor);
-            padrao.save(p);
-        });
-        return listar();
+        return projecoes.salvarPadrao(valores);
     }
 
     @PostMapping("/datas")
     @ResponseStatus(HttpStatus.CREATED)
-    @Transactional
-    public ProjecaoReceitaData criarData(@Valid @RequestBody ProjecaoDataRequest req) {
-        return especificas.save(new ProjecaoReceitaData(req.data(), req.valor(), req.observacao()));
+    public ProjecaoReceitaData criarData(@Valid @RequestBody DadosProjecaoData req) {
+        return projecoes.criarData(req);
     }
 
     @PutMapping("/datas/{id}")
-    @Transactional
-    public ProjecaoReceitaData atualizarData(@PathVariable Long id, @Valid @RequestBody ProjecaoDataRequest req) {
-        ProjecaoReceitaData p = especificas.findById(id).orElseThrow(() -> new NaoEncontradoException("Projeção", id));
-        p.setData(req.data());
-        p.setValor(req.valor());
-        p.setObservacao(req.observacao());
-        return p;
+    public ProjecaoReceitaData atualizarData(@PathVariable Long id, @Valid @RequestBody DadosProjecaoData req) {
+        return projecoes.atualizarData(id, req);
     }
 
     @DeleteMapping("/datas/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void excluirData(@PathVariable Long id) {
-        especificas.deleteById(id);
+        projecoes.excluirData(id);
     }
 }

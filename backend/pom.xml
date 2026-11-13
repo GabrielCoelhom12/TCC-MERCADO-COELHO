@@ -20,6 +20,7 @@
         <java.version>21</java.version>
         <jjwt.version>0.12.6</jjwt.version>
         <jacoco.version>0.8.13</jacoco.version>
+        <archunit.version>1.4.1</archunit.version>
         <!-- Cobertura mínima exigida pela linha Web Apps (backend). -->
         <cobertura.minima>0.75</cobertura.minima>
     </properties>
@@ -93,6 +94,13 @@
         <dependency>
             <groupId>org.springframework.security</groupId>
             <artifactId>spring-security-test</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <!-- Testes que verificam as dependências permitidas entre as camadas (ArquiteturaTest). -->
+        <dependency>
+            <groupId>com.tngtech.archunit</groupId>
+            <artifactId>archunit-junit5</artifactId>
+            <version>${archunit.version}</version>
             <scope>test</scope>
         </dependency>
     </dependencies>

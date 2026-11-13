@@ -45,8 +45,9 @@ Para um dashboard pronto, importe no Grafana o dashboard **JVM (Micrometer)** (I
 
 Executado a cada push e pull request. Um job só começa se os anteriores passarem:
 
-1. **Backend**: `mvn verify` contra um PostgreSQL de serviço; o build falha se a cobertura de linhas ficar abaixo de 75% (JaCoCo).
-2. **Frontend**: checagem de tipos, testes (Vitest) e cobertura mínima de 25%.
+1. **Backend**: `mvn verify` contra um PostgreSQL de serviço; o build falha se a cobertura de linhas ficar abaixo de 75% (JaCoCo)
+   ou se alguma regra de arquitetura for violada (`ArquiteturaTest`).
+2. **Frontend**: checagem de tipos, lint (ESLint, sem avisos), testes (Vitest) e cobertura mínima de 25%.
 3. **Infraestrutura**: `terraform fmt -check` e `terraform validate` em `infra/terraform`.
 4. **SonarCloud**: análise estática e de segurança com os relatórios de cobertura dos dois lados.
 5. **Imagem Docker**: construída em todo PR; em push na `main`, publicada em `ghcr.io/<usuário>/<repositório>` com as tags `latest` e `sha-<commit>`.

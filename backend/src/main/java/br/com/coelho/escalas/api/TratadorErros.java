@@ -1,6 +1,7 @@
 package br.com.coelho.escalas.api;
 
 import br.com.coelho.escalas.motor.Violacao;
+import br.com.coelho.escalas.servico.NaoAutenticadoException;
 import br.com.coelho.escalas.servico.NaoEncontradoException;
 import br.com.coelho.escalas.servico.RegraNegocioException;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -15,6 +16,10 @@ import org.springframework.web.server.ResponseStatusException;
 import java.util.List;
 import java.util.stream.Collectors;
 
+/**
+ * Traduz as exceções em respostas JSON uniformes ({@code {"mensagem": ..., "violacoes": [...]}}), que o frontend exibe
+ * diretamente ao usuário.
+ */
 @RestControllerAdvice
 public class TratadorErros {
 
@@ -32,6 +37,11 @@ public class TratadorErros {
     @ExceptionHandler(IllegalArgumentException.class)
     ResponseEntity<Erro> argumento(IllegalArgumentException e) {
         return ResponseEntity.unprocessableEntity().body(new Erro(e.getMessage()));
+    }
+
+    @ExceptionHandler(NaoAutenticadoException.class)
+    ResponseEntity<Erro> naoAutenticado(NaoAutenticadoException e) {
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(new Erro(e.getMessage()));
     }
 
     @ExceptionHandler(NaoEncontradoException.class)
