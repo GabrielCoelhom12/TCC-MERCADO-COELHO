@@ -50,13 +50,15 @@ public class FuncionarioService {
     private final SetorRepository setores;
     private final AusenciaRepository ausencias;
     private final TurnoRepository turnos;
+    private final FeriasService ferias;
 
     public FuncionarioService(FuncionarioRepository funcionarios, SetorRepository setores, AusenciaRepository ausencias,
-                              TurnoRepository turnos) {
+                              TurnoRepository turnos, FeriasService ferias) {
         this.funcionarios = funcionarios;
         this.setores = setores;
         this.ausencias = ausencias;
         this.turnos = turnos;
+        this.ferias = ferias;
     }
 
     // ------------------------------------------------------------------ colaboradores
@@ -119,6 +121,9 @@ public class FuncionarioService {
     public Ausencia registrarAusencia(Long funcionarioId, DadosAusencia dados) {
         if (dados.fim().isBefore(dados.inicio())) {
             throw new RegraNegocioException("O fim da ausência deve ser posterior ao início.");
+        }
+        if (dados.motivo() == Ausencia.Motivo.FERIAS) {
+            return ferias.registrar(new FeriasService.DadosFerias(funcionarioId, dados.inicio(), dados.fim(), dados.observacao()));
         }
         Ausencia a = new Ausencia();
         a.setFuncionario(buscar(funcionarioId));
