@@ -130,6 +130,38 @@ class MovimentoIntegracaoTest extends IntegracaoTest {
     }
 
     @Test
+    void previsaoReconheceOsFeriadosDoHistorico() throws Exception {
+        // Feriados fora do período previsto: o passado (histórico) e o dia seguinte ao fim (véspera).
+        post("/api/feriados", Map.of("data", "2025-02-04", "descricao", "Feriado passado")).andExpect(status().isCreated());
+        post("/api/feriados", Map.of("data", "2025-04-15", "descricao", "Feriado previsto")).andExpect(status().isCreated());
+        put("/api/movimento/fechamentos/2025-02-04", fechamento(50, 50, 50, 50, 50)).andExpect(status().isOk());
+
+        JsonNode dia = corpo(get("/api/movimento/previsao?inicio=2025-04-15&fim=2025-04-15").andExpect(status().isOk())).get(0);
+
+        assertThat(dia.at("/previsao/explicacao").toString()).contains("Feriado: média do último feriado");
+    }
+
+    @Test
+    void mostraAAssertividadeDaPrevisaoContraOsFechamentos() throws Exception {
+        put("/api/movimento/fechamentos/2025-03-07", fechamento(100, 100, 100, 100, 100)).andExpect(status().isOk());
+        put("/api/movimento/fechamentos/2025-03-14", fechamento(100, 100, 100, 100, 100)).andExpect(status().isOk());
+        put("/api/movimento/fechamentos/2025-03-21", fechamento(110, 110, 110, 110, 110)).andExpect(status().isOk());
+
+        // 07/03 não tem histórico; 14/03 acertou em cheio; 21/03 vendeu 10% acima do previsto (erro de 9,09%).
+        get("/api/movimento/assertividade?inicio=2025-03-01&fim=2025-03-31")
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.dias").value(2))
+                .andExpect(jsonPath("$.erroMedioPercentual").value(4.5))
+                .andExpect(jsonPath("$.viesPercentual").value(-4.5));
+    }
+
+    @Test
+    void semFechamentosNoPeriodoNaoHaAssertividade() throws Exception {
+        get("/api/movimento/assertividade?inicio=2024-06-01&fim=2024-06-30").andExpect(status().isNoContent());
+        get("/api/movimento/assertividade?inicio=2024-06-30&fim=2024-06-01").andExpect(status().isUnprocessableEntity());
+    }
+
+    @Test
     void semHistoricoAPrevisaoUsaAConfiguracao() throws Exception {
         get("/api/movimento/previsao?inicio=2024-01-08&fim=2024-01-09")
                 .andExpect(status().isOk())

@@ -73,6 +73,11 @@ public class MotorFinanceiro {
         return previsor.prever(data, ctx);
     }
 
+    /** Erro das previsões contra os fechamentos reais do período (nulo se não houver dias comparáveis). */
+    public PrevisaoMovimento.Assertividade assertividade(LocalDate inicio, LocalDate fim, ContextoCalculo ctx) {
+        return previsor.assertividade(inicio, fim, ctx);
+    }
+
     /** Modelos de turno que valem no dia (dias úteis × domingos/feriados); se nenhum se aplica, todos. */
     public List<TurnoModelo> modelosDoDia(LocalDate data, List<TurnoModelo> modelos, ContextoCalculo ctx) {
         boolean especial = domingoOuFeriado(data, ctx);

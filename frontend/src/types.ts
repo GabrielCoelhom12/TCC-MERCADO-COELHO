@@ -347,6 +347,14 @@ export interface DemandaSetor {
   turnosSugeridos: string[];
 }
 
+/** Erro das previsões contra os fechamentos reais (cada dia previsto só com o histórico anterior a ele). */
+export interface Assertividade {
+  dias: number;
+  erroMedioPercentual: number;
+  /** Negativo: a previsão costuma ficar abaixo do real. */
+  viesPercentual: number;
+}
+
 export interface PrevisaoDiaria {
   data: string;
   tipoDia: string;

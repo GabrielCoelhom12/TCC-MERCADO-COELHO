@@ -46,7 +46,7 @@ O sistema tem três fluxos de negócio completos, cada um coberto por testes de 
 | RF22 | Anexar imagens (PNG/JPEG até 5 MB, regravadas no servidor) e mencionar escalas nas mensagens, com link para a matriz. |
 | RF23 | Exibir quem está online, o contador de mensagens não lidas (no menu e por conversa) e a indicação de leitura nas conversas privadas. |
 | RF24 | Registrar o fechamento de cada dia (clientes e vendas por faixa de horário configurável) e corrigi-lo depois, destacando os dias pendentes. |
-| RF25 | Prever o movimento dos próximos dias a partir dos fechamentos (média recente do mesmo dia da semana, efeitos aprendidos de início do mês e véspera de feriado, feriados e pico por faixa), com a explicação de cada previsão. |
+| RF25 | Prever o movimento dos próximos dias a partir dos fechamentos (média recente do mesmo dia da semana, efeitos aprendidos de início do mês e véspera de feriado, feriados, datas comemorativas e pico por faixa), com a explicação de cada previsão e a assertividade medida contra os fechamentos reais. |
 | RF26 | Calcular as pessoas necessárias por faixa nos setores que acompanham o movimento (capacidade de atendimento), escolher os turnos que cobrem os picos e alertar quando uma edição manual deixar um pico descoberto. |
 | RF27 | Criar automaticamente, como rascunho, a escala das próximas semanas (antecedência configurável), sem alterar escalas existentes. |
 

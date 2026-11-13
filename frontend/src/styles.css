@@ -488,6 +488,8 @@ button.icone.ativo { background: var(--laranja-fundo); border-color: var(--laran
 .dia-fechamento .dia-nome { font-weight: 600; }
 .dia-fechamento.pendente .badge { justify-self: end; grid-column: 3; }
 
+.assertividade { display: flex; align-items: center; gap: 8px; margin: -4px 0 14px; font-size: 13px; color: var(--tinta-2); }
+.assertividade svg { color: var(--laranja-escuro); flex: none; }
 .previsao-grade { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 12px; }
 .cartao-previsao {
   display: flex; flex-direction: column; gap: 10px; padding: 14px; border: 1px solid var(--borda); border-radius: 12px;

@@ -175,4 +175,90 @@ class PrevisaoMovimentoTest {
         assertThat(previsao.prever(sabado, c.ctx()).explicacao()).anyMatch(e -> e.startsWith("Média dos últimos 2 sábados"));
         assertThat(previsao.prever(sabado.plusDays(1), c.ctx()).explicacao()).anyMatch(e -> e.startsWith("Média do último domingo"));
     }
+
+    // ------------------------------------------------------------------ datas comemorativas
+
+    @Test
+    void dataComemorativaSemHistoricoUsaAHipoteseInicial() {
+        Cenario c = new Cenario();
+        for (String data : new String[]{"2026-12-15", "2026-11-24", "2026-11-17"}) { // terças comuns
+            c.movimento(LocalDate.parse(data), "30000", 100, 100, 100, 100, 100);
+        }
+
+        PrevisaoMovimento.PrevisaoDia p = previsao.prever(LocalDate.of(2026, 12, 22), c.ctx()); // terça da semana do Natal
+
+        assertThat(p.vendas()).isEqualByComparingTo("39000.00");
+        assertThat(p.clientes()).isEqualTo(650);
+        assertThat(p.explicacao()).anyMatch(e -> e.contains("Semana do Natal: +30%") && e.contains("hipótese inicial"));
+    }
+
+    @Test
+    void dataComemorativaCombinaAHipoteseComOQueALojaJaViveu() {
+        Cenario c = new Cenario();
+        c.movimento(LocalDate.of(2026, 5, 9), "45000", 150, 150, 150, 150, 150); // sábado do Dia das Mães: +50%
+        for (String data : new String[]{"2027-04-24", "2027-04-17", "2027-03-20"}) { // sábados comuns
+            c.movimento(LocalDate.parse(data), "30000", 100, 100, 100, 100, 100);
+        }
+
+        PrevisaoMovimento.PrevisaoDia p = previsao.prever(LocalDate.of(2027, 5, 8), c.ctx()); // sábado do Dia das Mães
+
+        // (1 ocorrência × 1,50 + 2 × hipótese 1,15) / 3 = 1,2667
+        assertThat(p.vendas()).isEqualByComparingTo("38000.00");
+        assertThat(p.explicacao()).anyMatch(e -> e.contains("Dia das Mães: +27%")
+                && e.contains("+15%") && e.contains("1 ocorrência") && e.contains("+50%"));
+    }
+
+    @Test
+    void dataComemorativaPassadaNaoEntraNaMediaDoDiaDaSemana() {
+        Cenario c = new Cenario();
+        c.movimento(LocalDate.of(2026, 5, 16), "30000", 100, 100, 100, 100, 100);
+        c.movimento(LocalDate.of(2026, 5, 9), "45000", 150, 150, 150, 150, 150); // Dia das Mães
+        c.movimento(LocalDate.of(2026, 4, 25), "30000", 100, 100, 100, 100, 100);
+        c.movimento(LocalDate.of(2026, 4, 18), "30000", 100, 100, 100, 100, 100);
+
+        PrevisaoMovimento.PrevisaoDia p = previsao.prever(LocalDate.of(2026, 5, 23), c.ctx()); // sábado comum
+
+        assertThat(p.vendas()).isEqualByComparingTo("30000.00");
+        assertThat(p.amostras()).isEqualTo(3);
+    }
+
+    @Test
+    void dataComemorativaPrevaleceSobreAVesperaDeFeriado() {
+        Cenario c = new Cenario();
+        c.feriado(LocalDate.of(2026, 12, 25));
+        for (String data : new String[]{"2026-12-17", "2026-11-26", "2026-11-12"}) { // quintas comuns
+            c.movimento(LocalDate.parse(data), "30000", 100, 100, 100, 100, 100);
+        }
+
+        PrevisaoMovimento.PrevisaoDia p = previsao.prever(LocalDate.of(2026, 12, 24), c.ctx());
+
+        assertThat(p.vendas()).as("só o efeito do Natal, sem somar o da véspera").isEqualByComparingTo("39000.00");
+        assertThat(p.explicacao()).noneMatch(e -> e.startsWith("Véspera de feriado"));
+    }
+
+    // ------------------------------------------------------------------ assertividade
+
+    @Test
+    void assertividadeComparaAPrevisaoComOResultadoReal() {
+        Cenario c = new Cenario();
+        LocalDate primeira = LocalDate.of(2026, 9, 18);
+        for (int semana = 0; semana < 4; semana++) {
+            c.movimento(primeira.plusWeeks(semana), "30000", 100, 100, 100, 100, 100);
+        }
+        c.movimento(primeira.plusWeeks(4), "33000", 110, 110, 110, 110, 110); // vendeu 10% acima do previsto
+
+        PrevisaoMovimento.Assertividade a = previsao.assertividade(primeira, primeira.plusWeeks(4), c.ctx());
+
+        // A 1ª sexta não tem histórico; nas 4 seguintes os erros foram 0, 0, 0 e 3.000/33.000 = 9,09%.
+        assertThat(a.dias()).isEqualTo(4);
+        assertThat(a.erroMedioPercentual()).isEqualByComparingTo("2.3");
+        assertThat(a.viesPercentual()).as("negativo: a previsão ficou abaixo do real").isEqualByComparingTo("-2.3");
+    }
+
+    @Test
+    void semDiasComparaveisNaoHaAssertividade() {
+        Cenario c = new Cenario();
+        c.movimento(SEXTA, "30000", 100, 100, 100, 100, 100);
+        assertThat(previsao.assertividade(SEXTA.minusDays(30), SEXTA, c.ctx())).isNull();
+    }
 }
