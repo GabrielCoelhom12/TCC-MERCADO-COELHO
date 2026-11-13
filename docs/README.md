@@ -11,8 +11,9 @@ e mantém o custo da equipe dentro do limite definido pela gestão.
 
 | Página | Conteúdo |
 |--------|----------|
-| [Requisitos](requisitos.md) | Contexto, três fluxos de negócio, requisitos funcionais e não funcionais, user stories |
-| [Arquitetura](arquitetura.md) | Diagramas C4 (contexto, contêineres e componentes), implantação e registro de decisões |
+| [Requisitos](requisitos.md) | Contexto, fluxos de negócio, requisitos, regras de negócio, fluxos alternativos, fora do escopo e user stories |
+| [Arquitetura](arquitetura.md) | Diagramas C4 (contexto, contêineres e componentes), implantação, justificativa da stack e registro de decisões |
+| [Modelo de dados](modelo-de-dados.md) | Diagramas entidade-relacionamento das tabelas do PostgreSQL |
 | [Deploy](deploy.md) | Ambientes, variáveis, pipeline CI/CD, provisionamento no Azure (Terraform), rollback e monitoramento |
 | [Conformidade](conformidade.md) | LGPD, segurança (OWASP), acessibilidade (WCAG) e licenças |
 

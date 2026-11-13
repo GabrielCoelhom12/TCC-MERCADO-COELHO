@@ -130,6 +130,31 @@ flowchart TB
 | Grafana | Pública, com login | Em `https://<APP_HOST>/grafana`, atrás do Caddy, com senha (`GRAFANA_SENHA`). |
 | SSH (22) | Fechada | Não há acesso manual: atualizações só pelo pipeline, via run-command do Azure. |
 
+## Stack e justificativas
+
+Todas as escolhas estão entre as preferidas (✅) do
+[Portfólio Directions](https://github.com/CatolicaSC-Portfolio/The-Portfolio-Playbook/blob/main/directions/portfolio-directions-GERAL.md).
+O modelo de dados está em [modelo-de-dados.md](modelo-de-dados.md).
+
+| Tecnologia | Por que foi escolhida |
+|------------|-----------------------|
+| **Java 21** | Tipagem forte e `BigDecimal` para valores monetários sem erro de arredondamento; `record` deixa os DTOs e os resultados do motor imutáveis e curtos. Versão LTS. |
+| **Spring Boot 3.5** | Reúne em um só projeto API REST, segurança, JPA, validação, WebSocket, agendamento (geração automática da escala) e métricas, com convenções que reduzem configuração. |
+| **Spring Security + JWT (JJWT)** | Autenticação stateless: o mesmo token vale para a API REST e para a conexão WebSocket do chat, sem sessão guardada no servidor. |
+| **Spring Data JPA (Hibernate)** | Repositórios com consultas parametrizadas (protege contra SQL injection) e mapeamento das entidades sem SQL manual para o CRUD. |
+| **PostgreSQL 17** | Banco relacional robusto e gratuito, com integridade referencial e restrições únicas que protegem as regras (ex.: um feriado por data). Usado também nos testes, para que eles rodem no mesmo banco da produção. |
+| **React 18 + TypeScript** | A matriz colaborador × dia é uma tela muito interativa (validação a cada clique); componentes React e tipos compartilhados com a API evitam erros de contrato em tempo de compilação. |
+| **Vite** | Build rápido e servidor de desenvolvimento com proxy para a API. |
+| **STOMP sobre WebSocket** | Entrega em tempo real das mensagens do chat e da presença online, com o broker já embutido no Spring. |
+| **JUnit 5, AssertJ, MockMvc e JaCoCo** | Testes unitários do motor e de integração da API inteira contra o PostgreSQL; o JaCoCo bloqueia o build abaixo de 75%. |
+| **Vitest + Testing Library** | Mesma configuração do Vite; testa as telas como o usuário as usa (por papel, rótulo e texto). |
+| **Docker e Docker Compose** | Uma imagem com SPA + API e o mesmo conjunto de contêineres em desenvolvimento e produção. |
+| **GitHub Actions** | Pipeline junto do código: testes, cobertura, SonarCloud, imagem e deploy, sem servidor de CI próprio. |
+| **SonarCloud** | Análise estática e de segurança gratuita para repositório público, com os relatórios de cobertura dos dois lados. |
+| **Prometheus + Grafana** | Monitoramento open source; o Spring Actuator expõe as métricas no formato do Prometheus sem código extra. |
+| **Azure + Terraform** | VM com controle total do ambiente (não é PaaS que esconda a infraestrutura) e infraestrutura reproduzível como código; crédito estudantil sem cartão. |
+| **Caddy** | Proxy reverso com HTTPS automático e suporte a WebSocket sem configuração extra. |
+
 ## Decisões
 
 | Decisão | Motivo |

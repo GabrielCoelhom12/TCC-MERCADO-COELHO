@@ -12,8 +12,9 @@ A documentação completa está na **[Wiki do projeto](../../wiki)**, publicada 
 
 | Documento | Conteúdo |
 |-----------|----------|
-| [docs/requisitos.md](docs/requisitos.md) | Fluxos de negócio, requisitos funcionais e não funcionais, user stories |
-| [docs/arquitetura.md](docs/arquitetura.md) | Diagramas C4 (contexto, contêineres e componentes), diagrama de implantação e decisões |
+| [docs/requisitos.md](docs/requisitos.md) | Fluxos de negócio, requisitos, regras de negócio, fluxos alternativos, fora do escopo e user stories |
+| [docs/arquitetura.md](docs/arquitetura.md) | Diagramas C4 (contexto, contêineres e componentes), diagrama de implantação, stack e decisões |
+| [docs/modelo-de-dados.md](docs/modelo-de-dados.md) | Diagramas entidade-relacionamento |
 | [docs/deploy.md](docs/deploy.md) | Ambientes, pipeline CI/CD, provisionamento no Azure (Terraform), rollback e monitoramento |
 | [docs/conformidade.md](docs/conformidade.md) | LGPD, segurança (OWASP), acessibilidade (WCAG) e licenças |
 

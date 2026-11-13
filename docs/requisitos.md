@@ -64,6 +64,60 @@ O sistema tem três fluxos de negócio completos, cada um coberto por testes de 
 | RNF08 | Implantação em contêiner (Docker), com a SPA e a API servidas por uma única imagem. |
 | RNF09 | Comunicação em tempo real por WebSocket/STOMP autenticado com o mesmo JWT da API; cada usuário só recebe eventos das conversas de que participa. |
 
+## Regras de negócio
+
+Implementadas no motor de validação (`ValidadorEscala`) e nos serviços. **Erro** impede aprovar a escala; **alerta**
+aparece na matriz, mas deixa a decisão com o gestor.
+
+| # | Regra | Base | Tipo |
+|---|-------|------|------|
+| RN01 | Dois turnos do mesmo colaborador não podem se sobrepor. | — | Erro |
+| RN02 | Descanso mínimo de 11 h entre duas jornadas (interjornada). | CLT art. 66 | Erro |
+| RN03 | Repouso semanal: no máximo 6 dias seguidos de trabalho. | CLT art. 67 | Erro |
+| RN04 | Intervalo intrajornada conforme a duração da jornada. | CLT art. 71 | Erro |
+| RN05 | Jornada diária acima da máxima (normal + 2 h) é proibida; acima da normal, é hora extra. | CLT arts. 58 e 59 | Erro / Alerta |
+| RN06 | Jornada semanal acima de 44 h é hora extra. | CF art. 7º, XIII | Alerta |
+| RN07 | Folga em domingo ao menos uma vez a cada 3 semanas no comércio. | Lei 10.101/2000, art. 6º | Erro |
+| RN08 | Não escalar colaborador inativo, fora dos dias disponíveis ou em ausência (férias, atestado, folga acordada). | Cadastro | Erro |
+| RN09 | Cada setor precisa do mínimo manual de pessoas no dia; abaixo do previsto pelo movimento é só alerta. | Cadastro do setor | Erro / Alerta |
+| RN10 | Faixa de horário com menos pessoas que o movimento previsto (pico descoberto). | Previsão de movimento | Alerta |
+| RN11 | Custo do dia acima do teto (`% da receita projetada`) ou quadro acima de `L_max`. No modo **BLOQUEAR**, a alocação é recusada na hora; no modo **ALERTAR**, só avisa. | Parâmetros | Erro / Alerta |
+| RN12 | Escala aprovada não pode ser editada; para mudar, é preciso reabri-la. | — | Bloqueio |
+| RN13 | A geração automática só cria rascunhos de semanas sem escala; nunca altera uma escala existente. | — | — |
+| RN14 | Colaborador com histórico de escala não é excluído, só desativado, para preservar a auditoria. | LGPD art. 16, I | — |
+| RN15 | Deve existir sempre ao menos um administrador ativo. | — | Bloqueio |
+| RN16 | Senha forte: 8+ caracteres, com maiúscula, minúscula, número e caractere especial. | Segurança | Bloqueio |
+| RN17 | Só existe uma conversa privada entre o mesmo par de usuários. | — | — |
+
+## Fluxos alternativos
+
+| Situação | Comportamento |
+|----------|---------------|
+| Usuário ou senha incorretos | Login recusado com "Usuário ou senha inválidos." (HTTP 401), sem dizer qual dos dois está errado. |
+| Usuário desativado tenta entrar | Login recusado com "Usuário desativado. Procure um administrador." |
+| Sessão expirada (token com mais de 10 h) | A API responde 401; o frontend apaga a sessão e volta para a tela de login. |
+| Aprovar escala com erros | Recusado (HTTP 422) com a lista de violações que impedem a aprovação. |
+| Editar célula de escala aprovada | Recusado: "A escala está aprovada. Reabra-a para editar." |
+| Alocação que estoura o custo do dia (modo BLOQUEAR) | A célula não é gravada e o gestor vê o motivo. |
+| Gerador não consegue cobrir um setor | A escala é gerada mesmo assim, com a lista de déficits (dia, setor, necessários × alocados). |
+| Dado inválido em formulário | Validado no frontend e de novo na API (HTTP 400 com a mensagem de cada campo). |
+| Cadastro duplicado (matrícula, feriado na mesma data, login) | Recusado (HTTP 409) com mensagem amigável. |
+| Arquivo de imagem grande demais ou de tipo não aceito | Recusado (HTTP 413 ou 422) com o limite permitido. |
+| Rebaixar ou desativar o último administrador | Recusado: "É preciso manter pelo menos um administrador ativo." |
+
+## Fora do escopo
+
+O sistema **não** faz:
+
+- **Controle de ponto** (registro de entrada e saída) nem apuração de horas efetivamente trabalhadas.
+- **Folha de pagamento**: usa salário e encargos só para estimar o custo da escala; não calcula salários, impostos
+  ou holerites.
+- **Integração automática com PDV ou ERP**: o fechamento do dia (clientes e vendas por faixa) é lançado pelo gestor.
+- **Várias lojas**: atende uma unidade, com um único conjunto de parâmetros.
+- **Acesso dos colaboradores**: só a gestão usa o sistema; o colaborador não consulta a própria escala nem pede trocas.
+- **Aplicativo móvel nativo**: a interface web é responsiva e funciona no navegador do celular.
+- **Chamadas de voz**: o chat é só de texto, imagens e menção de escalas.
+
 ## User stories
 
 **US01 — Gerar escala da semana** (RF09, RF10)

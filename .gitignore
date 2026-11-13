@@ -15,3 +15,6 @@ infra/terraform/.terraform/
 infra/terraform/*.tfstate*
 infra/terraform/terraform.tfvars
 infra/terraform/.terraform.lock.hcl
+
+# Roteiro pessoal de estudo para a prova de autoria (não publicar).
+preparacao-prova-autoria.md
