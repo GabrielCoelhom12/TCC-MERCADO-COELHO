@@ -5,6 +5,7 @@ import { api } from '../api';
 import { BadgeSituacao, Carregando, ListaViolacoes, useCarregar } from '../components/ui';
 import { DIAS_SEMANA, MOTIVOS_AUSENCIA, dataCurta, diaSemanaDe, isoDe, moeda, numero, paraData, pct } from '../format';
 import type { Escala, Matriz, ResultadoValidacao, ResumoDia, TurnoDTO } from '../types';
+import TrocaColaborador from './TrocaColaborador';
 
 const DIA_MS = 86400000;
 const somarDias = (iso: string, dias: number) => isoDe(new Date(paraData(iso).getTime() + dias * DIA_MS));
@@ -41,12 +42,12 @@ export default function Painel() {
     if (inicio && fim) setDiaEscolhido(hoje >= inicio && hoje <= fim ? hoje : inicio);
   }, [inicio, fim, hoje]);
 
-  const { dados, erro } = useCarregar(
+  const { dados, erro, recarregar } = useCarregar(
     () => (inicio ? api.get<ResultadoValidacao>(`/motor/painel?inicio=${inicio}&fim=${fim}`) : new Promise<ResultadoValidacao>(() => {})),
     [inicio],
   );
   const daSemana = inicio && fim ? escalas?.find((e) => e.dataInicio <= fim && e.dataFim >= inicio) : undefined;
-  const { dados: matriz } = useCarregar(
+  const { dados: matriz, setDados: setMatriz } = useCarregar(
     () => (daSemana ? api.get<Matriz>(`/escalas/${daSemana.id}/matriz`) : Promise.resolve(null)),
     [daSemana?.id],
   );
@@ -104,6 +105,10 @@ export default function Painel() {
               violacoes={dados.violacoes.filter((v) => v.data === diaEscolhido)}
               escala={daSemana}
               matriz={matriz}
+              onTrocado={(m) => {
+                setMatriz(m);
+                recarregar();
+              }}
             />
 
             {gradeAberta && daSemana && (matriz
@@ -209,15 +214,15 @@ const PERIODOS = [
   { nome: 'Noite', ate: '24:00' },
 ];
 
-function DetalheDoDia({ data, resumo, violacoes, escala, matriz }: {
+function DetalheDoDia({ data, resumo, violacoes, escala, matriz, onTrocado }: {
   data: string; resumo: ResumoDia | undefined; violacoes: ResultadoValidacao['violacoes'];
-  escala: Escala | undefined; matriz: Matriz | null;
+  escala: Escala | undefined; matriz: Matriz | null; onTrocado: (m: Matriz) => void;
 }) {
   const nomeDia = `${rotuloDia(data)} ${dataCurta(data)}`;
   return (
     <div className="detalhe-dia" role="tabpanel" id="detalhe-dia" aria-labelledby={`aba-${data}`}>
       <div className="detalhe-equipe">
-        <EquipeDoDia data={data} nomeDia={nomeDia} escala={escala} matriz={matriz} />
+        <EquipeDoDia data={data} nomeDia={nomeDia} escala={escala} matriz={matriz} onTrocado={onTrocado} />
       </div>
       <div className="detalhe-custos">
         <h3>Custos do dia</h3>
@@ -242,7 +247,10 @@ function DetalheDoDia({ data, resumo, violacoes, escala, matriz }: {
   );
 }
 
-function EquipeDoDia({ data, nomeDia, escala, matriz }: { data: string; nomeDia: string; escala: Escala | undefined; matriz: Matriz | null }) {
+function EquipeDoDia({ data, nomeDia, escala, matriz, onTrocado }: {
+  data: string; nomeDia: string; escala: Escala | undefined; matriz: Matriz | null; onTrocado: (m: Matriz) => void;
+}) {
+  const [aberto, setAberto] = useState<TurnoDTO | null>(null);
   if (!escala) {
     return (
       <>
@@ -280,7 +288,9 @@ function EquipeDoDia({ data, nomeDia, escala, matriz }: { data: string; nomeDia:
         <div className="periodo" key={g.nome}>
           <div className="periodo-nome">{g.nome}</div>
           <ul className="lista-equipe">
-            {g.turnos.map((t) => <PessoaNoTurno key={t.id} turno={t} pessoa={pessoasPorId.get(t.funcionarioId)} />)}
+            {g.turnos.map((t) => (
+              <PessoaNoTurno key={t.id} turno={t} pessoa={pessoasPorId.get(t.funcionarioId)} onAbrir={() => setAberto(t)} />
+            ))}
           </ul>
         </div>
       ))}
@@ -289,21 +299,32 @@ function EquipeDoDia({ data, nomeDia, escala, matriz }: { data: string; nomeDia:
           <strong>Ausentes:</strong> {ausentes.map((a) => `${a.funcionarioNome} (${rotuloMotivo(a.motivo)})`).join(', ')}
         </p>
       )}
+      {aberto && (
+        <TrocaColaborador escala={escala} turno={aberto} onFechar={() => setAberto(null)}
+          onTrocado={(m) => {
+            setAberto(null);
+            onTrocado(m);
+          }} />
+      )}
     </>
   );
 }
 
-function PessoaNoTurno({ turno, pessoa }: { turno: TurnoDTO; pessoa: Matriz['funcionarios'][number] | undefined }) {
+function PessoaNoTurno({ turno, pessoa, onAbrir }: {
+  turno: TurnoDTO; pessoa: Matriz['funcionarios'][number] | undefined; onAbrir: () => void;
+}) {
   return (
     <li>
-      <span className="horario">{`${hora(turno.horaInicio)}–${hora(turno.horaFim)}`}</span>
-      <span className="membro">
-        <strong>{pessoa?.nome}</strong>
-        <span className="small muted">
-          <span className="ponto-setor" style={{ background: pessoa?.setorCor }} aria-hidden />{pessoa?.setorNome}
+      <button type="button" className="pessoa-turno" onClick={onAbrir} title="Ver disponibilidade e trocar">
+        <span className="horario">{`${hora(turno.horaInicio)}–${hora(turno.horaFim)}`}</span>
+        <span className="membro">
+          <strong>{pessoa?.nome}</strong>
+          <span className="small muted">
+            <span className="ponto-setor" style={{ background: pessoa?.setorCor }} aria-hidden />{pessoa?.setorNome}
+          </span>
         </span>
-      </span>
-      {turno.rotulo && <span className="badge neutro">{turno.rotulo}</span>}
+        {turno.rotulo && <span className="badge neutro">{turno.rotulo}</span>}
+      </button>
     </li>
   );
 }

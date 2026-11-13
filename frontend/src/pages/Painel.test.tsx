@@ -1,8 +1,8 @@
-import { fireEvent, screen, within } from '@testing-library/react';
+import { fireEvent, screen, waitFor, within } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 import { isoDe } from '../format';
 import { mockFetch, renderizar } from '../test/util';
-import type { Escala, Matriz, ResultadoValidacao, ResumoDia } from '../types';
+import type { Escala, Matriz, ResultadoValidacao, ResumoDia, SugestaoSubstituicao } from '../types';
 import Painel from './Painel';
 
 const somar = (iso: string, dias: number) => {
@@ -106,6 +106,47 @@ describe('Painel', () => {
     expect(within(detalhe).getByText(/1\.234,00/)).toBeInTheDocument();
     expect(within(detalhe).getByText('Frente de Caixa: 0 de 3 operadores mínimos.')).toBeInTheDocument();
     expect(within(detalhe).queryByText('Jornada com hora extra hoje.')).not.toBeInTheDocument();
+  });
+
+  it('clicar em quem trabalha abre a disponibilidade e, após a troca, atualiza a equipe do dia', async () => {
+    const sugestao: SugestaoSubstituicao = {
+      titular: {
+        funcionarioId: 1, nome: 'Ana Souza', setorNome: 'Frente de Caixa', setorCor: '#F26A1B', horasSemana: 7.33,
+        limiteSemanal: 44, diasEscalados: [hoje], diasDisponiveis: [],
+      },
+      candidatos: [{
+        funcionarioId: 3, nome: 'Davi Rocha', setorNome: 'Frente de Caixa', setorCor: '#F26A1B', mesmoSetor: true,
+        horasSemana: 0, horasComTroca: 7.33, custoTurno: 150, apto: true, impedimentos: [], alertas: [],
+      }],
+    };
+    const trocada: Matriz = {
+      ...matriz,
+      funcionarios: [...matriz.funcionarios, linha(4, 'Davi Rocha', 'Frente de Caixa')],
+      turnos: matriz.turnos.map((t) => (t.id === 10 ? { ...t, funcionarioId: 4 } : t)),
+    };
+    const fetch = mockFetch({
+      'GET /api/escalas': { corpo: [escala] },
+      [`GET /api/motor/painel?inicio=${segunda}&fim=${domingo}`]: { corpo: painel },
+      'GET /api/escalas/7/matriz': { corpo: matriz },
+      'GET /api/escalas/7/turnos/10/substitutos': { corpo: sugestao },
+      'POST /api/escalas/7/turnos/10/substituir': { corpo: trocada },
+    });
+    renderizar(<Painel />);
+
+    const detalhe = await detalheDoDia();
+    fireEvent.click(await within(detalhe).findByRole('button', { name: /Ana Souza/ }));
+
+    const dialogo = await screen.findByRole('dialog', { name: 'Ana Souza' });
+    expect(await within(dialogo).findByText('7h20 de 44h00')).toBeInTheDocument();
+
+    fireEvent.click(within(dialogo).getByRole('button', { name: 'Trocar colaborador' }));
+    fireEvent.click(within(dialogo).getByRole('button', { name: 'Passar turno para Davi Rocha' }));
+
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+    expect(within(detalhe).getByRole('button', { name: /Davi Rocha/ })).toBeInTheDocument();
+    expect(within(detalhe).queryByRole('button', { name: /Ana Souza/ })).not.toBeInTheDocument();
+    // Os custos e alertas da semana são recalculados.
+    expect(fetch.mock.calls.filter(([url]) => String(url).startsWith('/api/motor/painel'))).toHaveLength(2);
   });
 
   it('as setas do teclado trocam o dia', async () => {
