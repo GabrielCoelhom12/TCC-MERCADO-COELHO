@@ -13,7 +13,7 @@ const segundaDe = (d: Date) => {
 
 export default function Painel() {
   const [inicio, setInicio] = useState<string | null>(null);
-  const [escalas, setEscalas] = useState<Escala[]>([]);
+  const [escalas, setEscalas] = useState<Escala[] | null>(null);
 
   // Abre na escala vigente ou na próxima; sem escalas (ou se a lista falhar), na semana atual.
   useEffect(() => {
@@ -35,7 +35,7 @@ export default function Painel() {
   );
 
   const mover = (dias: number) => setInicio((i) => (i ? isoDe(new Date(paraData(i).getTime() + dias * 86400000)) : i));
-  const daSemana = inicio && fim ? escalas.find((e) => e.dataInicio <= fim && e.dataFim >= inicio) : undefined;
+  const daSemana = inicio && fim ? escalas?.find((e) => e.dataInicio <= fim && e.dataFim >= inicio) : undefined;
 
   return (
     <div className="stack">
@@ -52,6 +52,7 @@ export default function Painel() {
         </div>
       </div>
 
+      <EquipeDeHoje escalas={escalas} />
       {daSemana && inicio && <EscalaDaSemana escala={daSemana} inicio={inicio} />}
       {!dados ? <Carregando erro={erro} /> : <ConteudoPainel r={dados} />}
     </div>
@@ -59,6 +60,84 @@ export default function Painel() {
 }
 
 const hora = (h: string) => h.slice(0, 5);
+const rotuloDia = (d: string) => DIAS_SEMANA.find((x) => x.dia === diaSemanaDe(d))?.rotulo;
+const rotuloMotivo = (motivo: string) => MOTIVOS_AUSENCIA.find((m) => m.valor === motivo)?.rotulo;
+
+/** Equipe do dia de hoje (pela escala que cobre hoje, qualquer que seja a semana exibida), em ordem de entrada. */
+function EquipeDeHoje({ escalas }: { escalas: Escala[] | null }) {
+  const hoje = isoDe(new Date());
+  const vigente = escalas?.find((e) => e.dataInicio <= hoje && e.dataFim >= hoje);
+  const { dados: matriz, erro } = useCarregar(
+    () => (vigente ? api.get<Matriz>(`/escalas/${vigente.id}/matriz`) : Promise.resolve(null)),
+    [vigente?.id],
+  );
+
+  const pessoas = matriz ? new Map(matriz.funcionarios.map((f) => [f.id, f])) : new Map();
+  const turnos = (matriz?.turnos ?? [])
+    .filter((t) => t.data === hoje && pessoas.has(t.funcionarioId))
+    .sort((a, b) => a.horaInicio.localeCompare(b.horaInicio) || pessoas.get(a.funcionarioId).nome.localeCompare(pessoas.get(b.funcionarioId).nome));
+  const trabalham = new Set(turnos.map((t) => t.funcionarioId));
+  const ausentes = (matriz?.ausencias ?? []).filter((a) => a.inicio <= hoje && a.fim >= hoje && !trabalham.has(a.funcionarioId));
+
+  let conteudo;
+  if (escalas === null) {
+    conteudo = <Carregando />;
+  } else if (!vigente) {
+    conteudo = <p className="muted"><span>Nenhuma escala cobre o dia de hoje.</span> <Link to="/escalas">Ver escalas</Link></p>;
+  } else if (!matriz) {
+    conteudo = <Carregando erro={erro} />;
+  } else {
+    conteudo = (
+      <>
+        {turnos.length === 0 ? <p className="muted">Ninguém escalado para hoje.</p> : (
+          <div className="tabela-wrap">
+            <table className="equipe-hoje">
+              <thead>
+                <tr>
+                  <th>Horário</th>
+                  <th>Colaborador</th>
+                  <th>Setor</th>
+                  <th>Turno</th>
+                </tr>
+              </thead>
+              <tbody>
+                {turnos.map((t) => {
+                  const f = pessoas.get(t.funcionarioId);
+                  return (
+                    <tr key={t.id}>
+                      <td><strong>{`${hora(t.horaInicio)}–${hora(t.horaFim)}`}</strong></td>
+                      <td>{f.nome}</td>
+                      <td><span className="ponto-setor" style={{ background: f.setorCor }} aria-hidden />{f.setorNome}</td>
+                      <td className="muted">{t.rotulo}</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+        {ausentes.length > 0 && (
+          <p className="small muted" style={{ marginTop: 10 }}>
+            <strong>Ausentes hoje:</strong>{' '}
+            {ausentes.map((a) => `${a.funcionarioNome} (${rotuloMotivo(a.motivo)})`).join(', ')}
+          </p>
+        )}
+      </>
+    );
+  }
+
+  return (
+    <section className="card" aria-labelledby="titulo-equipe-hoje">
+      <div className="row" style={{ marginBottom: 12 }}>
+        <h2 id="titulo-equipe-hoje">Quem trabalha hoje</h2>
+        <span className="muted">{rotuloDia(hoje)} {dataCurta(hoje)}</span>
+        <div className="spacer" />
+        {matriz && <span className="badge laranja">{turnos.length === 1 ? '1 pessoa' : `${turnos.length} pessoas`}</span>}
+      </div>
+      {conteudo}
+    </section>
+  );
+}
 
 /** Quem trabalha em cada dia da semana exibida, com o horário, as folgas e as ausências (consulta; edição na matriz). */
 function EscalaDaSemana({ escala, inicio }: { escala: Escala; inicio: string }) {
@@ -66,8 +145,6 @@ function EscalaDaSemana({ escala, inicio }: { escala: Escala; inicio: string }) 
   const hoje = isoDe(new Date());
   const dias = Array.from({ length: 7 }, (_, i) => isoDe(new Date(paraData(inicio).getTime() + i * 86400000)));
   const naEscala = (d: string) => d >= escala.dataInicio && d <= escala.dataFim;
-  const rotuloDia = (d: string) => DIAS_SEMANA.find((x) => x.dia === diaSemanaDe(d))?.rotulo;
-
   const linhas = matriz
     ? [...matriz.funcionarios].sort((a, b) => a.setorNome.localeCompare(b.setorNome) || a.nome.localeCompare(b.nome))
     : [];
@@ -124,7 +201,7 @@ function EscalaDaSemana({ escala, inicio }: { escala: Escala; inicio: string }) 
                     if (ausencia) {
                       return (
                         <td key={d} className={classe}>
-                          <span className="badge neutro">{MOTIVOS_AUSENCIA.find((m) => m.valor === ausencia.motivo)?.rotulo}</span>
+                          <span className="badge neutro">{rotuloMotivo(ausencia.motivo)}</span>
                         </td>
                       );
                     }

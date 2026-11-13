@@ -28,7 +28,10 @@ const linha = (id: number, nome: string, setorNome: string) => ({
 const matriz: Matriz = {
   escala,
   funcionarios: [linha(1, 'Ana Souza', 'Frente de Caixa'), linha(2, 'Bruno Lima', 'Açougue'), linha(3, 'Carla Dias', 'Padaria')],
-  turnos: [{ id: 10, funcionarioId: 1, data: hoje, horaInicio: '07:00:00', horaFim: '15:20:00', intervaloMinutos: 60, rotulo: 'ABE', horas: 7.33, custo: 150 }],
+  turnos: [
+    { id: 11, funcionarioId: 2, data: hoje, horaInicio: '13:40:00', horaFim: '22:00:00', intervaloMinutos: 60, rotulo: 'FEC', horas: 7.33, custo: 150 },
+    { id: 10, funcionarioId: 1, data: hoje, horaInicio: '07:00:00', horaFim: '15:20:00', intervaloMinutos: 60, rotulo: 'ABE', horas: 7.33, custo: 150 },
+  ],
   ausencias: [{ id: 5, funcionarioId: 3, funcionarioNome: 'Carla Dias', inicio: segunda, fim: domingo, motivo: 'FERIAS', observacao: null }],
   modelos: [],
   validacao: painelVazio,
@@ -66,6 +69,32 @@ describe('Painel', () => {
     expect(within(within(secao).getByRole('row', { name: /Carla Dias/ })).getAllByText('Férias')).toHaveLength(7);
 
     expect(within(secao).getByRole('columnheader', { current: 'date' })).toHaveTextContent('Hoje');
+  });
+
+  it('mostra antes da semana quem trabalha hoje, por horário de entrada, e quem está ausente', async () => {
+    montar([escala]);
+    renderizar(<Painel />);
+
+    const secao = await screen.findByRole('region', { name: 'Quem trabalha hoje' });
+    const linhas = await within(secao).findAllByRole('row');
+    const nomes = linhas.slice(1).map((l) => l.textContent);
+    expect(nomes[0]).toContain('Ana Souza');
+    expect(nomes[0]).toContain('07:00–15:20');
+    expect(nomes[1]).toContain('Bruno Lima');
+    expect(nomes[1]).toContain('13:40–22:00');
+    expect(within(secao).getByText('2 pessoas')).toBeInTheDocument();
+    expect(within(secao).getByText(/Ausentes hoje/).closest('p')).toHaveTextContent('Ausentes hoje: Carla Dias (Férias)');
+
+    const regioes = await screen.findAllByRole('region');
+    expect(regioes.map((r) => r.getAttribute('aria-labelledby'))).toEqual(['titulo-equipe-hoje', 'titulo-escala-semana']);
+  });
+
+  it('sem escala para hoje, avisa no quadro do dia', async () => {
+    montar([]);
+    renderizar(<Painel />);
+
+    const secao = await screen.findByRole('region', { name: 'Quem trabalha hoje' });
+    expect(within(secao).getByText('Nenhuma escala cobre o dia de hoje.')).toBeInTheDocument();
   });
 
   it('sem escala na semana, não mostra a grade', async () => {
