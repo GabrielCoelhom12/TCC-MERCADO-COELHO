@@ -516,3 +516,17 @@ button.icone.ativo { background: var(--laranja-fundo); border-color: var(--laran
   .movimento-topo { grid-template-columns: minmax(0, 1fr); }
   .tabela-fechamento input[type=number] { width: 100%; }
 }
+
+/* ---------- férias ---------- */
+.aviso.alerta { background: var(--alerta-fundo); border-color: #f1dfb0; color: #6b4700; }
+.busca { position: relative; display: inline-flex; align-items: center; }
+.busca svg { position: absolute; left: 10px; color: var(--tinta-3); pointer-events: none; }
+.busca input { padding-left: 32px; width: 220px; }
+.duracoes { display: flex; flex-wrap: wrap; gap: 6px; }
+.duracoes button { padding: 5px 12px; border-radius: 99px; font-size: 13px; }
+.duracoes button.ativa, .duracoes button.ativa:hover:not(:disabled) { background: var(--laranja-fundo); border-color: var(--laranja); color: var(--laranja-escuro); }
+.previa-ferias { display: flex; flex-direction: column; gap: 8px; animation: surgir 0.18s ease-out; }
+.encerradas summary { cursor: pointer; font-weight: 600; }
+.encerradas[open] summary { margin-bottom: 12px; }
+.tabela-ferias td { vertical-align: middle; }
+.modal .acoes .spacer { flex: 1; }

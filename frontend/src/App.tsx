@@ -15,6 +15,7 @@ import ParametrosPage from './pages/Parametros';
 import Usuarios from './pages/Usuarios';
 import Mensagens from './pages/Mensagens';
 import Movimento from './pages/Movimento';
+import Ferias from './pages/Ferias';
 
 export default function App() {
   const { usuario } = useAuth();
@@ -32,6 +33,7 @@ export default function App() {
           <Route index element={<Painel />} />
           <Route path="escalas" element={<Escalas />} />
           <Route path="escalas/:id" element={<MatrizEscala />} />
+          <Route path="ferias" element={<Ferias />} />
           <Route path="movimento" element={<Movimento />} />
           <Route path="simulador" element={<Simulador />} />
           <Route path="mensagens" element={<Mensagens />} />
