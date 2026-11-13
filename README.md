@@ -18,7 +18,8 @@ A documentação completa está na **[Wiki do projeto](../../wiki)**, publicada 
 | [docs/deploy.md](docs/deploy.md) | Ambientes, pipeline CI/CD, provisionamento no Azure (Terraform), rollback e monitoramento |
 | [docs/conformidade.md](docs/conformidade.md) | LGPD, segurança (OWASP), acessibilidade (WCAG) e licenças |
 
-Licença: [MIT](LICENSE) (os logotipos do Supermercado Coelho não estão incluídos).
+Licença: [MIT](LICENSE) (os logotipos do Supermercado Coelho não estão incluídos). Para contribuir, siga o fluxo
+**branch → testes → commit → pull request** descrito em [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## Stack (definição explícita)
 
