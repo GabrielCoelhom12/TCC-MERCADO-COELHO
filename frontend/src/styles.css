@@ -488,6 +488,12 @@ button.icone.ativo { background: var(--laranja-fundo); border-color: var(--laran
 .dia-fechamento .dia-nome { font-weight: 600; }
 .dia-fechamento.pendente .badge { justify-self: end; grid-column: 3; }
 
+.escala-semana th, .escala-semana td { text-align: center; white-space: nowrap; }
+.escala-semana th[scope="row"], .escala-semana thead th:first-child { text-align: left; }
+.escala-semana th[scope="row"] { font-weight: 500; }
+.escala-semana .hoje { background: var(--laranja-fundo); }
+.escala-semana tfoot td, .escala-semana tfoot th { font-weight: 600; }
+.ponto-setor { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 8px; vertical-align: middle; }
 .previsao-grade { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 12px; }
 .cartao-previsao {
   display: flex; flex-direction: column; gap: 10px; padding: 14px; border: 1px solid var(--borda); border-radius: 12px;

@@ -2,8 +2,8 @@ import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { api } from '../api';
 import { BadgeSituacao, Carregando, ListaViolacoes, useCarregar } from '../components/ui';
-import { dataCurta, isoDe, moeda, numero, paraData, pct } from '../format';
-import type { Escala, ResultadoValidacao, ResumoDia } from '../types';
+import { DIAS_SEMANA, MOTIVOS_AUSENCIA, dataCurta, diaSemanaDe, isoDe, moeda, numero, paraData, pct } from '../format';
+import type { Escala, Matriz, ResultadoValidacao, ResumoDia } from '../types';
 
 const segundaDe = (d: Date) => {
   const r = new Date(d);
@@ -13,12 +13,14 @@ const segundaDe = (d: Date) => {
 
 export default function Painel() {
   const [inicio, setInicio] = useState<string | null>(null);
+  const [escalas, setEscalas] = useState<Escala[]>([]);
 
   // Abre na escala vigente ou na próxima; sem escalas (ou se a lista falhar), na semana atual.
   useEffect(() => {
     api.get<Escala[]>('/escalas')
       .catch(() => [] as Escala[])
       .then((escalas) => {
+        setEscalas(escalas);
         const hoje = isoDe(new Date());
         const vigente = escalas.find((e) => e.dataInicio <= hoje && e.dataFim >= hoje);
         const proxima = [...escalas].filter((e) => e.dataInicio > hoje).sort((a, b) => a.dataInicio.localeCompare(b.dataInicio))[0];
@@ -33,6 +35,7 @@ export default function Painel() {
   );
 
   const mover = (dias: number) => setInicio((i) => (i ? isoDe(new Date(paraData(i).getTime() + dias * 86400000)) : i));
+  const daSemana = inicio && fim ? escalas.find((e) => e.dataInicio <= fim && e.dataFim >= inicio) : undefined;
 
   return (
     <div className="stack">
@@ -49,8 +52,97 @@ export default function Painel() {
         </div>
       </div>
 
+      {daSemana && inicio && <EscalaDaSemana escala={daSemana} inicio={inicio} />}
       {!dados ? <Carregando erro={erro} /> : <ConteudoPainel r={dados} />}
     </div>
+  );
+}
+
+const hora = (h: string) => h.slice(0, 5);
+
+/** Quem trabalha em cada dia da semana exibida, com o horário, as folgas e as ausências (consulta; edição na matriz). */
+function EscalaDaSemana({ escala, inicio }: { escala: Escala; inicio: string }) {
+  const { dados: matriz, erro } = useCarregar(() => api.get<Matriz>(`/escalas/${escala.id}/matriz`), [escala.id]);
+  const hoje = isoDe(new Date());
+  const dias = Array.from({ length: 7 }, (_, i) => isoDe(new Date(paraData(inicio).getTime() + i * 86400000)));
+  const naEscala = (d: string) => d >= escala.dataInicio && d <= escala.dataFim;
+  const rotuloDia = (d: string) => DIAS_SEMANA.find((x) => x.dia === diaSemanaDe(d))?.rotulo;
+
+  const linhas = matriz
+    ? [...matriz.funcionarios].sort((a, b) => a.setorNome.localeCompare(b.setorNome) || a.nome.localeCompare(b.nome))
+    : [];
+  const turnoDe = (funcionarioId: number, d: string) => matriz?.turnos.find((t) => t.funcionarioId === funcionarioId && t.data === d);
+  const ausenciaDe = (funcionarioId: number, d: string) =>
+    matriz?.ausencias.find((a) => a.funcionarioId === funcionarioId && a.inicio <= d && a.fim >= d);
+  const escalados = (d: string) => new Set(matriz?.turnos.filter((t) => t.data === d).map((t) => t.funcionarioId)).size;
+
+  return (
+    <section className="card" aria-labelledby="titulo-escala-semana">
+      <div className="row" style={{ marginBottom: 12 }}>
+        <h2 id="titulo-escala-semana">Escala da semana</h2>
+        <span className="muted">{escala.nome}</span>
+        {escala.status === 'APROVADA'
+          ? <span className="badge ok">Aprovada</span>
+          : <span className="badge laranja">Rascunho</span>}
+        <div className="spacer" />
+        <Link className="btn" to={`/escalas/${escala.id}`}>Abrir matriz</Link>
+      </div>
+      {!matriz ? <Carregando erro={erro} /> : (
+        <div className="tabela-wrap">
+          <table className="escala-semana">
+            <thead>
+              <tr>
+                <th>Colaborador</th>
+                {dias.map((d) => (
+                  <th key={d} className={d === hoje ? 'hoje' : undefined} aria-current={d === hoje ? 'date' : undefined}>
+                    {d === hoje ? 'Hoje' : rotuloDia(d)} <span className="muted">{dataCurta(d)}</span>
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {linhas.map((f) => (
+                <tr key={f.id}>
+                  <th scope="row">
+                    <span className="ponto-setor" style={{ background: f.setorCor }} aria-hidden />
+                    {f.nome}
+                    <div className="small muted">{f.setorNome}</div>
+                  </th>
+                  {dias.map((d) => {
+                    const turno = turnoDe(f.id, d);
+                    const ausencia = ausenciaDe(f.id, d);
+                    const classe = d === hoje ? 'hoje' : undefined;
+                    if (!naEscala(d)) return <td key={d} className={classe}><span className="muted">—</span></td>;
+                    if (turno) {
+                      return (
+                        <td key={d} className={classe}>
+                          <strong>{`${hora(turno.horaInicio)}–${hora(turno.horaFim)}`}</strong>
+                          {turno.rotulo && <div className="small muted">{turno.rotulo}</div>}
+                        </td>
+                      );
+                    }
+                    if (ausencia) {
+                      return (
+                        <td key={d} className={classe}>
+                          <span className="badge neutro">{MOTIVOS_AUSENCIA.find((m) => m.valor === ausencia.motivo)?.rotulo}</span>
+                        </td>
+                      );
+                    }
+                    return <td key={d} className={classe}><span className="muted">Folga</span></td>;
+                  })}
+                </tr>
+              ))}
+            </tbody>
+            <tfoot>
+              <tr>
+                <th scope="row">Pessoas escaladas</th>
+                {dias.map((d) => <td key={d} className={d === hoje ? 'hoje' : undefined}>{naEscala(d) ? escalados(d) : '—'}</td>)}
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+      )}
+    </section>
   );
 }
 
