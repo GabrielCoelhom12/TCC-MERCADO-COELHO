@@ -53,6 +53,7 @@ public class MovimentoService {
             new Faixa(LocalTime.of(19, 0), LocalTime.of(22, 0)));
     private static final int MAX_FAIXAS = 12;
     private static final int MAX_DIAS_PREVISAO = 31;
+    private static final int MAX_DIAS_ASSERTIVIDADE = 92;
 
     private final FaixaHorariaRepository faixas;
     private final MovimentoDiarioRepository movimentos;
@@ -147,6 +148,18 @@ public class MovimentoService {
                     cap.previsao(), setores));
         }
         return dias;
+    }
+
+    /**
+     * Quanto a previsão acertou no período: cada fechamento é comparado com a previsão feita só com o histórico
+     * anterior a ele. Nulo se o período não tiver fechamentos comparáveis.
+     */
+    @Transactional(readOnly = true)
+    public PrevisaoMovimento.Assertividade assertividade(LocalDate inicio, LocalDate fim) {
+        if (fim.isBefore(inicio) || ChronoUnit.DAYS.between(inicio, fim) >= MAX_DIAS_ASSERTIVIDADE) {
+            throw new RegraNegocioException("Período inválido (máximo de " + MAX_DIAS_ASSERTIVIDADE + " dias).");
+        }
+        return motor.assertividade(inicio, fim, contextos.carregar(inicio, fim));
     }
 
     // ------------------------------------------------------------------ auxiliares
