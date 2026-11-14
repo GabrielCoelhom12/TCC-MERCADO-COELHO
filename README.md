@@ -56,6 +56,9 @@ que o sistema já validou e registra férias, atestados e licenças com a substi
 - Matriz colaborador × dia com revalidação imediata a cada célula, geração automática, aprovação e reabertura.
 - Rascunho das próximas semanas criado sozinho todo dia às 6h (antecedência de 1 a 4 semanas, configurável).
 - Modo financeiro **BLOQUEAR** (recusa a alocação que estoura o limite) ou **ALERTAR**.
+- **Imprimir ou baixar em PDF** (Painel, matriz e lista de escalas): A4 deitado com a logo do supermercado, colaboradores
+  por setor, turnos, folgas, férias e ausências, feriados, total de pessoas por dia, legenda e assinatura da gerência.
+  Sem custos nem salários, e atestados e licenças aparecem só como "Ausente", porque a escala fica à vista de todos.
 
 **Férias**
 - Página própria com quem está de férias hoje, quem começa em 30 dias e quem volta na semana.
@@ -90,7 +93,7 @@ que o sistema já validou e registra férias, atestados e licenças com a substi
   não lidas e indicação de leitura.
 - Usuários com três perfis (ver [Perfis de acesso](#perfis-de-acesso)), senha forte e foto.
 
-São **30 requisitos funcionais, 9 não funcionais, 17 regras de negócio e 14 histórias de usuário**, descritos em
+São **31 requisitos funcionais, 9 não funcionais, 17 regras de negócio e 15 histórias de usuário**, descritos em
 [docs/requisitos.md](docs/requisitos.md).
 
 ## Motor de custo e regras
@@ -240,8 +243,8 @@ Resultado com todos os pull requests de novembro integrados (14/11/2026):
 
 | | Testes | Cobertura de linhas | Mínimo exigido |
 |---|---|---|---|
-| Backend (JUnit 5, MockMvc, ArchUnit) | 322, 0 falhas | 97,7% (JaCoCo) | 75% |
-| Frontend (Vitest, Testing Library) | 126, 0 falhas | 79,9% | 25% |
+| Backend (JUnit 5, MockMvc, ArchUnit) | 325, 0 falhas | 97,3% (JaCoCo) | 75% |
+| Frontend (Vitest, Testing Library) | 131, 0 falhas | 80,1% | 25% |
 
 Os testes seguem os fluxos de negócio:
 - **Integração** (API completa contra o PostgreSQL): `CadastrosIntegracaoTest`, `EscalaIntegracaoTest`,
@@ -341,8 +344,9 @@ A documentação completa está na **[Wiki do projeto](../../wiki)**, publicada 
 
 ## Licença
 
-Distribuído sob a licença MIT; veja [LICENSE](LICENSE). Os logotipos do Supermercado Coelho não estão incluídos, e os
-dados de demonstração são fictícios.
+Distribuído sob a licença MIT; veja [LICENSE](LICENSE). Os logotipos do Supermercado Coelho (em `frontend/public` e
+`backend/src/main/resources/relatorio`) são marcas do parceiro e não estão cobertos pela licença; os dados de
+demonstração são fictícios.
 
 ## Referências técnicas
 

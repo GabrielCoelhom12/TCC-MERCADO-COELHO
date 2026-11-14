@@ -52,6 +52,7 @@ O sistema tem três fluxos de negócio completos, cada um coberto por testes de 
 | RF28 | No painel, mostrar a semana de quem trabalha no dia (horas escaladas × limite semanal, dias de trabalho e indisponíveis) e trocá-lo por um colega que o sistema valida antes (disponibilidade, ausências, interjornada, jornada e dias seguidos), indicando hora extra e custo de cada opção. |
 | RF29 | Operação de férias: registrar, editar e remover férias da equipe com as regras da CLT (5 a 30 dias por período, início fora dos dois dias que antecedem feriado ou domingo, sem sobrepor outra ausência), prévia de dias e retorno, repasse automático dos turnos já escalados no período a colegas aptos (inclusive em escala aprovada, anotando a troca na escala) e alerta de colegas do setor ausentes no mesmo período. |
 | RF30 | Operação de afastamentos: registrar atestado médico, licença-maternidade, licença-paternidade, afastamento pelo INSS, acidente de trabalho, licença por luto, licença-casamento, folga acordada e outros, inclusive com data já passada, repassando na hora os turnos já escalados a colegas aptos (os de dias passados são só retirados) e alertando o que a lei garante a cada tipo. Só o tipo é guardado: diagnóstico e CID não entram no sistema. |
+| RF31 | Imprimir ou baixar a escala em PDF (A4 deitado) com a logo do supermercado: colaboradores por setor, turnos com a sigla, folgas, férias e ausências (sem o motivo de atestados e licenças), feriados destacados, total de pessoas por dia, legenda dos turnos e espaço para a assinatura da gerência, sem custos nem salários. |
 
 ## Requisitos não funcionais
 
@@ -196,3 +197,9 @@ Como gerente ou supervisor, quero registrar o atestado ou a licença de um colab
 - *Dado* um atestado de mais de 15 dias, *então* sou lembrado de que a partir do 16º dia o afastamento é pago pelo INSS.
 - *Dada* uma licença-maternidade, *então* o atalho "120 dias" preenche o fim e o sistema avisa se o período ficar menor.
 - *Dado* o perfil SUPERVISOR, *então* posso registrar o afastamento, mas só a gerência edita ou remove.
+
+**US15 — Afixar a escala da semana** (RF31)
+Como gerente, quero imprimir ou baixar a escala da semana com a identidade do supermercado, para afixar no mural e enviar à equipe.
+- *Quando* clico em "Baixar PDF" no Painel, na matriz ou na lista de escalas, *então* recebo o arquivo `escala-<início>-a-<fim>.pdf`.
+- *Quando* clico em "Imprimir", *então* o diálogo de impressão abre com a escala pronta em uma folha A4.
+- *Dado* um colaborador de atestado, *então* a escala impressa mostra só "Ausente", sem o motivo.
