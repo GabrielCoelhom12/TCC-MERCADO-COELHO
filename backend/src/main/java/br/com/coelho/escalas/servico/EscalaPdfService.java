@@ -30,11 +30,9 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.UncheckedIOException;
-import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
-import java.time.format.TextStyle;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
@@ -79,6 +77,7 @@ public class EscalaPdfService {
     private static final DateTimeFormatter DIA_MES = DateTimeFormatter.ofPattern("dd/MM");
     private static final DateTimeFormatter HORA = DateTimeFormatter.ofPattern("HH:mm");
     private static final Locale PT_BR = Locale.of("pt", "BR");
+    private static final String[] DIAS_DA_SEMANA = {"Seg", "Ter", "Qua", "Qui", "Sex", "Sáb", "Dom"};
 
     private final EscalaService escalas;
 
@@ -154,10 +153,9 @@ public class EscalaPdfService {
 
         PdfPCell situacao = semBorda(new PdfPCell());
         situacao.setVerticalAlignment(Element.ALIGN_MIDDLE);
-        Paragraph status = new Paragraph(e.getStatus() == Escala.Status.APROVADA
-                ? "Aprovada" + (e.getAprovadaPor() == null ? "" : " por " + e.getAprovadaPor())
-                + (e.getAprovadaEm() == null ? "" : " em " + DATA.format(e.getAprovadaEm()))
-                : "Rascunho — sujeita a alterações", e.getStatus() == Escala.Status.APROVADA ? NEGRITO : fonte(8.5f, Font.BOLD, LARANJA));
+        boolean aprovada = e.getStatus() == Escala.Status.APROVADA;
+        Paragraph status = new Paragraph(aprovada ? textoAprovacao(e) : "Rascunho — sujeita a alterações",
+                aprovada ? NEGRITO : fonte(8.5f, Font.BOLD, LARANJA));
         status.setAlignment(Element.ALIGN_RIGHT);
         situacao.addElement(status);
         Paragraph emitida = new Paragraph("Emitida em " + DATA.format(emitidaEm) + " às " + HORA.format(emitidaEm), PEQUENO);
@@ -174,6 +172,18 @@ public class EscalaPdfService {
         linha.setFixedHeight(6);
         t.addCell(linha);
         return t;
+    }
+
+    /** "Aprovada por gestor em 10/11/2026" (sem as partes que faltarem). */
+    private static String textoAprovacao(Escala e) {
+        StringBuilder sb = new StringBuilder("Aprovada");
+        if (e.getAprovadaPor() != null) {
+            sb.append(" por ").append(e.getAprovadaPor());
+        }
+        if (e.getAprovadaEm() != null) {
+            sb.append(" em ").append(DATA.format(e.getAprovadaEm()));
+        }
+        return sb.toString();
     }
 
     private static Image logo() {
@@ -250,7 +260,8 @@ public class EscalaPdfService {
                 TurnoDTO tu = turnos.get(i);
                 p.add(new Chunk((i > 0 ? "\n" : "") + HORA.format(tu.horaInicio()) + "–" + HORA.format(tu.horaFim()), NEGRITO));
                 if (tu.rotulo() != null && !tu.rotulo().isBlank()) {
-                    p.add(new Chunk("\n" + tu.rotulo(), PEQUENO));
+                    // Sigla na mesma linha do horário: uma semana inteira da loja cabe numa folha A4.
+                    p.add(new Chunk(" " + tu.rotulo(), PEQUENO));
                 }
             }
             return celula(p, Element.ALIGN_CENTER, fundo);
@@ -274,13 +285,9 @@ public class EscalaPdfService {
         return ausencias.stream().filter(a -> a.getFuncionarioId().equals(funcionarioId) && a.cobre(d)).findFirst().orElse(null);
     }
 
+    /** Só o nome: o setor já agrupa as linhas, e o cargo deixaria cada linha com o dobro da altura. */
     private static PdfPCell celulaNome(LinhaFuncionario f, Color fundo) {
-        Phrase p = new Phrase();
-        p.add(new Chunk(f.nome(), NEGRITO));
-        if (f.cargo() != null && !f.cargo().isBlank()) {
-            p.add(new Chunk("\n" + f.cargo(), PEQUENO));
-        }
-        PdfPCell c = celula(p, Element.ALIGN_LEFT, fundo);
+        PdfPCell c = celula(new Phrase(f.nome(), NEGRITO), Element.ALIGN_LEFT, fundo);
         c.setPaddingLeft(6);
         return c;
     }
@@ -294,7 +301,7 @@ public class EscalaPdfService {
         c.setBorderColorLeft(cor);
         c.setBorderWidthLeft(4f);
         c.setBorderColorBottom(BORDA);
-        c.setPadding(4);
+        c.setPadding(3);
         c.setPaddingLeft(6);
         return c;
     }
@@ -317,8 +324,8 @@ public class EscalaPdfService {
         c.setBackgroundColor(fundo);
         c.setBorder(Rectangle.BOTTOM);
         c.setBorderColor(BORDA);
-        c.setPaddingTop(4);
-        c.setPaddingBottom(5);
+        c.setPaddingTop(3);
+        c.setPaddingBottom(4);
         return c;
     }
 
@@ -374,8 +381,7 @@ public class EscalaPdfService {
     // ------------------------------------------------------------------ auxiliares
 
     private static String diaDaSemana(LocalDate d) {
-        String nome = d.getDayOfWeek().getDisplayName(TextStyle.SHORT, PT_BR).replace(".", "");
-        return d.getDayOfWeek() == DayOfWeek.SATURDAY ? "Sáb" : Character.toUpperCase(nome.charAt(0)) + nome.substring(1);
+        return DIAS_DA_SEMANA[d.getDayOfWeek().getValue() - 1];
     }
 
     private static PdfPCell semBorda(PdfPCell c) {
