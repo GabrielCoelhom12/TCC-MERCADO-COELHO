@@ -144,24 +144,25 @@ export default function MatrizEscala() {
 
       {podeEditar && rascunho && (
         <div className="card geracao">
-          <div>
+          <div className="geracao-texto">
             <strong>Geração automática</strong>
             <p className="small muted">
               <b>Rápido</b>: preenche dia a dia, com quem tem menos horas. <b>Timefold</b>: otimiza a semana inteira de uma vez
               (cobertura, custo e equilíbrio de horas) em alguns segundos.
             </p>
           </div>
-          <div className="spacer" />
-          <button disabled={ocupado} onClick={() => acao('gerar', 'Substituir todos os turnos desta escala por uma nova sugestão automática?')}>
-            <Zap size={16} aria-hidden />Gerar (rápido)
-          </button>
-          <button className="primario" disabled={ocupado}
-            onClick={() => acao('otimizar', 'Substituir todos os turnos desta escala pela escala otimizada (leva alguns segundos)?')}>
-            <Sparkles size={16} aria-hidden />{ocupado ? 'Otimizando…' : 'Otimizar com Timefold'}
-          </button>
-          <button disabled={ocupado} onClick={() => setComparando(true)}>
-            <BarChart3 size={16} aria-hidden />Comparar algoritmos
-          </button>
+          <div className="row geracao-botoes">
+            <button disabled={ocupado} onClick={() => acao('gerar', 'Substituir todos os turnos desta escala por uma nova sugestão automática?')}>
+              <Zap size={16} aria-hidden />Gerar (rápido)
+            </button>
+            <button className="primario" disabled={ocupado}
+              onClick={() => acao('otimizar', 'Substituir todos os turnos desta escala pela escala otimizada (leva alguns segundos)?')}>
+              <Sparkles size={16} aria-hidden />{ocupado ? 'Otimizando…' : 'Otimizar com Timefold'}
+            </button>
+            <button disabled={ocupado} onClick={() => setComparando(true)}>
+              <BarChart3 size={16} aria-hidden />Comparar algoritmos
+            </button>
+          </div>
         </div>
       )}
       {comparando && <ComparacaoAlgoritmos escalaId={m.escala.id} onFechar={() => setComparando(false)} />}

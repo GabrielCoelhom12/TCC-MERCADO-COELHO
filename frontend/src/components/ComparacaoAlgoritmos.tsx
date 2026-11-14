@@ -19,8 +19,16 @@ const LINHAS: Linha[] = [
   { rotulo: 'Erros', ajuda: 'regras da CLT e mínimos por setor', valor: (m) => m.erros, formato: String },
   { rotulo: 'Alertas', ajuda: 'hora extra, picos descobertos…', valor: (m) => m.alertas, formato: String },
   { rotulo: 'Equilíbrio de horas', ajuda: 'desvio-padrão das horas por pessoa (menor = mais justo)', valor: (m) => m.desvioPadraoHoras, formato: (n) => `${numero(n)} h` },
-  { rotulo: 'Tempo', ajuda: 'para gerar a escala', valor: (m) => m.milissegundos, formato: (n) => `${numero(Math.round(n / 10) / 100)} s` },
+  { rotulo: 'Tempo', ajuda: 'para gerar a escala', valor: (m) => m.milissegundos, formato: tempo },
 ];
+
+/** "35 ms" abaixo de 1 segundo; "2,1 s" acima. */
+function tempo(ms: number) {
+  return ms < 1000 ? `${ms} ms` : `${numero(Math.round(ms / 100) / 10)} s`;
+}
+
+/** Títulos curtos para as colunas caberem no celular. */
+const coluna = (algoritmo: string) => (algoritmo.includes('Timefold') ? 'Timefold' : 'Guloso');
 
 /**
  * Compara o gerador guloso e o otimizador (Timefold) gerando do zero para o período da escala, sem alterá-la — base do
@@ -41,7 +49,7 @@ export default function ComparacaoAlgoritmos({ escalaId, onFechar }: { escalaId:
           <div className="tabela-wrap">
             <table>
               <thead>
-                <tr><th>Métrica</th><th className="num">{dados.guloso.algoritmo}</th><th className="num">{dados.otimizado.algoritmo}</th></tr>
+                <tr><th>Métrica</th><th className="num">{coluna(dados.guloso.algoritmo)}</th><th className="num">{coluna(dados.otimizado.algoritmo)}</th></tr>
               </thead>
               <tbody>
                 {LINHAS.map((l) => {

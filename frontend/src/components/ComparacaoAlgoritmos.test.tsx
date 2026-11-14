@@ -22,7 +22,9 @@ describe('ComparacaoAlgoritmos', () => {
     expect(within(linha(/Vagas sem ninguém/)).getByText('0')).toHaveClass('melhor');
     expect(within(linha(/Custo da escala/)).getByText(/7\.381,79/)).toHaveClass('melhor');
     expect(within(linha(/Equilíbrio de horas/)).getByText('4,1 h')).toHaveClass('melhor');
-    expect(within(linha(/Tempo/)).getByText('0,04 s')).toHaveClass('melhor');
+    expect(within(linha(/Tempo/)).getByText('35 ms')).toHaveClass('melhor');
+    expect(within(linha(/Tempo/)).getByText('2,1 s')).toBeInTheDocument();
+    expect(within(tabela).getByRole('columnheader', { name: 'Timefold' })).toBeInTheDocument();
     expect(screen.getByText(/R\$\s?38,71 a menos/)).toBeInTheDocument();
   });
 

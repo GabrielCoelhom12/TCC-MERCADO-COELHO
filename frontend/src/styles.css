@@ -523,6 +523,9 @@ iframe.impressao { position: fixed; right: 0; bottom: 0; width: 0; height: 0; bo
 
 /* ---------- geração automática e comparação de algoritmos ---------- */
 .card.geracao { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding: 14px 18px; }
-.card.geracao p { margin: 2px 0 0; max-width: 620px; }
-.comparacao th[scope="row"] { font-weight: 600; }
+.card.geracao p { margin: 2px 0 0; }
+.card.geracao .geracao-texto { flex: 1 1 360px; min-width: 0; }
+.card.geracao .geracao-botoes { gap: 8px; flex-wrap: wrap; }
+.modal:has(.comparacao) { width: min(680px, 100%); }
+.comparacao th[scope="row"] { font-weight: 600; white-space: normal; }
 .comparacao .melhor { color: var(--ok); font-weight: 700; }
