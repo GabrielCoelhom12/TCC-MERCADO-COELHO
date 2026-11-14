@@ -37,11 +37,11 @@ public class EscalaService {
     }
 
     public record TurnoDTO(Long id, Long funcionarioId, LocalDate data, LocalTime horaInicio, LocalTime horaFim,
-                           int intervaloMinutos, String rotulo, BigDecimal horas, BigDecimal custo) {
+                           int intervaloMinutos, String rotulo, BigDecimal horas, @Confidencial BigDecimal custo) {
     }
 
     public record LinhaFuncionario(Long id, String nome, String cargo, Long setorId, String setorNome, String setorCor,
-                                   BigDecimal custoHora, Set<DayOfWeek> diasDisponiveis, boolean ativo) {
+                                   @Confidencial BigDecimal custoHora, Set<DayOfWeek> diasDisponiveis, boolean ativo) {
     }
 
     public record Matriz(Escala escala, List<LinhaFuncionario> funcionarios, List<TurnoDTO> turnos,

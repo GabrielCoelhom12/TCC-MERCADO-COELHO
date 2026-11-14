@@ -1,5 +1,6 @@
 package br.com.coelho.escalas.motor;
 
+import br.com.coelho.escalas.dominio.Confidencial;
 import br.com.coelho.escalas.dominio.Funcionario;
 import br.com.coelho.escalas.dominio.Turno;
 import org.springframework.stereotype.Component;
@@ -28,7 +29,7 @@ public class SugestorSubstituicao {
     }
 
     public record Candidato(Long funcionarioId, String nome, String setorNome, String setorCor, boolean mesmoSetor,
-                            BigDecimal horasSemana, BigDecimal horasComTroca, BigDecimal custoTurno, boolean apto,
+                            BigDecimal horasSemana, BigDecimal horasComTroca, @Confidencial BigDecimal custoTurno, boolean apto,
                             List<String> impedimentos, List<String> alertas) {
     }
 
