@@ -1,7 +1,9 @@
 import { Fragment, useEffect, useMemo, useState } from 'react';
+import { BarChart3, Sparkles, Zap } from 'lucide-react';
 import { Link, useParams } from 'react-router-dom';
 import { ApiError, api } from '../api';
 import { usePermissoes } from '../auth';
+import ComparacaoAlgoritmos from '../components/ComparacaoAlgoritmos';
 import ExportarEscala from '../components/ExportarEscala';
 import { AvisoConsulta, BadgeSituacao, Carregando, ListaViolacoes, Modal, mensagemErro, useCarregar, useToast } from '../components/ui';
 import { dataCurta, dataLonga, diaSemanaDe, hora, horas, isoDe, moeda, moedaConfidencial, paraData, pct } from '../format';
@@ -19,6 +21,7 @@ export default function MatrizEscala() {
   const [bloqueio, setBloqueio] = useState<Bloqueio>(null);
   const [filtro, setFiltro] = useState<Filtro>('TODAS');
   const [ocupado, setOcupado] = useState(false);
+  const [comparando, setComparando] = useState(false);
   const toast = useToast();
   const { podeEditar } = usePermissoes();
 
@@ -88,12 +91,13 @@ export default function MatrizEscala() {
     if (confirmar && !window.confirm(confirmar)) return;
     setOcupado(true);
     try {
-      if (caminho === 'gerar') {
-        const g = await api.post<Geracao>(`/escalas/${id}/gerar`);
+      if (caminho === 'gerar' || caminho === 'otimizar') {
+        const g = await api.post<Geracao>(`/escalas/${id}/${caminho}`);
         setDados(g.matriz);
+        const como = caminho === 'otimizar' ? ' pela otimização (Timefold)' : '';
         toast(g.deficits.length ? 'erro' : 'ok', g.deficits.length
-          ? `${g.turnosCriados} turnos gerados; ${g.deficits.length} dia/setor sem colaboradores suficientes.`
-          : `${g.turnosCriados} turnos gerados, exatamente na demanda mínima.`);
+          ? `${g.turnosCriados} turnos gerados${como}; ${g.deficits.length} dia/setor sem colaboradores suficientes.`
+          : `${g.turnosCriados} turnos gerados${como}, cobrindo toda a demanda.`);
       } else if (caminho === 'limpar') {
         setDados(await api.post<Matriz>(`/escalas/${id}/limpar`));
       } else {
@@ -127,7 +131,6 @@ export default function MatrizEscala() {
         <ExportarEscala escala={m.escala} />
         {podeEditar && (rascunho ? (
           <div className="row">
-            <button disabled={ocupado} onClick={() => acao('gerar', 'Substituir todos os turnos desta escala por uma nova sugestão automática?')}>Gerar automaticamente</button>
             <button disabled={ocupado} onClick={() => acao('limpar', 'Remover todos os turnos desta escala?')}>Limpar</button>
             <button className="primario" disabled={ocupado || !v.aprovavel} onClick={() => acao('aprovar')}
               title={v.aprovavel ? 'Aprovar escala' : 'Corrija os erros para aprovar'}>Aprovar escala</button>
@@ -138,6 +141,30 @@ export default function MatrizEscala() {
       </div>
 
       {!podeEditar && <AvisoConsulta />}
+
+      {podeEditar && rascunho && (
+        <div className="card geracao">
+          <div>
+            <strong>Geração automática</strong>
+            <p className="small muted">
+              <b>Rápido</b>: preenche dia a dia, com quem tem menos horas. <b>Timefold</b>: otimiza a semana inteira de uma vez
+              (cobertura, custo e equilíbrio de horas) em alguns segundos.
+            </p>
+          </div>
+          <div className="spacer" />
+          <button disabled={ocupado} onClick={() => acao('gerar', 'Substituir todos os turnos desta escala por uma nova sugestão automática?')}>
+            <Zap size={16} aria-hidden />Gerar (rápido)
+          </button>
+          <button className="primario" disabled={ocupado}
+            onClick={() => acao('otimizar', 'Substituir todos os turnos desta escala pela escala otimizada (leva alguns segundos)?')}>
+            <Sparkles size={16} aria-hidden />{ocupado ? 'Otimizando…' : 'Otimizar com Timefold'}
+          </button>
+          <button disabled={ocupado} onClick={() => setComparando(true)}>
+            <BarChart3 size={16} aria-hidden />Comparar algoritmos
+          </button>
+        </div>
+      )}
+      {comparando && <ComparacaoAlgoritmos escalaId={m.escala.id} onFechar={() => setComparando(false)} />}
 
       <div className="grid-kpi">
         <div className="card kpi destaque">

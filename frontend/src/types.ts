@@ -396,3 +396,24 @@ export interface DocumentoResumo {
   enviadoEm: string;
   enviadoPor: string;
 }
+
+/** Resultado de um algoritmo de geração na comparação (guloso × Timefold). */
+export interface MetricasAlgoritmo {
+  algoritmo: string;
+  milissegundos: number;
+  turnos: number;
+  vagasDescobertas: number;
+  custo: number;
+  erros: number;
+  alertas: number;
+  /** Desvio-padrão das horas por pessoa no período (menor = mais equilibrado). */
+  desvioPadraoHoras: number;
+}
+
+export interface ComparacaoAlgoritmos {
+  escalaId: number;
+  inicio: string;
+  fim: string;
+  guloso: MetricasAlgoritmo;
+  otimizado: MetricasAlgoritmo;
+}
