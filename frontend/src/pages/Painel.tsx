@@ -207,8 +207,10 @@ function QuadroAusencias({ id, titulo, Icone, itens, inicio, fim, matriz, link, 
                     </span>
                   )}
                 </span>
-                {comTipo && <span className="small tipo-ausencia">{rotuloMotivo(a.motivo)}</span>}
+                {/* O tipo vai na linha das datas: todos os cartões têm a mesma altura nos dois quadros. */}
                 <span className="small periodo-ferias">
+                  {comTipo && <strong className="tipo-ausencia">{rotuloMotivo(a.motivo)}</strong>}
+                  {comTipo && ' · '}
                   {a.inicio > inicio && <>a partir de {dataCurta(a.inicio)} · </>}volta em {dataCurta(somarDias(a.fim, 1))}
                 </span>
               </li>
