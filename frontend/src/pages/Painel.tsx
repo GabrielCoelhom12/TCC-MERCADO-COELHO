@@ -77,7 +77,6 @@ export default function Painel() {
         <>
           <Indicadores r={dados} />
 
-          {ferias && inicio && fim && <DeFerias ferias={ferias} inicio={inicio} fim={fim} matriz={matriz} />}
 
           <section className="card semana" aria-labelledby="titulo-semana">
             <div className="row cabecalho-semana">
@@ -119,6 +118,8 @@ export default function Painel() {
               ? <GradeDaSemana escala={daSemana} matriz={matriz} dias={dias} hoje={hoje} />
               : <Carregando />)}
           </section>
+
+          {ferias && inicio && fim && <DeFerias ferias={ferias} inicio={inicio} fim={fim} matriz={matriz} />}
         </>
       )}
     </div>
@@ -171,7 +172,7 @@ function DeFerias({ ferias, inicio, fim, matriz }: { ferias: Ausencia[]; inicio:
       <div className="row">
         <Palmtree size={18} className="icone-ferias" aria-hidden />
         <h2 id="titulo-ferias">De férias nesta semana</h2>
-        <span className="badge laranja">{daSemana.length}</span>
+        <span className="badge neutro">{daSemana.length}</span>
         <div className="spacer" />
         <Link to="/ferias">Ver férias</Link>
       </div>

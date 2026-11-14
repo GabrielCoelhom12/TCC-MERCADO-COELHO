@@ -636,11 +636,11 @@ button.icone.ativo { background: var(--laranja-fundo); border-color: var(--laran
 
 /* ---------- painel: de férias na semana ---------- */
 .de-ferias { padding: 16px 20px; }
-.de-ferias h2 { font-size: 18px; }
-.de-ferias .icone-ferias { color: var(--laranja-escuro); }
+.de-ferias h2 { font-size: 15px; }
+.de-ferias .icone-ferias { color: var(--tinta-3); }
 .de-ferias > p { margin: 10px 0 0; }
 .lista-ferias { list-style: none; margin: 12px 0 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 8px; }
-.lista-ferias li { display: flex; flex-direction: column; gap: 4px; padding: 8px 12px; border-radius: 8px; background: var(--laranja-fundo); border: 1px solid var(--laranja-claro); min-width: 0; }
+.lista-ferias li { display: flex; flex-direction: column; gap: 4px; padding: 8px 12px; border-radius: 8px; background: var(--fundo); border: 1px solid var(--borda); min-width: 0; }
 .lista-ferias .membro { display: flex; flex-direction: column; line-height: 1.3; min-width: 0; }
 .lista-ferias .membro strong, .lista-ferias .membro span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.lista-ferias .periodo-ferias { color: var(--laranja-escuro); white-space: nowrap; font-weight: 500; }
+.lista-ferias .periodo-ferias { color: var(--tinta-2); white-space: nowrap; }
