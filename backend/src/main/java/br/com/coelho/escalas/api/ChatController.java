@@ -30,13 +30,15 @@ public class ChatController {
     public record DiretaRequest(@NotNull Long usuarioId) {
     }
 
-    public record GrupoRequest(@NotBlank @Size(max = ChatService.MAX_NOME_GRUPO) String nome, @NotNull List<Long> participantes) {
+    /** Até 100 participantes por pedido: grupos do supermercado, não listas de difusão. */
+    public record GrupoRequest(@NotBlank @Size(max = ChatService.MAX_NOME_GRUPO) String nome,
+                               @NotNull @Size(max = 100) List<Long> participantes) {
     }
 
     public record RenomearRequest(@NotBlank @Size(max = ChatService.MAX_NOME_GRUPO) String nome) {
     }
 
-    public record ParticipantesRequest(@NotEmpty List<Long> usuarios) {
+    public record ParticipantesRequest(@NotEmpty @Size(max = 100) List<Long> usuarios) {
     }
 
     public record MensagemRequest(@Size(max = Mensagem.MAX_TEXTO) String texto, Long escalaId) {

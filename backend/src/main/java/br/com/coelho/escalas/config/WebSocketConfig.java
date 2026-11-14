@@ -24,7 +24,8 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
     public WebSocketConfig(AutenticacaoStomp autenticacao,
                            @Value("${app.ws.origens:http://localhost:5173}") String[] origens) {
         this.autenticacao = autenticacao;
-        this.origens = origens;
+        // Vazio (produção): só a própria origem da aplicação.
+        this.origens = java.util.Arrays.stream(origens).map(String::trim).filter(o -> !o.isEmpty()).toArray(String[]::new);
     }
 
     @Override

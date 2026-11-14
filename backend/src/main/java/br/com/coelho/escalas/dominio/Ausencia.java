@@ -15,7 +15,29 @@ import java.time.LocalDate;
 @NoArgsConstructor
 public class Ausencia {
 
-    public enum Motivo { FERIAS, ATESTADO, FOLGA_ACORDADA, OUTRO }
+    /** Tipo da ausência. Só o tipo é guardado: diagnóstico e CID não entram no sistema (LGPD, dado de saúde). */
+    public enum Motivo {
+        FERIAS("férias"),
+        ATESTADO("atestado médico"),
+        LICENCA_MATERNIDADE("licença-maternidade"),
+        LICENCA_PATERNIDADE("licença-paternidade"),
+        AFASTAMENTO_INSS("afastamento pelo INSS"),
+        ACIDENTE_TRABALHO("acidente de trabalho"),
+        LUTO("licença por luto"),
+        CASAMENTO("licença-casamento"),
+        FOLGA_ACORDADA("folga acordada"),
+        OUTRO("ausência");
+
+        private final String rotulo;
+
+        Motivo(String rotulo) {
+            this.rotulo = rotulo;
+        }
+
+        public String getRotulo() {
+            return rotulo;
+        }
+    }
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
