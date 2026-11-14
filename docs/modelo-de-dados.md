@@ -150,58 +150,18 @@ erDiagram
 - **Faixas horárias:** `FAIXA_HORARIA` define as faixas em que o fechamento do dia é lançado (`MOVIMENTO_FAIXA`).
 - **Parâmetros:** registro único (`id = 1`) com as regras da CLT e os limites de custo usados pelo motor.
 
-## Usuários e chat
+## Usuários
 
 ```mermaid
 erDiagram
-    USUARIO ||--o{ PARTICIPANTE_CONVERSA : "participa"
-    CONVERSA ||--o{ PARTICIPANTE_CONVERSA : "tem"
-    CONVERSA ||--o{ MENSAGEM : "contém"
-    USUARIO ||--o{ MENSAGEM : "escreve"
-    USUARIO ||--o{ CONVERSA : "cria"
-
     USUARIO {
         bigint id PK
         varchar login UK
         varchar senha_hash "BCrypt"
+        timestamp senha_alterada_em "tokens anteriores deixam de valer"
         varchar nome
         varchar perfil "ADMIN, GESTOR, SUPERVISOR"
         boolean ativo
         bytea foto "opcional"
     }
-    CONVERSA {
-        bigint id PK
-        varchar tipo "DIRETA, GRUPO"
-        varchar nome "só grupos"
-        varchar chave_direta UK "impede duas conversas privadas entre o mesmo par"
-        bigint criada_por_id FK
-        timestamp atualizada_em
-    }
-    PARTICIPANTE_CONVERSA {
-        bigint id PK
-        bigint conversa_id FK
-        bigint usuario_id FK
-        bigint ultima_mensagem_lida_id "base das não lidas e do indicador Lida"
-    }
-    MENSAGEM {
-        bigint id PK
-        bigint conversa_id FK
-        bigint autor_id FK
-        varchar texto
-        bigint imagem_id "aponta para ANEXO_IMAGEM"
-        bigint escala_id "escala mencionada"
-        varchar escala_nome "mantido se a escala for excluída"
-        timestamp enviada_em
-    }
-    ANEXO_IMAGEM {
-        bigint id PK
-        bigint conversa_id
-        bytea dados "JPEG regravado no servidor"
-    }
 ```
-
-- `PARTICIPANTE_CONVERSA` tem restrição única em `(conversa_id, usuario_id)`.
-- `MENSAGEM` tem índice em `(conversa_id, id)`, usado na paginação do histórico.
-- Os bytes das imagens ficam em `ANEXO_IMAGEM`, fora de `MENSAGEM`, para o histórico carregar sem eles.
-- `escala_id` não é chave estrangeira de propósito: a mensagem continua legível (pelo `escala_nome`) mesmo se a
-  escala for excluída.

@@ -1,8 +1,10 @@
 import { Fragment, useEffect, useMemo, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { ApiError, api } from '../api';
-import { BadgeSituacao, Carregando, ListaViolacoes, Modal, mensagemErro, useCarregar, useToast } from '../components/ui';
-import { dataCurta, dataLonga, diaSemanaDe, hora, horas, isoDe, moeda, paraData, pct } from '../format';
+import { usePermissoes } from '../auth';
+import ExportarEscala from '../components/ExportarEscala';
+import { AvisoConsulta, BadgeSituacao, Carregando, ListaViolacoes, Modal, mensagemErro, useCarregar, useToast } from '../components/ui';
+import { dataCurta, dataLonga, diaSemanaDe, hora, horas, isoDe, moeda, moedaConfidencial, paraData, pct } from '../format';
 import type { Escala, Geracao, LinhaFuncionario, Matriz, TurnoDTO, TurnoModelo, Violacao } from '../types';
 
 type MenuCelula = { x: number; y: number; funcionario: LinhaFuncionario; data: string } | null;
@@ -18,6 +20,7 @@ export default function MatrizEscala() {
   const [filtro, setFiltro] = useState<Filtro>('TODAS');
   const [ocupado, setOcupado] = useState(false);
   const toast = useToast();
+  const { podeEditar } = usePermissoes();
 
   useEffect(() => {
     const fechar = () => setMenu(null);
@@ -63,7 +66,8 @@ export default function MatrizEscala() {
 
   if (!m) return <Carregando erro={erro} />;
 
-  const editavel = m.escala.status === 'RASCUNHO';
+  const rascunho = m.escala.status === 'RASCUNHO';
+  const editavel = rascunho && podeEditar;
   const v = m.validacao;
   const resumoDia = new Map(v.dias.map((d) => [d.data, d]));
 
@@ -115,12 +119,13 @@ export default function MatrizEscala() {
           <h1>{m.escala.nome}</h1>
           <p>
             {dataLonga(m.escala.dataInicio)} a {dataLonga(m.escala.dataFim)} ·{' '}
-            {editavel ? <span className="badge laranja">Rascunho</span> : <span className="badge ok">Aprovada</span>}
+            {rascunho ? <span className="badge laranja">Rascunho</span> : <span className="badge ok">Aprovada</span>}
             {m.escala.geradaAutomaticamente && <> <span className="badge neutro" title="Criada pelo sistema a partir da previsão de movimento">Automática</span></>}
           </p>
         </div>
         <div className="spacer" />
-        {editavel ? (
+        <ExportarEscala escala={m.escala} />
+        {podeEditar && (rascunho ? (
           <div className="row">
             <button disabled={ocupado} onClick={() => acao('gerar', 'Substituir todos os turnos desta escala por uma nova sugestão automática?')}>Gerar automaticamente</button>
             <button disabled={ocupado} onClick={() => acao('limpar', 'Remover todos os turnos desta escala?')}>Limpar</button>
@@ -129,8 +134,10 @@ export default function MatrizEscala() {
           </div>
         ) : (
           <button disabled={ocupado} onClick={() => acao('reabrir')}>Reabrir para edição</button>
-        )}
+        ))}
       </div>
+
+      {!podeEditar && <AvisoConsulta />}
 
       <div className="grid-kpi">
         <div className="card kpi destaque">
@@ -193,7 +200,7 @@ export default function MatrizEscala() {
                   <tr key={f.id}>
                     <td className="col-nome">
                       <div style={{ fontWeight: 600 }}>{f.nome}{!f.ativo && <span className="badge neutro"> inativo</span>}</div>
-                      <div className="small muted">{f.cargo} · {moeda(f.custoHora)}/h</div>
+                      <div className="small muted">{f.cargo}{f.custoHora != null && ` · ${moeda(f.custoHora)}/h`}</div>
                     </td>
                     {dias.map((d) => (
                       <Celula key={d} f={f} data={d} cor={g.cor} editavel={editavel && !ocupado}
@@ -298,7 +305,7 @@ function Celula({ f, data, cor, turnos, violacoes, ausencia, editavel, onClick }
   const temAlerta = !temErro && violacoes.length > 0;
   const indisponivel = f.diasDisponiveis.length > 0 && !f.diasDisponiveis.includes(diaSemanaDe(data));
   const dica = [
-    ...turnos.map((t) => `${hora(t.horaInicio)}–${hora(t.horaFim)} (intervalo ${t.intervaloMinutos} min) · ${horas(t.horas)} · ${moeda(t.custo)}`),
+    ...turnos.map((t) => `${hora(t.horaInicio)}–${hora(t.horaFim)} (intervalo ${t.intervaloMinutos} min) · ${horas(t.horas)}${t.custo == null ? '' : ` · ${moedaConfidencial(t.custo)}`}`),
     ...violacoes.map((v) => `${v.severidade === 'ERRO' ? 'Erro' : 'Alerta'}: ${v.mensagem}`),
   ].join('\n');
 

@@ -62,6 +62,18 @@ public class ValidadorEscala {
 
     // ------------------------------------------------------------------ regras por colaborador
 
+    /** Só as regras individuais (CLT, disponibilidade, ausências) de um colaborador, sem as regras por dia. */
+    public List<Violacao> validarColaborador(List<Turno> turnos, LocalDate inicio, LocalDate fim, ContextoCalculo ctx) {
+        if (turnos.isEmpty()) {
+            return List.of();
+        }
+        List<Turno> ordenados = new ArrayList<>(turnos);
+        ordenados.sort(Comparator.comparing(Turno::inicio));
+        List<Violacao> violacoes = new ArrayList<>();
+        validarFuncionario(ordenados, inicio, fim, ctx, violacoes);
+        return violacoes;
+    }
+
     private void validarFuncionario(List<Turno> turnos, LocalDate inicio, LocalDate fim, ContextoCalculo ctx, List<Violacao> out) {
         Funcionario f = turnos.getFirst().getFuncionario();
         ParametrosOperacionais p = ctx.parametros();
@@ -81,7 +93,7 @@ public class ValidadorEscala {
             }
             Ausencia ausencia = ctx.ausencia(f, d);
             if (ausencia != null) {
-                out.add(erro(Regra.AUSENCIA, d, f, "Escalado durante ausência (" + ausencia.getMotivo().name().replace('_', ' ').toLowerCase()
+                out.add(erro(Regra.AUSENCIA, d, f, "Escalado durante ausência (" + ausencia.getMotivo().getRotulo()
                         + " de " + Formato.data(ausencia.getInicio()) + " a " + Formato.data(ausencia.getFim()) + ")."));
             }
             BigDecimal horas = t.horasTrabalhadas();

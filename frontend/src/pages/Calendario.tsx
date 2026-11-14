@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { api } from '../api';
-import { Carregando, mensagemErro, useCarregar, useToast } from '../components/ui';
+import { usePermissoes } from '../auth';
+import { AvisoConsulta, Carregando, mensagemErro, useCarregar, useToast } from '../components/ui';
 import { TIPOS_DIA, dataLonga, moeda, paraData } from '../format';
 import type { Feriado, Projecoes, TipoDia } from '../types';
 
@@ -13,6 +14,7 @@ export default function Calendario() {
   const [novoFeriado, setNovoFeriado] = useState({ data: '', descricao: '', abrangencia: 'MUNICIPAL', fatorCusto: '' });
   const [ano, setAno] = useState(new Date().getFullYear() + 1);
   const toast = useToast();
+  const { podeEditar } = usePermissoes();
 
   useEffect(() => {
     if (dados) setPadrao({ ...dados[0].padrao });
@@ -41,20 +43,22 @@ export default function Calendario() {
         </div>
       </div>
 
+      {!podeEditar && <AvisoConsulta />}
+
       <div className="card">
         <div className="row" style={{ marginBottom: 12 }}>
           <h2>Projeção de faturamento padrão por dia</h2>
           <div className="spacer" />
-          <button className="primario" onClick={() => executar(() => api.put('/projecoes/padrao', padrao), 'Projeções salvas.')}>Salvar</button>
+          {podeEditar && <button className="primario" onClick={() => executar(() => api.put('/projecoes/padrao', padrao), 'Projeções salvas.')}>Salvar</button>}
         </div>
-        <div className="form-grid">
+        <fieldset className="form-grid somente-leitura" disabled={!podeEditar}>
           {TIPOS_DIA.map((t) => (
             <label className="campo" key={t.tipo}>{t.rotulo}
               <input type="number" step="100" value={padrao[t.tipo] ?? 0} onChange={(e) => setPadrao({ ...padrao, [t.tipo]: Number(e.target.value) })} />
               <span className="ajuda">{moeda(padrao[t.tipo])}</span>
             </label>
           ))}
-        </div>
+        </fieldset>
       </div>
 
       <div className="card">
@@ -69,13 +73,13 @@ export default function Calendario() {
                   <td>{SEMANA[paraData(p.data).getDay()]} {dataLonga(p.data)}</td>
                   <td className="num">{moeda(p.valor)}</td>
                   <td>{p.observacao}</td>
-                  <td className="num"><button className="perigo" onClick={() => executar(() => api.del(`/projecoes/datas/${p.id}`))}>Remover</button></td>
+                  <td className="num">{podeEditar && <button className="perigo" onClick={() => executar(() => api.del(`/projecoes/datas/${p.id}`))}>Remover</button>}</td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
-        <div className="row" style={{ marginTop: 12, alignItems: 'flex-end' }}>
+        {podeEditar && <div className="row" style={{ marginTop: 12, alignItems: 'flex-end' }}>
           <label className="campo">Data<input type="date" value={novaProj.data} onChange={(e) => setNovaProj({ ...novaProj, data: e.target.value })} /></label>
           <label className="campo">Receita (R$)<input type="number" step="100" value={novaProj.valor} onChange={(e) => setNovaProj({ ...novaProj, valor: Number(e.target.value) })} /></label>
           <label className="campo" style={{ flex: 1 }}>Motivo<input value={novaProj.observacao} onChange={(e) => setNovaProj({ ...novaProj, observacao: e.target.value })} /></label>
@@ -83,18 +87,20 @@ export default function Calendario() {
             await api.post('/projecoes/datas', novaProj);
             setNovaProj({ data: '', valor: 0, observacao: '' });
           })}>Adicionar</button>
-        </div>
+        </div>}
       </div>
 
       <div className="card">
         <div className="row" style={{ marginBottom: 12 }}>
           <h2>Feriados</h2>
           <div className="spacer" />
-          <input type="number" value={ano} onChange={(e) => setAno(Number(e.target.value))} style={{ width: 90 }} aria-label="Ano" />
-          <button onClick={() => executar(async () => {
-            const r = await api.post<{ importados: number }>(`/feriados/importar/${ano}`);
-            toast('ok', `${r.importados} feriado(s) importado(s).`);
-          })}>Importar nacionais + Joinville</button>
+          {podeEditar && <>
+            <input type="number" value={ano} onChange={(e) => setAno(Number(e.target.value))} style={{ width: 90 }} aria-label="Ano" />
+            <button onClick={() => executar(async () => {
+              const r = await api.post<{ importados: number }>(`/feriados/importar/${ano}`);
+              toast('ok', `${r.importados} feriado(s) importado(s).`);
+            })}>Importar nacionais + Joinville</button>
+          </>}
         </div>
         <div className="tabela-wrap">
           <table>
@@ -106,13 +112,13 @@ export default function Calendario() {
                   <td>{f.descricao}</td>
                   <td><span className="badge neutro">{f.abrangencia.toLowerCase()}</span></td>
                   <td className="num">{f.fatorCusto ? `${f.fatorCusto}×` : <span className="muted">padrão</span>}</td>
-                  <td className="num"><button className="perigo" onClick={() => executar(() => api.del(`/feriados/${f.id}`))}>Remover</button></td>
+                  <td className="num">{podeEditar && <button className="perigo" onClick={() => executar(() => api.del(`/feriados/${f.id}`))}>Remover</button>}</td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
-        <div className="row" style={{ marginTop: 12, alignItems: 'flex-end' }}>
+        {podeEditar && <div className="row" style={{ marginTop: 12, alignItems: 'flex-end' }}>
           <label className="campo">Data<input type="date" value={novoFeriado.data} onChange={(e) => setNovoFeriado({ ...novoFeriado, data: e.target.value })} /></label>
           <label className="campo" style={{ flex: 1 }}>Descrição<input value={novoFeriado.descricao} onChange={(e) => setNovoFeriado({ ...novoFeriado, descricao: e.target.value })} /></label>
           <label className="campo">Abrangência
@@ -125,7 +131,7 @@ export default function Calendario() {
             await api.post('/feriados', { ...novoFeriado, fatorCusto: novoFeriado.fatorCusto ? Number(novoFeriado.fatorCusto) : null });
             setNovoFeriado({ data: '', descricao: '', abrangencia: 'MUNICIPAL', fatorCusto: '' });
           })}>Adicionar</button>
-        </div>
+        </div>}
       </div>
     </div>
   );

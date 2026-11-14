@@ -6,7 +6,7 @@
     <parent>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-parent</artifactId>
-        <version>3.5.6</version>
+        <version>3.5.16</version>
         <relativePath/>
     </parent>
 
@@ -18,7 +18,8 @@
 
     <properties>
         <java.version>21</java.version>
-        <jjwt.version>0.12.6</jjwt.version>
+        <jjwt.version>0.12.7</jjwt.version>
+        <openpdf.version>3.0.5</openpdf.version>
         <jacoco.version>0.8.13</jacoco.version>
         <archunit.version>1.4.1</archunit.version>
         <!-- Cobertura mínima exigida pela linha Web Apps (backend). -->
@@ -26,6 +27,12 @@
     </properties>
 
     <dependencies>
+        <!-- PDF da escala para imprimir ou baixar (LGPL/MPL). -->
+        <dependency>
+            <groupId>com.github.librepdf</groupId>
+            <artifactId>openpdf</artifactId>
+            <version>${openpdf.version}</version>
+        </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-web</artifactId>
@@ -41,10 +48,6 @@
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-security</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-websocket</artifactId>
         </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
