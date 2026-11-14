@@ -1,7 +1,7 @@
 import { useLayoutEffect, useRef, useState, type CSSProperties } from 'react';
 import { NavLink, Outlet, useLocation } from 'react-router-dom';
 import {
-  CalendarDays, CalendarRange, Calculator, Clock3, LayoutDashboard, LogOut, MessageCircle, SlidersHorizontal, Store, TrendingUp,
+  CalendarDays, CalendarRange, Calculator, Clock3, LayoutDashboard, LogOut, MessageCircle, Palmtree, SlidersHorizontal, Store, TrendingUp,
   UserCog, Users,
   type LucideIcon,
 } from 'lucide-react';
@@ -16,8 +16,9 @@ const GRUPOS: Grupo[] = [
   {
     titulo: 'Operação',
     itens: [
-      { para: '/', rotulo: 'Painel de custos', Icone: LayoutDashboard, exato: true },
+      { para: '/', rotulo: 'Painel', Icone: LayoutDashboard, exato: true },
       { para: '/escalas', rotulo: 'Escalas', Icone: CalendarDays },
+      { para: '/ferias', rotulo: 'Férias', Icone: Palmtree },
       { para: '/movimento', rotulo: 'Movimento e previsão', Icone: TrendingUp },
       { para: '/simulador', rotulo: 'Simulador de custos', Icone: Calculator },
       { para: '/mensagens', rotulo: 'Mensagens', Icone: MessageCircle },

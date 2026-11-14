@@ -41,7 +41,7 @@ describe('App', () => {
     renderizar(<App />, '/usuarios');
 
     // Rota protegida redireciona para o painel e o item não aparece no menu.
-    expect(await screen.findByRole('heading', { name: /Painel de custos/ })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: 'Painel', level: 1 })).toBeInTheDocument();
     expect(screen.queryByRole('link', { name: /Usuários/ })).not.toBeInTheDocument();
   });
 
@@ -78,6 +78,7 @@ describe('App', () => {
 
     expect(await screen.findByRole('heading', { name: 'Modelos de turno' })).toBeInTheDocument();
     expect(screen.getByRole('link', { name: /Colaboradores/ })).toHaveAttribute('href', '/funcionarios');
+    expect(screen.getByRole('link', { name: /Férias/ })).toHaveAttribute('href', '/ferias');
 
     fireEvent.click(screen.getByRole('button', { name: 'Sair' }));
     await waitFor(() => expect(screen.getByRole('heading', { name: 'Escalas de trabalho' })).toBeInTheDocument());

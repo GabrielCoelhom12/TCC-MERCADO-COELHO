@@ -3,7 +3,7 @@ import { api } from '../api';
 import Avatar from '../components/Avatar';
 import SeletorFoto, { aplicarFoto, fotoInicial, type EstadoFoto } from '../components/SeletorFoto';
 import { Carregando, Modal, mensagemErro, useCarregar, useToast } from '../components/ui';
-import { DIAS_SEMANA, dataLonga, moeda } from '../format';
+import { DIAS_SEMANA, MOTIVOS_AUSENCIA, dataLonga, moeda } from '../format';
 import type { Ausencia, DiaSemana, Funcionario, MotivoAusencia, Setor } from '../types';
 
 type Form = {
@@ -19,13 +19,6 @@ type Form = {
   diasDisponiveis: DiaSemana[];
   foto: EstadoFoto;
 };
-
-const MOTIVOS: { valor: MotivoAusencia; rotulo: string }[] = [
-  { valor: 'FERIAS', rotulo: 'Férias' },
-  { valor: 'ATESTADO', rotulo: 'Atestado' },
-  { valor: 'FOLGA_ACORDADA', rotulo: 'Folga acordada' },
-  { valor: 'OUTRO', rotulo: 'Outro' },
-];
 
 export default function Funcionarios() {
   const { dados, erro, recarregar } = useCarregar(() =>
@@ -228,7 +221,7 @@ function ModalAusencias({ funcionario, ausencias, onFechar, onMudou }: {
             <tbody>
               {ausencias.map((a) => (
                 <tr key={a.id}>
-                  <td>{MOTIVOS.find((m) => m.valor === a.motivo)?.rotulo}</td>
+                  <td>{MOTIVOS_AUSENCIA.find((m) => m.valor === a.motivo)?.rotulo}</td>
                   <td>{dataLonga(a.inicio)} a {dataLonga(a.fim)}</td>
                   <td className="num"><button className="perigo" onClick={() => remover(a.id)}>Remover</button></td>
                 </tr>
@@ -241,7 +234,7 @@ function ModalAusencias({ funcionario, ausencias, onFechar, onMudou }: {
           <label className="campo">Fim<input type="date" value={form.fim} onChange={(e) => setForm({ ...form, fim: e.target.value })} /></label>
           <label className="campo">Motivo
             <select value={form.motivo} onChange={(e) => setForm({ ...form, motivo: e.target.value as MotivoAusencia })}>
-              {MOTIVOS.map((m) => <option key={m.valor} value={m.valor}>{m.rotulo}</option>)}
+              {MOTIVOS_AUSENCIA.map((m) => <option key={m.valor} value={m.valor}>{m.rotulo}</option>)}
             </select>
           </label>
         </div>
