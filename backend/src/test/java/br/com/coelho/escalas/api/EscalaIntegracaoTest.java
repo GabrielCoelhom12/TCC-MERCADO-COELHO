@@ -155,6 +155,83 @@ class EscalaIntegracaoTest extends IntegracaoTest {
     }
 
     @Test
+    void sugereSubstitutosETrocaOColaboradorDoTurno() throws Exception {
+        long id = criar("Troca de colaborador");
+        modoFinanceiro("ALERTAR");
+        JsonNode matriz = corpo(post("/api/escalas/" + id + "/gerar", Map.of()).andExpect(status().isOk())).get("matriz");
+        JsonNode turno = matriz.get("turnos").get(0);
+        long turnoId = turno.get("id").asLong();
+        long titular = turno.get("funcionarioId").asLong();
+
+        JsonNode sugestao = corpo(get("/api/escalas/" + id + "/turnos/" + turnoId + "/substitutos").andExpect(status().isOk()));
+        assertThat(sugestao.at("/titular/funcionarioId").asLong()).isEqualTo(titular);
+        assertThat(sugestao.at("/titular/horasSemana").decimalValue()).isPositive();
+        assertThat(sugestao.at("/titular/limiteSemanal").decimalValue()).isEqualByComparingTo("44");
+        JsonNode primeiro = sugestao.get("candidatos").get(0);
+        assertThat(primeiro.get("apto").asBoolean()).isTrue();
+        long substituto = primeiro.get("funcionarioId").asLong();
+
+        JsonNode depois = corpo(post("/api/escalas/" + id + "/turnos/" + turnoId + "/substituir", Map.of("funcionarioId", substituto))
+                .andExpect(status().isOk()));
+        JsonNode trocado = turnoPorId(depois, turnoId);
+        assertThat(trocado.get("funcionarioId").asLong()).isEqualTo(substituto);
+        assertThat(trocado.get("horaInicio").asText()).isEqualTo(turno.get("horaInicio").asText());
+        assertThat(trocado.get("data").asText()).isEqualTo(turno.get("data").asText());
+    }
+
+    @Test
+    void recusaSubstitutoInvalidoETurnoDeOutraEscala() throws Exception {
+        long id = criar("Troca recusada");
+        modoFinanceiro("ALERTAR");
+        JsonNode matriz = corpo(post("/api/escalas/" + id + "/gerar", Map.of()).andExpect(status().isOk())).get("matriz");
+        JsonNode turno = matriz.get("turnos").get(0);
+        long turnoId = turno.get("id").asLong();
+        String substituir = "/api/escalas/" + id + "/turnos/" + turnoId + "/substituir";
+
+        // O próprio titular (ou quem já trabalha no dia) não está entre os candidatos.
+        post(substituir, Map.of("funcionarioId", turno.get("funcionarioId").asLong()))
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(jsonPath("$.mensagem", containsString("não pode cobrir")));
+        post(substituir, Map.of("funcionarioId", 999999L)).andExpect(status().isNotFound());
+        get("/api/escalas/" + id + "/turnos/999999/substitutos").andExpect(status().isNotFound());
+        get("/api/escalas/999999/turnos/" + turnoId + "/substitutos").andExpect(status().isNotFound());
+    }
+
+    /** Urgência: alguém avisa que não vem e a gerente troca na hora, sem reabrir a escala já aprovada. */
+    @Test
+    void trocaDeUrgenciaEmEscalaAprovadaFicaRegistradaNaEscala() throws Exception {
+        long id = criar("Troca de urgência");
+        modoFinanceiro("ALERTAR");
+        JsonNode turno = corpo(post("/api/escalas/" + id + "/gerar", Map.of()).andExpect(status().isOk())).at("/matriz/turnos/0");
+        long turnoId = turno.get("id").asLong();
+        JsonNode candidato = corpo(get("/api/escalas/" + id + "/turnos/" + turnoId + "/substitutos")).at("/candidatos/0");
+        String titular = corpo(get("/api/escalas/" + id + "/turnos/" + turnoId + "/substitutos")).at("/titular/nome").asText();
+        post("/api/escalas/" + id + "/aprovar", Map.of()).andExpect(status().isOk());
+
+        JsonNode depois = corpo(post("/api/escalas/" + id + "/turnos/" + turnoId + "/substituir",
+                Map.of("funcionarioId", candidato.get("funcionarioId").asLong())).andExpect(status().isOk()));
+
+        assertThat(turnoPorId(depois, turnoId).get("funcionarioId").asLong()).isEqualTo(candidato.get("funcionarioId").asLong());
+        assertThat(depois.at("/escala/status").asText()).isEqualTo("APROVADA");
+        assertThat(depois.at("/escala/observacao").asText())
+                .contains("Troca de urgência", titular, candidato.get("nome").asText(), "gestor");
+    }
+
+    @Test
+    void naoTrocaTurnoDeDiaQueJaPassouEmEscalaAprovada() throws Exception {
+        long id = corpo(post("/api/escalas", periodo("2020-03-02", "2020-03-08")).andExpect(status().isCreated())).get("id").asLong();
+        modoFinanceiro("ALERTAR");
+        JsonNode turno = corpo(post("/api/escalas/" + id + "/gerar", Map.of()).andExpect(status().isOk())).at("/matriz/turnos/0");
+        long turnoId = turno.get("id").asLong();
+        long candidato = corpo(get("/api/escalas/" + id + "/turnos/" + turnoId + "/substitutos")).at("/candidatos/0/funcionarioId").asLong();
+        post("/api/escalas/" + id + "/aprovar", Map.of()).andExpect(status().isOk());
+
+        post("/api/escalas/" + id + "/turnos/" + turnoId + "/substituir", Map.of("funcionarioId", candidato))
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(jsonPath("$.mensagem", containsString("já passou")));
+    }
+
+    @Test
     void escalaInexistenteDevolve404() throws Exception {
         get("/api/escalas/999999/matriz").andExpect(status().isNotFound());
         put("/api/escalas/999999", Map.of("nome", "X")).andExpect(status().isNotFound());
@@ -198,6 +275,15 @@ class EscalaIntegracaoTest extends IntegracaoTest {
             }
         }
         throw new AssertionError("Modelo " + sigla + " não encontrado");
+    }
+
+    private static JsonNode turnoPorId(JsonNode matriz, long id) {
+        for (JsonNode t : matriz.get("turnos")) {
+            if (t.get("id").asLong() == id) {
+                return t;
+            }
+        }
+        throw new AssertionError("Turno " + id + " não encontrado");
     }
 
     private static long funcionarioSemTurnoNo(JsonNode matriz, String data) {

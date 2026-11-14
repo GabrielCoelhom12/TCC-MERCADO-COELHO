@@ -51,6 +51,9 @@ public class EscalaService {
     public record Geracao(int turnosCriados, List<GeradorEscala.Deficit> deficits, Matriz matriz) {
     }
 
+    public record SubstituicaoRequest(Long funcionarioId) {
+    }
+
     private final EscalaRepository escalas;
     private final TurnoRepository turnos;
     private final FuncionarioRepository funcionarios;
@@ -59,10 +62,11 @@ public class EscalaService {
     private final MotorFinanceiro motor;
     private final ValidadorEscala validador;
     private final GeradorEscala gerador;
+    private final SugestorSubstituicao sugestor;
 
     public EscalaService(EscalaRepository escalas, TurnoRepository turnos, FuncionarioRepository funcionarios,
                          TurnoModeloRepository modelos, ContextoService contextos, MotorFinanceiro motor,
-                         ValidadorEscala validador, GeradorEscala gerador) {
+                         ValidadorEscala validador, GeradorEscala gerador, SugestorSubstituicao sugestor) {
         this.escalas = escalas;
         this.turnos = turnos;
         this.funcionarios = funcionarios;
@@ -71,6 +75,7 @@ public class EscalaService {
         this.motor = motor;
         this.validador = validador;
         this.gerador = gerador;
+        this.sugestor = sugestor;
     }
 
     // ------------------------------------------------------------------ CRUD
@@ -215,6 +220,65 @@ public class EscalaService {
             return new Turno(f, req.data(), req.horaInicio(), req.horaFim(), intervalo, "Pers.");
         }
         return null; // folga
+    }
+
+    // ------------------------------------------------------------------ troca de colaborador
+
+    /** Semana do colaborador escalado no turno e colegas que podem cobri-lo, já validados pelas regras individuais. */
+    @Transactional(readOnly = true)
+    public SugestorSubstituicao.Sugestao substitutos(Long escalaId, Long turnoId) {
+        Turno turno = turnoDa(buscar(escalaId), turnoId);
+        LocalDate data = turno.getData();
+        return sugestor.sugerir(turno, turnos.findByDataBetween(data.minusDays(MARGEM_DIAS), data.plusDays(MARGEM_DIAS)),
+                contextos.carregar(data.minusDays(MARGEM_DIAS), data.plusDays(MARGEM_DIAS)));
+    }
+
+    /**
+     * Passa o turno (mesmo dia e horário) para outro colaborador, desde que ele esteja apto pelas regras da CLT.
+     *
+     * <p>Em escala aprovada, é a troca de urgência (alguém avisou que não vem): vale na hora, sem reabrir a escala, só
+     * para hoje em diante, e fica registrada na observação da escala. O limite financeiro do dia não bloqueia a troca
+     * de urgência (a loja não pode ficar sem ninguém); se ele for ultrapassado, aparece como alerta na validação.
+     *
+     * @param usuario login de quem fez a troca, anotado na escala aprovada
+     */
+    @Transactional
+    public Matriz substituir(Long escalaId, Long turnoId, SubstituicaoRequest req, String usuario) {
+        Escala e = buscar(escalaId);
+        Turno turno = turnoDa(e, turnoId);
+        boolean urgencia = !e.editavel();
+        if (urgencia && turno.getData().isBefore(LocalDate.now())) {
+            throw new RegraNegocioException("Este turno já passou e não pode mais ser trocado.");
+        }
+        Funcionario novo = funcionarios.findById(req.funcionarioId())
+                .orElseThrow(() -> new NaoEncontradoException("Colaborador", req.funcionarioId()));
+
+        SugestorSubstituicao.Candidato candidato = substitutos(escalaId, turnoId).candidatos().stream()
+                .filter(c -> c.funcionarioId().equals(novo.getId()))
+                .findFirst()
+                .orElseThrow(() -> new RegraNegocioException(novo.getNome() + " não pode cobrir este turno: já está escalado neste dia ou inativo."));
+        if (!candidato.apto()) {
+            throw new RegraNegocioException(novo.getNome() + " não pode cobrir este turno: " + String.join(" ", candidato.impedimentos()));
+        }
+
+        Funcionario titular = turno.getFuncionario();
+        ContextoCalculo ctx = contextoDa(e);
+        DiaSnapshot antes = snapshot(turno.getData(), ctx);
+        turno.setFuncionario(novo);
+        turnos.saveAndFlush(turno);
+        if (urgencia) {
+            e.anotar("Troca de urgência em " + DIA_MES.format(turno.getData()) + ": " + titular.getNome() + " → "
+                    + novo.getNome() + " (por " + usuario + ").");
+        } else {
+            aplicarBloqueioFinanceiro(turno.getData(), antes, ctx);
+        }
+        return matriz(escalaId);
+    }
+
+    private Turno turnoDa(Escala e, Long turnoId) {
+        return turnos.findById(turnoId)
+                .filter(t -> t.getEscala().getId().equals(e.getId()))
+                .orElseThrow(() -> new NaoEncontradoException("Turno", turnoId));
     }
 
     // ------------------------------------------------------------------ geração, validação e aprovação
