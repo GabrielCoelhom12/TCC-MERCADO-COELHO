@@ -488,6 +488,103 @@ button.icone.ativo { background: var(--laranja-fundo); border-color: var(--laran
 .dia-fechamento .dia-nome { font-weight: 600; }
 .dia-fechamento.pendente .badge { justify-self: end; grid-column: 3; }
 
+.escala-semana th, .escala-semana td { text-align: center; white-space: nowrap; }
+.escala-semana th[scope="row"], .escala-semana thead th:first-child { text-align: left; }
+.escala-semana th[scope="row"] { font-weight: 500; }
+.escala-semana .hoje { background: var(--laranja-fundo); }
+.escala-semana tfoot td, .escala-semana tfoot th { font-weight: 600; }
+.ponto-setor { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 8px; vertical-align: middle; }
+
+/* ---------- painel: semana interativa ---------- */
+.navegador-semana { display: inline-flex; align-items: center; gap: 4px; padding: 4px; border: 1px solid var(--borda); border-radius: 10px; background: var(--superficie); }
+.navegador-semana .icone { border: none; box-shadow: none; padding: 6px; }
+.navegador-semana strong { min-width: 118px; text-align: center; font-variant-numeric: tabular-nums; }
+
+.barra-uso { height: 6px; margin: 8px 0 4px; border-radius: 99px; background: #efede8; overflow: hidden; }
+.barra-uso i { display: block; height: 100%; border-radius: 99px; background: var(--laranja); transition: width 0.4s ease; }
+.barra-uso i.acima { background: var(--erro); }
+
+.semana { padding: 20px; }
+.cabecalho-semana { margin-bottom: 16px; }
+
+.dias-semana { display: grid; grid-template-columns: repeat(7, minmax(108px, 1fr)); gap: 8px; overflow-x: auto; padding-bottom: 2px; }
+.dia-aba {
+  flex-direction: column; align-items: stretch; gap: 2px; padding: 10px 12px; text-align: left;
+  border-radius: 10px; background: var(--fundo); border: 1px solid transparent; box-shadow: none;
+}
+.dia-aba:hover:not(:disabled) { background: #fff; border-color: var(--borda); transform: translateY(-1px); }
+.dia-aba.ativa, .dia-aba.ativa:hover:not(:disabled) { background: #fff; border-color: var(--laranja); box-shadow: 0 4px 14px rgba(255, 126, 49, 0.18); }
+.dia-aba:focus-visible { outline: 2px solid var(--laranja); outline-offset: 2px; }
+.dia-topo { display: flex; align-items: center; justify-content: space-between; }
+.dia-nome { font-weight: 600; font-size: 13px; }
+.dia-aba.hoje .dia-nome { color: var(--laranja-escuro); }
+.dia-data { font-family: var(--fonte-display); font-size: 22px; line-height: 1.1; font-variant-numeric: lining-nums tabular-nums; }
+.dia-equipe { font-size: 12px; color: var(--tinta-3); }
+.dia-feriado { font-size: 11px; color: var(--laranja-escuro); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.mini-barra { height: 4px; margin-top: 6px; border-radius: 99px; background: #e6e3dc; overflow: hidden; }
+.mini-barra i { display: block; height: 100%; background: var(--laranja); border-radius: 99px; }
+.mini-barra i.acima { background: var(--erro); }
+
+.detalhe-dia { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); gap: 24px; margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--borda); animation: surgir 0.18s ease-out; }
+.detalhe-dia h3 { margin-bottom: 8px; }
+.detalhe-custos { padding-left: 24px; border-left: 1px solid var(--borda); }
+
+.periodo + .periodo { margin-top: 10px; }
+.periodo-nome { font-size: 11px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--tinta-3); margin-bottom: 4px; }
+.lista-equipe { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 6px; }
+.lista-equipe .pessoa-turno {
+  display: grid; grid-template-columns: 88px minmax(0, 1fr) auto; align-items: center; gap: 10px; width: 100%;
+  padding: 7px 10px; border-radius: 8px; background: var(--fundo); border: 1px solid transparent; box-shadow: none;
+  text-align: left; font-weight: 400;
+}
+.lista-equipe .pessoa-turno:hover:not(:disabled) { background: #fff; border-color: var(--laranja-claro); box-shadow: 0 2px 8px rgba(255, 126, 49, 0.12); }
+.lista-equipe .horario { font-weight: 600; font-size: 13px; font-variant-numeric: tabular-nums; }
+.lista-equipe .membro { display: flex; flex-direction: column; line-height: 1.3; min-width: 0; }
+.lista-equipe .membro strong, .lista-equipe .membro span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ausentes { margin: 10px 0 0; color: var(--tinta-2); }
+
+.numeros-dia { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 16px; margin: 0 0 12px; }
+.numeros-dia div { display: flex; flex-direction: column; }
+.numeros-dia dt { font-size: 12px; color: var(--tinta-3); }
+.numeros-dia dd { margin: 0; font-weight: 600; font-variant-numeric: tabular-nums; }
+.detalhe-custos .violacoes { max-height: 220px; }
+
+/* ---------- painel: pop-up do colaborador e troca ---------- */
+.troca { display: flex; flex-direction: column; gap: 14px; }
+.troca > button.primario { align-self: flex-start; }
+.troca-turno { margin: -6px 0 0; color: var(--tinta-2); }
+.disponibilidade { padding: 12px 14px; border-radius: 10px; background: var(--fundo); }
+.disponibilidade p { margin: 6px 0 0; }
+.semana-colaborador { list-style: none; margin: 8px 0 0; padding: 0; display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
+.dia-colaborador { display: flex; flex-direction: column; align-items: center; padding: 5px 0; border-radius: 6px; font-size: 12px; font-weight: 600; background: #fff; border: 1px solid var(--borda); }
+.dia-colaborador small { font-weight: 400; font-size: 10px; color: var(--tinta-3); }
+.dia-colaborador.escalado { background: var(--laranja-fundo); border-color: var(--laranja-claro); color: var(--laranja-escuro); }
+.dia-colaborador.indisponivel { color: var(--tinta-3); background: repeating-linear-gradient(135deg, #f1efea 0 4px, #fff 4px 8px); }
+.dia-colaborador.atual { outline: 2px solid var(--laranja); outline-offset: 1px; }
+.texto-erro { color: var(--erro); }
+.texto-alerta { color: var(--alerta); }
+.candidatos h3 { margin-bottom: 8px; }
+.lista-candidatos { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; max-height: 300px; overflow: auto; }
+.lista-candidatos li { display: flex; align-items: center; gap: 12px; padding: 8px 10px; border: 1px solid var(--borda); border-radius: 8px; animation: surgir 0.18s ease-out; }
+.lista-candidatos .membro { display: flex; flex-direction: column; gap: 2px; flex: 1; min-width: 0; line-height: 1.35; }
+.lista-candidatos .badge { margin-left: 6px; }
+.impedidos { margin-top: 10px; font-size: 13px; color: var(--tinta-2); }
+.impedidos summary { cursor: pointer; color: var(--tinta-3); }
+.impedidos ul { margin: 6px 0 0; padding-left: 18px; display: flex; flex-direction: column; gap: 4px; }
+
+.grade-semana { margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--borda); animation: surgir 0.18s ease-out; }
+
+@media (max-width: 800px) {
+  .painel .grid-kpi { grid-template-columns: 1fr 1fr; gap: 8px; }
+  .painel .kpi { padding: 12px; }
+  .painel .kpi .valor { font-size: 21px; }
+  .dias-semana { scroll-behavior: smooth; scroll-snap-type: x proximity; }
+  .dia-aba { scroll-snap-align: center; }
+}
+@media (max-width: 900px) {
+  .detalhe-dia { grid-template-columns: 1fr; }
+  .detalhe-custos { padding-left: 0; border-left: none; border-top: 1px solid var(--borda); padding-top: 16px; }
+}
 .previsao-grade { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 12px; }
 .cartao-previsao {
   display: flex; flex-direction: column; gap: 10px; padding: 14px; border: 1px solid var(--borda); border-radius: 12px;
@@ -516,3 +613,46 @@ button.icone.ativo { background: var(--laranja-fundo); border-color: var(--laran
   .movimento-topo { grid-template-columns: minmax(0, 1fr); }
   .tabela-fechamento input[type=number] { width: 100%; }
 }
+
+/* ---------- férias ---------- */
+.aviso.alerta { background: var(--alerta-fundo); border-color: #f1dfb0; color: #6b4700; }
+.busca { position: relative; display: inline-flex; align-items: center; }
+.busca svg { position: absolute; left: 10px; color: var(--tinta-3); pointer-events: none; }
+.busca input { padding-left: 32px; width: 220px; }
+.duracoes { display: flex; flex-wrap: wrap; gap: 6px; }
+.duracoes button { padding: 5px 12px; border-radius: 99px; font-size: 13px; }
+.duracoes button.ativa, .duracoes button.ativa:hover:not(:disabled) { background: var(--laranja-fundo); border-color: var(--laranja); color: var(--laranja-escuro); }
+.previa-ferias { display: flex; flex-direction: column; gap: 8px; animation: surgir 0.18s ease-out; }
+.encerradas summary { cursor: pointer; font-weight: 600; }
+.encerradas[open] summary { margin-bottom: 12px; }
+.tabela-ferias td { vertical-align: middle; }
+.modal .acoes .spacer { flex: 1; }
+.cobertura-ferias { padding: 12px 14px; border-radius: 10px; background: var(--fundo); }
+.cobertura-ferias p { margin: 2px 0 8px; }
+.cobertura-ferias ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
+.cobertura-ferias li { display: flex; flex-wrap: wrap; gap: 4px 10px; padding: 6px 10px; border-radius: 8px; background: #fff; border: 1px solid var(--borda); font-size: 13px; }
+.cobertura-ferias li.sem-substituto { border-color: #f1dfb0; background: var(--alerta-fundo); }
+.cobertura-ferias .quando { font-weight: 600; font-variant-numeric: tabular-nums; min-width: 150px; }
+
+/* ---------- painel: de férias na semana ---------- */
+.quadros-ausencia { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; align-items: stretch; }
+@media (max-width: 900px) { .quadros-ausencia { grid-template-columns: 1fr; } }
+.de-ferias { padding: 16px 20px; }
+.de-ferias h2 { font-size: 15px; }
+.de-ferias .icone-ferias { color: var(--tinta-3); }
+.de-ferias > p { margin: 10px 0 0; }
+.lista-ferias { list-style: none; margin: 12px 0 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 8px; }
+.lista-ferias li { display: flex; flex-direction: column; gap: 4px; padding: 8px 12px; border-radius: 8px; background: var(--fundo); border: 1px solid var(--borda); min-width: 0; }
+.lista-ferias .membro { display: flex; flex-direction: column; line-height: 1.3; min-width: 0; }
+.lista-ferias .membro strong, .lista-ferias .membro span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.lista-ferias .tipo-ausencia { color: var(--tinta-2); font-weight: 600; }
+.lista-ferias .periodo-ferias { color: var(--tinta-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* ---------- perfil que só consulta ---------- */
+fieldset.somente-leitura { border: 0; margin: 0; min-width: 0; }
+fieldset.somente-leitura.card { border: 1px solid var(--borda); }
+fieldset.somente-leitura.form-grid { padding: 0; }
+fieldset.somente-leitura:disabled input, fieldset.somente-leitura:disabled select { background: var(--fundo); color: var(--tinta-2); cursor: default; }
+
+/* Quadro invisível que recebe o PDF da escala para imprimir. */
+iframe.impressao { position: fixed; right: 0; bottom: 0; width: 0; height: 0; border: 0; }

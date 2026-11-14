@@ -37,6 +37,7 @@ public class Funcionario {
 
     /** Salário bruto mensal (R$). */
     @Column(nullable = false, precision = 12, scale = 2)
+    @Confidencial
     private BigDecimal salarioMensal;
 
     /** Carga horária mensal contratual (220h para 44h semanais). */
@@ -44,6 +45,7 @@ public class Funcionario {
 
     /** Encargos sobre a folha (INSS patronal, FGTS, provisões de férias/13º...), em %. */
     @Column(precision = 6, scale = 2)
+    @Confidencial
     private BigDecimal percentualEncargos = BigDecimal.ZERO;
 
     private boolean ativo = true;
@@ -68,6 +70,7 @@ public class Funcionario {
      * S_i do modelo: custo do salário-hora com encargos.
      * S_i = salárioMensal / cargaHoráriaMensal × (1 + encargos/100)
      */
+    @Confidencial
     public BigDecimal getCustoHora() {
         if (salarioMensal == null || cargaHorariaMensal <= 0) {
             return BigDecimal.ZERO;

@@ -11,22 +11,25 @@ export interface Setor {
   clientesPorColaboradorHora: number | null;
 }
 
+/** Salário, encargos e custo/hora chegam nulos para quem não pode ver remuneração (perfil SUPERVISOR). */
 export interface Funcionario {
   id: number;
   nome: string;
   matricula: string | null;
   cargo: string | null;
   setor: Setor;
-  salarioMensal: number;
+  salarioMensal: number | null;
   cargaHorariaMensal: number;
-  percentualEncargos: number;
+  percentualEncargos: number | null;
   ativo: boolean;
   diasDisponiveis: DiaSemana[];
-  custoHora: number;
+  custoHora: number | null;
   foto: string | null;
 }
 
-export type MotivoAusencia = 'FERIAS' | 'ATESTADO' | 'FOLGA_ACORDADA' | 'OUTRO';
+export type MotivoAusencia =
+  | 'FERIAS' | 'ATESTADO' | 'LICENCA_MATERNIDADE' | 'LICENCA_PATERNIDADE' | 'AFASTAMENTO_INSS' | 'ACIDENTE_TRABALHO'
+  | 'LUTO' | 'CASAMENTO' | 'FOLGA_ACORDADA' | 'OUTRO';
 
 export interface Ausencia {
   id: number;
@@ -171,7 +174,7 @@ export interface TurnoDTO {
   intervaloMinutos: number;
   rotulo: string;
   horas: number;
-  custo: number;
+  custo: number | null;
 }
 
 export interface LinhaFuncionario {
@@ -181,7 +184,7 @@ export interface LinhaFuncionario {
   setorId: number;
   setorNome: string;
   setorCor: string;
-  custoHora: number;
+  custoHora: number | null;
   diasDisponiveis: DiaSemana[];
   ativo: boolean;
 }
@@ -355,4 +358,68 @@ export interface PrevisaoDiaria {
   origemReceita: 'INFORMADA' | 'PREVISAO' | 'PADRAO';
   previsao: PrevisaoDia | null;
   setores: DemandaSetor[];
+}
+
+/** Semana do colaborador escalado em um turno (horas, dias trabalhados e dias em que pode trabalhar). */
+export interface DisponibilidadeColaborador {
+  funcionarioId: number;
+  nome: string;
+  setorNome: string;
+  setorCor: string;
+  horasSemana: number;
+  limiteSemanal: number;
+  diasEscalados: string[];
+  diasDisponiveis: DiaSemana[];
+}
+
+export interface CandidatoSubstituto {
+  funcionarioId: number;
+  nome: string;
+  setorNome: string;
+  setorCor: string;
+  mesmoSetor: boolean;
+  horasSemana: number;
+  horasComTroca: number;
+  custoTurno: number | null;
+  apto: boolean;
+  /** Regras que a troca violaria (erros): impedem a troca. */
+  impedimentos: string[];
+  /** Avisos que a troca geraria (ex.: hora extra), sem impedir. */
+  alertas: string[];
+}
+
+export interface SugestaoSubstituicao {
+  titular: DisponibilidadeColaborador;
+  candidatos: CandidatoSubstituto[];
+}
+
+/** Turno já escalado no período de uma ausência e quem o assume (sem substituto: o turno é retirado). */
+export interface CoberturaTurno {
+  turnoId: number;
+  escalaId: number;
+  escalaNome: string;
+  data: string;
+  horaInicio: string;
+  horaFim: string;
+  substitutoId: number | null;
+  substitutoNome: string | null;
+  substitutoSetor: string | null;
+  /** Dia que já passou: o turno é só retirado (a pessoa não trabalhou). */
+  passado?: boolean;
+}
+
+/** Prévia de férias ou afastamento: regras do período e quem cobre os turnos já escalados. */
+export interface PreviaAusencia {
+  dias: number;
+  retorno: string | null;
+  erros: string[];
+  alertas: string[];
+  valida: boolean;
+  coberturas: CoberturaTurno[];
+}
+
+/** Resposta ao registrar ou editar férias e afastamentos. */
+export interface RegistroAusencia {
+  ausencia: Ausencia;
+  coberturas: CoberturaTurno[];
 }
