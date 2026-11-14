@@ -97,7 +97,7 @@ public class EscalaPdfService {
 
     private static byte[] desenhar(Matriz m, LocalDateTime emitidaEm) {
         ByteArrayOutputStream saida = new ByteArrayOutputStream();
-        Document doc = new Document(PageSize.A4.rotate(), 28, 28, 26, 34);
+        Document doc = new Document(PageSize.A4.rotate(), 28, 28, 22, 30);
         PdfWriter escritor = PdfWriter.getInstance(doc, saida);
         escritor.setPageEvent(new Rodape());
         doc.addTitle("Escala de trabalho — " + m.escala().getNome());
@@ -135,7 +135,7 @@ public class EscalaPdfService {
     private static PdfPTable cabecalho(Escala e, List<LocalDate> semana, LocalDateTime emitidaEm) {
         PdfPTable t = new PdfPTable(new float[]{1.1f, 3f, 1.6f});
         t.setWidthPercentage(100);
-        t.setSpacingAfter(10);
+        t.setSpacingAfter(8);
 
         PdfPCell logo = semBorda(new PdfPCell(logo(), false));
         logo.setVerticalAlignment(Element.ALIGN_MIDDLE);
@@ -301,7 +301,7 @@ public class EscalaPdfService {
         c.setBorderColorLeft(cor);
         c.setBorderWidthLeft(4f);
         c.setBorderColorBottom(BORDA);
-        c.setPadding(3);
+        c.setPadding(2);
         c.setPaddingLeft(6);
         return c;
     }
@@ -324,8 +324,8 @@ public class EscalaPdfService {
         c.setBackgroundColor(fundo);
         c.setBorder(Rectangle.BOTTOM);
         c.setBorderColor(BORDA);
-        c.setPaddingTop(3);
-        c.setPaddingBottom(4);
+        c.setPaddingTop(2);
+        c.setPaddingBottom(3);
         return c;
     }
 
@@ -335,7 +335,7 @@ public class EscalaPdfService {
     private static Paragraph legenda(Matriz m) {
         Set<String> usados = m.turnos().stream().map(TurnoDTO::rotulo).filter(Objects::nonNull).collect(Collectors.toSet());
         Paragraph p = new Paragraph();
-        p.setSpacingBefore(10);
+        p.setSpacingBefore(6);
         p.add(new Chunk("Turnos   ", fonte(8, Font.BOLD, TINTA)));
         List<TurnoModelo> modelos = m.modelos().stream().filter(mod -> usados.contains(mod.getSigla())).toList();
         for (int i = 0; i < modelos.size(); i++) {
@@ -354,7 +354,7 @@ public class EscalaPdfService {
     private static PdfPTable assinatura() {
         PdfPTable t = new PdfPTable(new float[]{3f, 1.4f});
         t.setWidthPercentage(100);
-        t.setSpacingBefore(26);
+        t.setSpacingBefore(14);
         t.addCell(semBorda(new PdfPCell(new Phrase(""))));
         PdfPCell linha = new PdfPCell(new Phrase("Gerência — Supermercado Coelho", PEQUENO));
         linha.setBorder(Rectangle.TOP);
