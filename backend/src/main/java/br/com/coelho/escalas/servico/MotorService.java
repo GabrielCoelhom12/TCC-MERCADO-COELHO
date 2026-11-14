@@ -18,6 +18,8 @@ import java.util.Map;
 public class MotorService {
 
     private static final int MAX_DIAS_CAPACIDADE = 93;
+    /** Teto por setor na simulação: acima disso não é um quadro real e o corte, pessoa a pessoa, ficaria caro. */
+    static final int MAX_PESSOAS_POR_SETOR = 500;
 
     private final ContextoService contextos;
     private final MotorFinanceiro motor;
@@ -52,6 +54,9 @@ public class MotorService {
     public SimuladorCusto.Simulacao simular(LocalDate data, Map<Long, Integer> proposta) {
         if (data == null) {
             throw new RegraNegocioException("Informe a data da simulação.");
+        }
+        if (proposta != null && proposta.values().stream().anyMatch(n -> n == null || n < 0 || n > MAX_PESSOAS_POR_SETOR)) {
+            throw new RegraNegocioException("A quantidade de pessoas por setor deve ficar entre 0 e " + MAX_PESSOAS_POR_SETOR + ".");
         }
         ContextoCalculo ctx = contextos.carregar(data, data);
         return simulador.simular(data, proposta == null ? Map.of() : proposta, ctx);

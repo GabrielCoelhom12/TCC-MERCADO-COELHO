@@ -1,10 +1,12 @@
 package br.com.coelho.escalas.dominio;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import java.time.Instant;
 import java.util.Locale;
 
 @Entity
@@ -22,8 +24,13 @@ public class Usuario {
     @Column(nullable = false, unique = true)
     private String login;
 
+    @JsonIgnore
     @Column(nullable = false)
     private String senhaHash;
+
+    /** Tokens emitidos antes deste instante deixam de valer: trocar a senha encerra as sessões abertas. */
+    @JsonIgnore
+    private Instant senhaAlteradaEm;
 
     private String nome;
 

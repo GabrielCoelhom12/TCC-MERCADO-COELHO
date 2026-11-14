@@ -9,6 +9,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Instant;
 import java.util.List;
 
 /** Contas de acesso ao sistema: logins únicos, senha forte e garantia de que sempre resta um administrador ativo. */
@@ -64,6 +65,7 @@ public class UsuarioService {
         u.setAtivo(ativo);
         if (dados.senha() != null) {
             u.setSenhaHash(encoder.encode(dados.senha()));
+            u.setSenhaAlteradaEm(Instant.now());
         }
         return u;
     }
