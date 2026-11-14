@@ -63,12 +63,18 @@ const feriasCadastradas = [
   ferias(7, 9, 'Eva Prado', somar(segunda, -20), somar(segunda, -1)),
 ];
 
-function montar(escalas: Escala[], emFerias: Ausencia[] = feriasCadastradas) {
+const afastamentosCadastrados: Ausencia[] = [
+  { ...ferias(8, 2, 'Bruno Lima', segunda, somar(segunda, 1)), motivo: 'ATESTADO' },
+  { ...ferias(9, 9, 'Eva Prado', somar(domingo, 3), somar(domingo, 5)), motivo: 'LUTO' },
+];
+
+function montar(escalas: Escala[], emFerias: Ausencia[] = feriasCadastradas, afastados: Ausencia[] = afastamentosCadastrados) {
   return mockFetch({
     'GET /api/escalas': { corpo: escalas },
     [`GET /api/motor/painel?inicio=${segunda}&fim=${domingo}`]: { corpo: painel },
     'GET /api/escalas/7/matriz': { corpo: matriz },
     'GET /api/ferias': { corpo: emFerias },
+    'GET /api/afastamentos': { corpo: afastados },
   });
 }
 
@@ -180,6 +186,29 @@ describe('Painel', () => {
 
     const quadro = await screen.findByRole('region', { name: /De férias nesta semana/ });
     expect(await within(quadro).findByText('Ninguém de férias nesta semana.')).toBeInTheDocument();
+  });
+
+  it('mostra ao lado quem está afastado na semana, com o tipo do afastamento', async () => {
+    montar([escala]);
+    renderizar(<Painel />);
+
+    const quadro = await screen.findByRole('region', { name: /Afastados nesta semana/ });
+    const bruno = await within(quadro).findByRole('listitem');
+    expect(bruno).toHaveTextContent('Bruno Lima');
+    expect(bruno).toHaveTextContent('Atestado médico');
+    expect(bruno).toHaveTextContent('Açougue');
+    expect(within(quadro).queryByText(/Eva Prado/)).not.toBeInTheDocument();
+    expect(within(quadro).getByRole('link', { name: 'Ver afastamentos' })).toHaveAttribute('href', '/afastamentos');
+    // Férias e afastamentos ficam em quadros separados.
+    expect(within(screen.getByRole('region', { name: /De férias nesta semana/ })).queryByText('Bruno Lima')).not.toBeInTheDocument();
+  });
+
+  it('avisa quando ninguém está afastado na semana', async () => {
+    montar([escala], feriasCadastradas, []);
+    renderizar(<Painel />);
+
+    const quadro = await screen.findByRole('region', { name: /Afastados nesta semana/ });
+    expect(await within(quadro).findByText('Ninguém afastado nesta semana.')).toBeInTheDocument();
   });
 
   it('as setas do teclado trocam o dia', async () => {
