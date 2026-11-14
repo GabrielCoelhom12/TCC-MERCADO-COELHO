@@ -51,6 +51,7 @@ O sistema tem três fluxos de negócio completos, cada um coberto por testes de 
 | RF27 | Criar automaticamente, como rascunho, a escala das próximas semanas (antecedência configurável), sem alterar escalas existentes. |
 | RF28 | No painel, mostrar a semana de quem trabalha no dia (horas escaladas × limite semanal, dias de trabalho e indisponíveis) e trocá-lo por um colega que o sistema valida antes (disponibilidade, ausências, interjornada, jornada e dias seguidos), indicando hora extra e custo de cada opção. |
 | RF29 | Operação de férias: registrar, editar e remover férias da equipe com as regras da CLT (5 a 30 dias por período, início fora dos dois dias que antecedem feriado ou domingo, sem sobrepor outra ausência), prévia de dias e retorno, repasse automático dos turnos já escalados no período a colegas aptos (inclusive em escala aprovada, anotando a troca na escala) e alerta de colegas do setor ausentes no mesmo período. |
+| RF30 | Operação de afastamentos: registrar atestado médico, licença-maternidade, licença-paternidade, afastamento pelo INSS, acidente de trabalho, licença por luto, licença-casamento, folga acordada e outros, inclusive com data já passada, repassando na hora os turnos já escalados a colegas aptos (os de dias passados são só retirados) e alertando o que a lei garante a cada tipo. Só o tipo é guardado: diagnóstico e CID não entram no sistema. |
 
 ## Requisitos não funcionais
 
@@ -187,3 +188,11 @@ Como gerente, quero uma tela só para as férias, para programá-las sem ferir a
 - *Quando* escolho o colaborador, o início e "15 dias", *então* vejo a data de retorno antes de salvar.
 - *Dado* um início numa sexta-feira (dois dias antes do domingo), *então* o sistema não deixa salvar e cita o art. 134, §3º da CLT.
 - *Dado* um colaborador já escalado no período, *então* vejo antes de salvar quem vai assumir cada turno e, ao salvar, o sistema faz as trocas sozinho; o turno que ninguém pode cobrir é retirado e o painel aponta o dia descoberto.
+
+**US14 — Cobrir um atestado ou uma licença** (RF30)
+Como gerente ou supervisor, quero registrar o atestado ou a licença de um colaborador e ter os turnos dele cobertos na hora.
+- *Quando* registro um atestado de 2 dias a partir de hoje, *então* vejo antes de salvar quem assume cada turno e, ao salvar, as trocas são feitas.
+- *Dado* um atestado que chegou depois (ontem), *então* o turno de ontem é retirado, porque a pessoa não trabalhou.
+- *Dado* um atestado de mais de 15 dias, *então* sou lembrado de que a partir do 16º dia o afastamento é pago pelo INSS.
+- *Dada* uma licença-maternidade, *então* o atalho "120 dias" preenche o fim e o sistema avisa se o período ficar menor.
+- *Dado* o perfil SUPERVISOR, *então* posso registrar o afastamento, mas só a gerência edita ou remove.

@@ -11,13 +11,17 @@ O sistema trata dados pessoais de **colaboradores** do supermercado e dos **usu�
 |------|---------|------------|----------------------|
 | Nome, matrícula, cargo, setor | Colaborador | Identificar quem está na escala | Execução de contrato de trabalho (V) |
 | Salário, carga horária, % de encargos | Colaborador | Calcular o custo da escala e o limite do dia | Execução de contrato (V) e obrigação legal trabalhista (II) |
-| Dias disponíveis e ausências (férias, atestado, folga) | Colaborador | Não escalar quem não pode trabalhar | Execução de contrato (V) e obrigação legal (II) |
+| Dias disponíveis e ausências (férias, folga, licenças) | Colaborador | Não escalar quem não pode trabalhar | Execução de contrato (V) e obrigação legal (II) |
+| Tipo de afastamento por saúde (atestado, afastamento pelo INSS, acidente de trabalho, licença-maternidade) | Colaborador | Não escalar quem está afastado e cobrir os turnos | Cumprimento de obrigação legal (art. 11, II, a) — **dado sensível de saúde** (art. 5º, II) |
 | Foto (opcional) | Colaborador e usuário | Reconhecimento visual na matriz e no chat | Consentimento (I) — o envio é opcional e pode ser removido |
 | Login, nome, senha (hash), perfil | Usuário | Autenticação e controle de acesso | Execução de contrato (V) |
 | Mensagens e imagens do chat | Usuário | Comunicação interna da gestão | Legítimo interesse do controlador (IX) |
 
 **Medidas adotadas**
 
+- **Dado de saúde:** de um atestado ou afastamento o sistema guarda **só o tipo e o período** — nunca diagnóstico ou
+  CID. A tela de registro avisa para não informá-los na observação. A lista de afastamentos só aparece para usuários
+  logados, e os perfis de consulta não veem salários.
 - **Minimização:** só são guardados os dados necessários para montar e validar a escala. Não há CPF, endereço,
   telefone nem dado sensível (art. 5º, II). Ausências registram o motivo (férias, atestado, folga acordada) e uma
   observação livre, que **não deve conter diagnóstico** ou CID — orientação repassada aos gestores do parceiro.
@@ -45,8 +49,8 @@ O sistema trata dados pessoais de **colaboradores** do supermercado e dos **usu�
 | Ação | ADMIN | GESTOR | SUPERVISOR |
 |------|:-----:|:------:|:----------:|
 | Consultar painel, escalas, férias, movimento e cadastros | ✅ | ✅ | ✅ |
-| Trocar colaborador num turno, lançar o fechamento do dia, chat | ✅ | ✅ | ✅ |
-| Editar matriz, gerar, aprovar e reabrir escala; registrar férias | ✅ | ✅ | ❌ |
+| Trocar colaborador num turno, registrar afastamento (atestado), lançar o fechamento do dia, chat | ✅ | ✅ | ✅ |
+| Editar matriz, gerar, aprovar e reabrir escala; registrar férias; editar ou remover afastamentos | ✅ | ✅ | ❌ |
 | Alterar cadastros, parâmetros, feriados e projeções; simulador de custos | ✅ | ✅ | ❌ |
 | Ver salário, encargos e custo individual | ✅ | ✅ | ❌ |
 | Gerenciar usuários | ✅ | ❌ | ❌ |

@@ -39,7 +39,7 @@ O sistema resolve isso em quatro etapas:
    aprovar uma escala sem erros.
 
 No dia a dia, o gestor abre o **Painel**, vê quem trabalha em cada dia e quanto custa, troca um colaborador por outro
-que o sistema já validou e registra férias com a substituição automática dos turnos.
+que o sistema já validou e registra férias, atestados e licenças com a substituição automática dos turnos.
 
 ## Funcionalidades
 
@@ -64,6 +64,17 @@ que o sistema já validou e registra férias com a substituição automática do
 - **Substituição automática:** antes de salvar, a prévia mostra quem assume cada turno já escalado no período; ao
   salvar, as trocas são feitas (inclusive em escala aprovada, com anotação na escala).
 
+**Afastamentos**
+- Página própria para atestado médico, licença-maternidade, licença-paternidade, afastamento pelo INSS, acidente de
+  trabalho, licença por luto, licença-casamento, folga acordada e outros, com atalhos de duração por tipo (120 dias da
+  licença-maternidade, 2 dias de luto, 3 de casamento…).
+- Os turnos já escalados são **repassados na hora** a colegas aptos, como nas férias. O atestado pode ser lançado
+  depois do fato: turnos de dias que já passaram são só retirados, porque a pessoa não trabalhou.
+- Alertas do que a lei garante: atestado acima de 15 dias vai para o INSS (Lei 8.213/1991, art. 60), licença-maternidade
+  de 120 dias (CLT art. 392), luto e casamento (CLT art. 473).
+- O supervisor pode registrar (o atestado chega no dia a dia); editar e remover fica com a gerência. Só o tipo é
+  guardado — nunca diagnóstico ou CID.
+
 **Movimento e previsão**
 - Lançamento do fechamento diário (clientes e vendas por faixa de horário) e previsão explicada dos próximos dias.
 - Selo de assertividade: erro médio e viés da previsão nos últimos fechamentos.
@@ -79,7 +90,7 @@ que o sistema já validou e registra férias com a substituição automática do
   não lidas e indicação de leitura.
 - Usuários com três perfis (ver [Perfis de acesso](#perfis-de-acesso)), senha forte e foto.
 
-São **29 requisitos funcionais, 9 não funcionais, 17 regras de negócio e 13 histórias de usuário**, descritos em
+São **30 requisitos funcionais, 9 não funcionais, 17 regras de negócio e 14 histórias de usuário**, descritos em
 [docs/requisitos.md](docs/requisitos.md).
 
 ## Motor de custo e regras
@@ -109,7 +120,7 @@ Regras validadas a cada alteração:
 | Indisponibilidade, ausência e colaborador inativo | — | Erro |
 | Setor abaixo do mínimo, pico sem cobertura, acima de `L_max` ou do teto | — | Erro / Alerta |
 
-A **troca de colaborador** e a **cobertura das férias** reaproveitam o mesmo validador: cada candidato é simulado no
+A **troca de colaborador** e a **cobertura de férias e afastamentos** reaproveitam o mesmo validador: cada candidato é simulado no
 turno e só entra quem não gera nenhum erro novo. A escolha prioriza o mesmo setor e quem tem menos horas na semana.
 
 ## Previsão de movimento
@@ -131,8 +142,8 @@ A previsão é **explicável**: cada número mostra de onde veio.
 | Ação | ADMIN | GESTOR | SUPERVISOR |
 |------|:-----:|:------:|:----------:|
 | Consultar painel, escalas, férias, movimento e cadastros | ✅ | ✅ | ✅ |
-| Trocar colaborador num turno, lançar o fechamento do dia, chat | ✅ | ✅ | ✅ |
-| Editar matriz, gerar, aprovar e reabrir escala; registrar férias | ✅ | ✅ | ❌ |
+| Trocar colaborador num turno, registrar afastamento (atestado), lançar o fechamento do dia, chat | ✅ | ✅ | ✅ |
+| Editar matriz, gerar, aprovar e reabrir escala; registrar férias; editar ou remover afastamentos | ✅ | ✅ | ❌ |
 | Alterar cadastros, parâmetros, feriados e projeções; simulador | ✅ | ✅ | ❌ |
 | Ver salário, encargos e custo individual | ✅ | ✅ | ❌ |
 | Gerenciar usuários | ✅ | ❌ | ❌ |
@@ -208,11 +219,13 @@ Roteiro de demonstração (cerca de 5 minutos), entrando como `gestor`:
 2. Clique num colaborador → **Trocar colaborador** → escolha um colega da lista; a equipe e os custos se atualizam.
 3. **Férias → Registrar férias:** escolha um colaborador escalado, início numa segunda e "15 dias". A prévia mostra
    o retorno e quem cobre cada turno; tente começar numa sexta para ver a regra do art. 134, §3º.
-4. **Escalas → Abrir matriz:** mude uma célula para criar uma interjornada menor que 11 h e veja o erro aparecer e a
+4. **Afastamentos → Registrar afastamento:** um atestado de hoje, "2 dias", para alguém escalado; veja quem cobre e
+   salve. Depois, mude o tipo para licença-maternidade e use o atalho "120 dias".
+5. **Escalas → Abrir matriz:** mude uma célula para criar uma interjornada menor que 11 h e veja o erro aparecer e a
    aprovação ficar bloqueada.
-5. **Movimento e previsão:** lance o fechamento de ontem e veja a explicação da previsão dos próximos dias.
-6. **Simulador de custos:** monte um quadro com gente demais e compare com o recomendado.
-7. Entre com um usuário **SUPERVISOR** e confira que salários aparecem como "—" e os botões de edição somem.
+6. **Movimento e previsão:** lance o fechamento de ontem e veja a explicação da previsão dos próximos dias.
+7. **Simulador de custos:** monte um quadro com gente demais e compare com o recomendado.
+8. Entre com um usuário **SUPERVISOR** e confira que salários aparecem como "—" e os botões de edição somem.
 
 ## Testes e qualidade
 
@@ -232,11 +245,13 @@ Resultado com todos os pull requests de novembro integrados (13/11/2026):
 
 Os testes seguem os fluxos de negócio:
 - **Integração** (API completa contra o PostgreSQL): `CadastrosIntegracaoTest`, `EscalaIntegracaoTest`,
-  `MotorIntegracaoTest`, `MovimentoIntegracaoTest`, `FeriasIntegracaoTest`, `SegurancaIntegracaoTest`, chat e usuários.
-- **Unitários do motor**: validador, gerador, previsão, calendário sazonal, sugestor de substituição e regras de férias.
+  `MotorIntegracaoTest`, `MovimentoIntegracaoTest`, `FeriasIntegracaoTest`, `AfastamentoIntegracaoTest`,
+  `SegurancaIntegracaoTest`, chat e usuários.
+- **Unitários do motor**: validador, gerador, previsão, calendário sazonal, sugestor de substituição e regras de
+  férias e de afastamentos.
 - **Arquitetura** (`ArquiteturaTest`): as camadas só dependem umas das outras no sentido
   `api → servico → motor/repositorio → dominio`.
-- **Frontend**: Painel, troca de colaborador, Escalas, Férias, Movimento, Mensagens, cadastros e usuários, além da
+- **Frontend**: Painel, troca de colaborador, Escalas, Férias, Afastamentos, Movimento, Mensagens, cadastros e usuários, além da
   visão do perfil SUPERVISOR em cada tela de cadastro e na matriz (`Permissoes.test.tsx`).
 
 **Pipeline** ([`.github/workflows/ci.yml`](.github/workflows/ci.yml)), a cada pull request e a cada push na `main`:
@@ -279,14 +294,14 @@ Passo a passo, variáveis e rollback: [docs/deploy.md](docs/deploy.md).
 | Caminho | Conteúdo |
 |---|---|
 | `backend/src/main/java/.../api/` | Controllers REST (só HTTP) e tratamento uniforme de erros |
-| `backend/src/main/java/.../servico/` | Regras de negócio e transações: escalas, férias, movimento, cadastros, usuários e chat |
-| `backend/src/main/java/.../motor/` | Motor financeiro, validador, gerador, previsão, planejador de demanda, sugestor de substituição e regras de férias (Java puro) |
+| `backend/src/main/java/.../servico/` | Regras de negócio e transações: escalas, férias, afastamentos e cobertura dos turnos, movimento, cadastros, usuários e chat |
+| `backend/src/main/java/.../motor/` | Motor financeiro, validador, gerador, previsão, planejador de demanda, sugestor de substituição e regras de férias e de afastamentos (Java puro) |
 | `backend/src/main/java/.../repositorio/` | Acesso a dados (Spring Data JPA) |
 | `backend/src/main/java/.../dominio/` | Entidades JPA |
 | `backend/src/main/java/.../seguranca/` | JWT (API e WebSocket), permissões, limite de tentativas e dados confidenciais |
-| `backend/src/main/java/.../config/` | Dados de demonstração, WebSocket e encaminhamento da SPA |
+| `backend/src/main/java/.../config/` | Dados de demonstração, ajustes de esquema, WebSocket e encaminhamento da SPA |
 | `backend/src/test/` | Testes unitários do motor, de integração da API e de arquitetura |
-| `frontend/src/pages/` | Uma tela por arquivo (Painel, Escalas, Matriz, Férias, Movimento, Simulador, Mensagens, cadastros…) |
+| `frontend/src/pages/` | Uma tela por arquivo (Painel, Escalas, Matriz, Férias, Afastamentos, Movimento, Simulador, Mensagens, cadastros…) |
 | `frontend/src/chat/` | Estado, conexão em tempo real (STOMP) e componentes do chat |
 | `frontend/src/components/` | Layout e componentes reutilizáveis |
 | `docs/` | Requisitos, arquitetura (C4), modelo de dados, deploy e conformidade — publicados na Wiki |
@@ -314,7 +329,9 @@ A documentação completa está na **[Wiki do projeto](../../wiki)**, publicada 
 - **Férias:** o sistema não controla o período aquisitivo nem a regra de que um dos períodos fracionados tenha ao menos
   14 dias; o repouso semanal de referência para a regra do início é o **domingo**.
 - **Substituição automática:** quando ninguém pode cobrir o turno, ele é retirado e o dia fica com uma pessoa a menos
-  (o Painel aponta). O limite financeiro não impede a troca, porque ninguém pode trabalhar de férias.
+  (o Painel aponta). O limite financeiro não impede a troca, porque ninguém pode trabalhar de férias ou afastado.
+- **Afastamento lançado depois do fato:** turnos de dias que já passaram são retirados, sem substituto, porque o
+  sistema não sabe quem cobriu na prática; o custo daquele dia passa a refletir só quem ficou na escala.
 - **Uma instância:** o limite de tentativas de login e o broker do chat ficam em memória; com várias instâncias, seria
   preciso um armazenamento compartilhado (ex.: Redis).
 - **Bloqueio de login pode ser abusado:** quem errar de propósito 5 vezes a senha de um usuário o deixa 15 minutos sem
