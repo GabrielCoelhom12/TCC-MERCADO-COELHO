@@ -19,9 +19,11 @@ O sistema trata dados pessoais de **colaboradores** do supermercado e dos **usu�
 
 **Medidas adotadas**
 
-- **Dado de saúde:** de um atestado ou afastamento o sistema guarda **só o tipo e o período** — nunca diagnóstico ou
-  CID. A tela de registro avisa para não informá-los na observação. A lista de afastamentos só aparece para usuários
-  logados, e os perfis de consulta não veem salários.
+- **Dado de saúde:** do afastamento o sistema registra **o tipo e o período**; a tela avisa para não escrever
+  diagnóstico nem CID na observação. O **documento anexado** (atestado, declaração) pode trazê-los, por isso:
+  qualquer perfil envia, mas **só ADMIN e GESTOR abrem ou removem**; o arquivo é servido sem cache
+  (`Cache-Control: no-store`); fotos são regravadas em JPEG, o que descarta metadados como a localização; cada
+  documento guarda quem enviou e quando; e todos são apagados junto com o afastamento (ou com o colaborador).
 - **Minimização:** só são guardados os dados necessários para montar e validar a escala. Não há CPF, endereço,
   telefone nem dado sensível (art. 5º, II). Ausências registram o motivo (férias, atestado, folga acordada) e uma
   observação livre, que **não deve conter diagnóstico** ou CID — orientação repassada aos gestores do parceiro.
@@ -49,8 +51,8 @@ O sistema trata dados pessoais de **colaboradores** do supermercado e dos **usu�
 | Ação | ADMIN | GESTOR | SUPERVISOR |
 |------|:-----:|:------:|:----------:|
 | Consultar painel, escalas, férias, movimento e cadastros | ✅ | ✅ | ✅ |
-| Trocar colaborador num turno, registrar afastamento (atestado), lançar o fechamento do dia, chat | ✅ | ✅ | ✅ |
-| Editar matriz, gerar, aprovar e reabrir escala; registrar férias; editar ou remover afastamentos | ✅ | ✅ | ❌ |
+| Trocar colaborador num turno, registrar afastamento (atestado) e anexar o documento, lançar o fechamento do dia, chat | ✅ | ✅ | ✅ |
+| Editar matriz, gerar, aprovar e reabrir escala; registrar férias; editar ou remover afastamentos; abrir documentos anexados | ✅ | ✅ | ❌ |
 | Alterar cadastros, parâmetros, feriados e projeções; simulador de custos | ✅ | ✅ | ❌ |
 | Ver salário, encargos e custo individual | ✅ | ✅ | ❌ |
 | Gerenciar usuários | ✅ | ❌ | ❌ |

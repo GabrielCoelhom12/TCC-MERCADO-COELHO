@@ -53,6 +53,7 @@ O sistema tem três fluxos de negócio completos, cada um coberto por testes de 
 | RF29 | Operação de férias: registrar, editar e remover férias da equipe com as regras da CLT (5 a 30 dias por período, início fora dos dois dias que antecedem feriado ou domingo, sem sobrepor outra ausência), prévia de dias e retorno, repasse automático dos turnos já escalados no período a colegas aptos (inclusive em escala aprovada, anotando a troca na escala) e alerta de colegas do setor ausentes no mesmo período. |
 | RF30 | Operação de afastamentos: registrar atestado médico, licença-maternidade, licença-paternidade, afastamento pelo INSS, acidente de trabalho, licença por luto, licença-casamento, folga acordada e outros, inclusive com data já passada, repassando na hora os turnos já escalados a colegas aptos (os de dias passados são só retirados) e alertando o que a lei garante a cada tipo. Só o tipo é guardado: diagnóstico e CID não entram no sistema. |
 | RF31 | Imprimir ou baixar a escala em PDF (A4 deitado) com a logo do supermercado: colaboradores por setor, turnos com a sigla, folgas, férias e ausências (sem o motivo de atestados e licenças), feriados destacados, total de pessoas por dia, legenda dos turnos e espaço para a assinatura da gerência, sem custos nem salários. |
+| RF32 | Anexar documentos a um afastamento (atestado, declaração, certidão) em PDF, JPG ou PNG de até 5 MB, no máximo 10 por afastamento, verificados pelo conteúdo; fotos são regravadas em JPEG. Qualquer perfil envia; só a gerência abre ou remove. Registra quem enviou e quando, e apaga os documentos junto com o afastamento. |
 
 ## Requisitos não funcionais
 
@@ -203,3 +204,9 @@ Como gerente, quero imprimir ou baixar a escala da semana com a identidade do su
 - *Quando* clico em "Baixar PDF" no Painel, na matriz ou na lista de escalas, *então* recebo o arquivo `escala-<início>-a-<fim>.pdf`.
 - *Quando* clico em "Imprimir", *então* o diálogo de impressão abre com a escala pronta em uma folha A4.
 - *Dado* um colaborador de atestado, *então* a escala impressa mostra só "Ausente", sem o motivo.
+
+**US16 — Guardar o atestado junto do afastamento** (RF32)
+Como supervisor ou gerente, quero anexar a foto ou o PDF do atestado ao registrar o afastamento, para a gerência ter o comprovante.
+- *Quando* anexo o PDF do atestado e salvo, *então* a lista mostra o clipe com a quantidade de documentos.
+- *Dado* o perfil SUPERVISOR, *então* posso anexar, mas não abrir o documento (pode ter diagnóstico).
+- *Quando* a gerência remove o afastamento, *então* os documentos são apagados junto.

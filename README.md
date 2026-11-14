@@ -75,8 +75,9 @@ que o sistema já validou e registra férias, atestados e licenças com a substi
   depois do fato: turnos de dias que já passaram são só retirados, porque a pessoa não trabalhou.
 - Alertas do que a lei garante: atestado acima de 15 dias vai para o INSS (Lei 8.213/1991, art. 60), licença-maternidade
   de 120 dias (CLT art. 392), luto e casamento (CLT art. 473).
-- O supervisor pode registrar (o atestado chega no dia a dia); editar e remover fica com a gerência. Só o tipo é
-  guardado — nunca diagnóstico ou CID.
+- **Anexo do atestado** (PDF, JPG ou PNG até 5 MB): o supervisor pode registrar e anexar, porque o atestado chega
+  no dia a dia; abrir o documento, editar e remover fica com a gerência, já que ele pode trazer diagnóstico ou CID.
+  Fotos são regravadas (sem a localização do celular) e os documentos são apagados junto com o afastamento.
 
 **Movimento e previsão**
 - Lançamento do fechamento diário (clientes e vendas por faixa de horário) e previsão explicada dos próximos dias.
@@ -93,7 +94,7 @@ que o sistema já validou e registra férias, atestados e licenças com a substi
   não lidas e indicação de leitura.
 - Usuários com três perfis (ver [Perfis de acesso](#perfis-de-acesso)), senha forte e foto.
 
-São **31 requisitos funcionais, 9 não funcionais, 17 regras de negócio e 15 histórias de usuário**, descritos em
+São **32 requisitos funcionais, 9 não funcionais, 17 regras de negócio e 16 histórias de usuário**, descritos em
 [docs/requisitos.md](docs/requisitos.md).
 
 ## Motor de custo e regras
@@ -145,8 +146,8 @@ A previsão é **explicável**: cada número mostra de onde veio.
 | Ação | ADMIN | GESTOR | SUPERVISOR |
 |------|:-----:|:------:|:----------:|
 | Consultar painel, escalas, férias, movimento e cadastros | ✅ | ✅ | ✅ |
-| Trocar colaborador num turno, registrar afastamento (atestado), lançar o fechamento do dia, chat | ✅ | ✅ | ✅ |
-| Editar matriz, gerar, aprovar e reabrir escala; registrar férias; editar ou remover afastamentos | ✅ | ✅ | ❌ |
+| Trocar colaborador num turno, registrar afastamento (atestado) e anexar o documento, lançar o fechamento do dia, chat | ✅ | ✅ | ✅ |
+| Editar matriz, gerar, aprovar e reabrir escala; registrar férias; editar ou remover afastamentos; abrir documentos anexados | ✅ | ✅ | ❌ |
 | Alterar cadastros, parâmetros, feriados e projeções; simulador | ✅ | ✅ | ❌ |
 | Ver salário, encargos e custo individual | ✅ | ✅ | ❌ |
 | Gerenciar usuários | ✅ | ❌ | ❌ |
