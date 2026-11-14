@@ -19,8 +19,9 @@ function semanaDe(iso: string) {
 }
 
 /**
- * Mini pop-up do colaborador escalado: a semana dele (horas e dias) e, em escala editável, a troca por um
- * colega que o sistema já validou (disponibilidade, ausências, interjornada, jornada...).
+ * Mini pop-up do colaborador escalado: a semana dele (horas e dias) e a troca por um colega que o sistema já validou
+ * (disponibilidade, ausências, interjornada, jornada...). Em escala aprovada é a troca de urgência: vale na hora, só
+ * para hoje em diante, e fica registrada na observação da escala.
  */
 export default function TrocaColaborador({ escala, turno, onFechar, onTrocado }: {
   escala: Escala;
@@ -35,7 +36,9 @@ export default function TrocaColaborador({ escala, turno, onFechar, onTrocado }:
   );
   const [trocando, setTrocando] = useState(false);
   const [enviando, setEnviando] = useState<number | null>(null);
-  const editavel = escala.status !== 'APROVADA';
+  const aprovada = escala.status === 'APROVADA';
+  const passou = turno.data < isoDe(new Date());
+  const editavel = !aprovada || !passou;
 
   const trocar = async (c: CandidatoSubstituto) => {
     setEnviando(c.funcionarioId);
@@ -62,8 +65,12 @@ export default function TrocaColaborador({ escala, turno, onFechar, onTrocado }:
 
           <Disponibilidade titular={dados.titular} dataDoTurno={turno.data} />
 
-          {!editavel && (
-            <div className="aviso info">Escala aprovada: para trocar alguém, reabra a escala em Escalas.</div>
+          {aprovada && (
+            <div className="aviso info">
+              {passou
+                ? 'Este turno já passou e não pode mais ser trocado.'
+                : 'Escala aprovada: a troca vale na hora e fica registrada na observação da escala.'}
+            </div>
           )}
           {editavel && !trocando && (
             <button className="primario" onClick={() => setTrocando(true)}>

@@ -1,5 +1,6 @@
 import { fireEvent, screen, waitFor, within } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
+import { isoDe } from '../format';
 import { mockFetch, renderizar } from '../test/util';
 import type { Escala, Matriz, SugestaoSubstituicao, TurnoDTO } from '../types';
 import TrocaColaborador from './TrocaColaborador';
@@ -40,8 +41,8 @@ const sugestao: SugestaoSubstituicao = {
 
 const rota = 'GET /api/escalas/7/turnos/10/substitutos';
 
-function abrir(e: Escala = escala, onTrocado = vi.fn(), onFechar = vi.fn()) {
-  renderizar(<TrocaColaborador escala={e} turno={turno} onFechar={onFechar} onTrocado={onTrocado} />);
+function abrir(e: Escala = escala, onTrocado = vi.fn(), onFechar = vi.fn(), t: TurnoDTO = turno) {
+  renderizar(<TrocaColaborador escala={e} turno={t} onFechar={onFechar} onTrocado={onTrocado} />);
   return { onTrocado, onFechar };
 }
 
@@ -111,12 +112,21 @@ describe('TrocaColaborador', () => {
     expect(onTrocado).not.toHaveBeenCalled();
   });
 
-  it('em escala aprovada só mostra a disponibilidade', async () => {
+  it('em escala aprovada permite a troca de urgência e avisa que ela fica registrada', async () => {
+    const hoje = isoDe(new Date());
     mockFetch({ [rota]: { corpo: sugestao } });
-    abrir({ ...escala, status: 'APROVADA' });
+    abrir({ ...escala, status: 'APROVADA' }, vi.fn(), vi.fn(), { ...turno, data: hoje });
 
-    expect(await screen.findByText('14h40 de 44h00')).toBeInTheDocument();
-    expect(screen.getByText(/Escala aprovada/)).toBeInTheDocument();
+    expect(await screen.findByText(/Escala aprovada: a troca vale na hora/)).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Trocar colaborador' }));
+    expect(screen.getByRole('button', { name: 'Passar turno para Bruno Lima' })).toBeInTheDocument();
+  });
+
+  it('em escala aprovada não troca turno de dia que já passou', async () => {
+    mockFetch({ [rota]: { corpo: sugestao } });
+    abrir({ ...escala, status: 'APROVADA' }, vi.fn(), vi.fn(), { ...turno, data: '2020-03-04' });
+
+    expect(await screen.findByText('Este turno já passou e não pode mais ser trocado.')).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Trocar colaborador' })).not.toBeInTheDocument();
   });
 });
