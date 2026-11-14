@@ -44,6 +44,32 @@ export const sessao = {
   salvarUsuario: (json: string) => gravar(CHAVE_USUARIO, json),
 };
 
+/** Token vencido ou conta desativada: volta para o login. */
+function sessaoExpirada(resp: Response, caminho: string) {
+  if (resp.status === 401 && caminho !== '/auth/login') {
+    sessao.limpar();
+    window.location.href = '/login';
+    throw new ApiError('Sessão expirada.', 401);
+  }
+}
+
+/** Arquivo (ex.: PDF da escala) baixado com o token da sessão, que um link comum não enviaria. */
+async function arquivo(caminho: string): Promise<Blob> {
+  const token = sessao.token();
+  const resp = await fetch(`/api${caminho}`, { headers: token ? { Authorization: `Bearer ${token}` } : {} });
+  sessaoExpirada(resp, caminho);
+  if (!resp.ok) {
+    let mensagem: string | undefined;
+    try {
+      mensagem = JSON.parse(await resp.text())?.mensagem;
+    } catch {
+      mensagem = undefined;
+    }
+    throw new ApiError(mensagem ?? `Erro ${resp.status}`, resp.status);
+  }
+  return resp.blob();
+}
+
 async function requisicao<T>(metodo: string, caminho: string, corpo?: unknown): Promise<T> {
   const headers: Record<string, string> = {};
   const token = sessao.token();
@@ -57,11 +83,7 @@ async function requisicao<T>(metodo: string, caminho: string, corpo?: unknown): 
     body: corpo === undefined ? undefined : arquivo ? corpo : JSON.stringify(corpo),
   });
 
-  if (resp.status === 401 && caminho !== '/auth/login') {
-    sessao.limpar();
-    window.location.href = '/login';
-    throw new ApiError('Sessão expirada.', 401);
-  }
+  sessaoExpirada(resp, caminho);
   if (resp.status === 204) return undefined as T;
 
   const texto = await resp.text();
@@ -79,4 +101,5 @@ export const api = {
   del: <T = void>(c: string) => requisicao<T>('DELETE', c),
   /** Envio de arquivo (multipart); o navegador define o Content-Type com o boundary. */
   enviar: <T>(c: string, dados: FormData) => requisicao<T>('PUT', c, dados),
+  arquivo,
 };

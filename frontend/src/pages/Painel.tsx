@@ -5,6 +5,7 @@ import { api } from '../api';
 import { BadgeSituacao, Carregando, ListaViolacoes, useCarregar } from '../components/ui';
 import { DIAS_SEMANA, MOTIVOS_AUSENCIA, dataCurta, diaSemanaDe, isoDe, moeda, numero, paraData, pct } from '../format';
 import type { Ausencia, Escala, Matriz, ResultadoValidacao, ResumoDia, TurnoDTO } from '../types';
+import ExportarEscala from '../components/ExportarEscala';
 import TrocaColaborador from './TrocaColaborador';
 
 const DIA_MS = 86400000;
@@ -93,6 +94,7 @@ export default function Painel() {
               <div className="spacer" />
               {daSemana && (
                 <>
+                  <ExportarEscala escala={daSemana} />
                   <button aria-expanded={gradeAberta} onClick={() => setGradeAberta((a) => !a)}>
                     <LayoutGrid size={16} aria-hidden />{gradeAberta ? 'Ocultar grade da semana' : 'Ver grade da semana'}
                   </button>

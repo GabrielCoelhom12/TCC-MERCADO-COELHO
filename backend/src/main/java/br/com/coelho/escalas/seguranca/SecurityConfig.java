@@ -86,6 +86,8 @@ public class SecurityConfig {
                 "img-src 'self' data: blob:",
                 "font-src 'self' data:",
                 "connect-src 'self' " + webSocketDe(request),
+                // O botão Imprimir carrega o PDF da escala num quadro invisível a partir de um blob.
+                "frame-src 'self' blob:",
                 "frame-ancestors 'none'",
                 "base-uri 'self'",
                 "form-action 'self'",

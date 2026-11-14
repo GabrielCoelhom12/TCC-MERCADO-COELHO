@@ -653,3 +653,6 @@ fieldset.somente-leitura { border: 0; margin: 0; min-width: 0; }
 fieldset.somente-leitura.card { border: 1px solid var(--borda); }
 fieldset.somente-leitura.form-grid { padding: 0; }
 fieldset.somente-leitura:disabled input, fieldset.somente-leitura:disabled select { background: var(--fundo); color: var(--tinta-2); cursor: default; }
+
+/* Quadro invisível que recebe o PDF da escala para imprimir. */
+iframe.impressao { position: fixed; right: 0; bottom: 0; width: 0; height: 0; border: 0; }

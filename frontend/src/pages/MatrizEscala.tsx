@@ -2,6 +2,7 @@ import { Fragment, useEffect, useMemo, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { ApiError, api } from '../api';
 import { usePermissoes } from '../auth';
+import ExportarEscala from '../components/ExportarEscala';
 import { AvisoConsulta, BadgeSituacao, Carregando, ListaViolacoes, Modal, mensagemErro, useCarregar, useToast } from '../components/ui';
 import { dataCurta, dataLonga, diaSemanaDe, hora, horas, isoDe, moeda, moedaConfidencial, paraData, pct } from '../format';
 import type { Escala, Geracao, LinhaFuncionario, Matriz, TurnoDTO, TurnoModelo, Violacao } from '../types';
@@ -123,6 +124,7 @@ export default function MatrizEscala() {
           </p>
         </div>
         <div className="spacer" />
+        <ExportarEscala escala={m.escala} />
         {podeEditar && (rascunho ? (
           <div className="row">
             <button disabled={ocupado} onClick={() => acao('gerar', 'Substituir todos os turnos desta escala por uma nova sugestão automática?')}>Gerar automaticamente</button>
