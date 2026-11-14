@@ -2,7 +2,6 @@ package br.com.coelho.escalas.motor;
 
 import br.com.coelho.escalas.dominio.Ausencia;
 import br.com.coelho.escalas.dominio.Funcionario;
-import br.com.coelho.escalas.dominio.Turno;
 import com.fasterxml.jackson.annotation.JsonProperty;
 
 import java.time.DayOfWeek;
@@ -15,7 +14,8 @@ import java.util.stream.Collectors;
 
 /**
  * Regras para registrar um período de férias. Erros impedem o registro; alertas mostram o impacto na operação
- * (turnos já escalados e colegas do setor ausentes ao mesmo tempo).
+ * (colegas do setor ausentes ao mesmo tempo). Os turnos já escalados são repassados por
+ * {@link SugestorSubstituicao#planejarCobertura}.
  *
  * <p>O repouso semanal de referência é o domingo (Lei 10.101/2000, art. 6º, para o comércio).</p>
  */
@@ -37,18 +37,17 @@ public final class RegrasFerias {
     }
 
     public static Analise analisar(Funcionario f, LocalDate inicio, LocalDate fim, List<Ausencia> ausencias,
-                                   List<Turno> turnos, Set<LocalDate> feriados) {
-        return analisar(f, inicio, fim, ausencias, turnos, feriados, null);
+                                   Set<LocalDate> feriados) {
+        return analisar(f, inicio, fim, ausencias, feriados, null);
     }
 
     /**
      * @param ausencias ausências que tocam o período, de qualquer colaborador
-     * @param turnos    turnos que tocam o período, de qualquer colaborador
      * @param feriados  feriados do período e dos dois dias seguintes ao início
      * @param ignorarId ausência sendo editada, que não conta como sobreposição
      */
     public static Analise analisar(Funcionario f, LocalDate inicio, LocalDate fim, List<Ausencia> ausencias,
-                                   List<Turno> turnos, Set<LocalDate> feriados, Long ignorarId) {
+                                   Set<LocalDate> feriados, Long ignorarId) {
         List<String> erros = new ArrayList<>();
         List<String> alertas = new ArrayList<>();
         int dias = (int) ChronoUnit.DAYS.between(inicio, fim) + 1;
@@ -81,15 +80,6 @@ public final class RegrasFerias {
                 .toList();
         sobrepostas.stream().filter(a -> mesmo(a.getFuncionario(), f)).forEach(a -> erros.add("Já existe "
                 + rotulo(a.getMotivo()) + " de " + Formato.data(a.getInicio()) + " a " + Formato.data(a.getFim()) + " nesse período."));
-
-        List<LocalDate> escalados = turnos.stream()
-                .filter(t -> mesmo(t.getFuncionario(), f) && !t.getData().isBefore(inicio) && !t.getData().isAfter(fim))
-                .map(Turno::getData).distinct().sorted().toList();
-        if (!escalados.isEmpty()) {
-            alertas.add(escalados.size() + (escalados.size() == 1 ? " turno já escalado" : " turnos já escalados") + " no período ("
-                    + escalados.stream().map(Formato::data).collect(Collectors.joining(", "))
-                    + "): a escala vai apontar a ausência até que sejam trocados.");
-        }
 
         String colegas = sobrepostas.stream()
                 .filter(a -> !mesmo(a.getFuncionario(), f) && a.getFuncionario().getSetor().getId().equals(f.getSetor().getId()))

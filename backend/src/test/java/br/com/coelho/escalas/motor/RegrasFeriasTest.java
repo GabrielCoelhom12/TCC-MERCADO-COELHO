@@ -3,7 +3,6 @@ package br.com.coelho.escalas.motor;
 import br.com.coelho.escalas.dominio.Ausencia;
 import br.com.coelho.escalas.dominio.Funcionario;
 import br.com.coelho.escalas.dominio.Setor;
-import br.com.coelho.escalas.dominio.Turno;
 import br.com.coelho.escalas.motor.RegrasFerias.Analise;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -14,7 +13,6 @@ import java.util.List;
 import java.util.Set;
 
 import static br.com.coelho.escalas.motor.Cenario.SEGUNDA;
-import static br.com.coelho.escalas.motor.Cenario.turno;
 import static org.assertj.core.api.Assertions.assertThat;
 
 class RegrasFeriasTest {
@@ -23,7 +21,6 @@ class RegrasFeriasTest {
     private Setor caixa;
     private Funcionario ana;
     private final List<Ausencia> ausencias = new ArrayList<>();
-    private final List<Turno> turnos = new ArrayList<>();
     private Set<LocalDate> feriados = Set.of();
 
     @BeforeEach
@@ -34,7 +31,7 @@ class RegrasFeriasTest {
     }
 
     private Analise analisar(LocalDate inicio, LocalDate fim) {
-        return RegrasFerias.analisar(ana, inicio, fim, ausencias, turnos, feriados);
+        return RegrasFerias.analisar(ana, inicio, fim, ausencias, feriados);
     }
 
     private Ausencia ausencia(Funcionario f, LocalDate inicio, LocalDate fim, Ausencia.Motivo motivo) {
@@ -100,7 +97,7 @@ class RegrasFeriasTest {
         Ausencia propria = ausencia(ana, SEGUNDA, SEGUNDA.plusDays(9), Ausencia.Motivo.FERIAS);
         propria.setId(99L);
 
-        var a = RegrasFerias.analisar(ana, SEGUNDA, SEGUNDA.plusDays(14), ausencias, turnos, feriados, 99L);
+        var a = RegrasFerias.analisar(ana, SEGUNDA, SEGUNDA.plusDays(14), ausencias, feriados, 99L);
 
         assertThat(a.erros()).isEmpty();
     }
@@ -112,18 +109,13 @@ class RegrasFeriasTest {
     }
 
     @Test
-    void alertaTurnosJaEscaladosEColegasDoSetorDeFerias() {
-        turnos.add(turno(ana, SEGUNDA.plusDays(1), "07:00", "15:20", 60));
-        turnos.add(turno(ana, SEGUNDA.plusDays(2), "07:00", "15:20", 60));
-        turnos.add(turno(ana, SEGUNDA.plusDays(40), "07:00", "15:20", 60)); // fora do período
+    void alertaColegasDoSetorAusentesNoMesmoPeriodo() {
         ausencia(c.funcionario("Bruno", caixa, "10"), SEGUNDA.plusDays(5), SEGUNDA.plusDays(20), Ausencia.Motivo.FERIAS);
         ausencia(c.funcionario("Davi", c.setor("Açougue", 0), "10"), SEGUNDA, SEGUNDA.plusDays(20), Ausencia.Motivo.FERIAS);
 
         var a = analisar(SEGUNDA, SEGUNDA.plusDays(9));
 
         assertThat(a.valida()).isTrue();
-        assertThat(a.alertas()).hasSize(2);
-        assertThat(a.alertas().get(0)).contains("2 turnos já escalados").contains("06/10").contains("07/10");
-        assertThat(a.alertas().get(1)).contains("Bruno").doesNotContain("Davi");
+        assertThat(a.alertas()).singleElement().asString().contains("Bruno").doesNotContain("Davi");
     }
 }

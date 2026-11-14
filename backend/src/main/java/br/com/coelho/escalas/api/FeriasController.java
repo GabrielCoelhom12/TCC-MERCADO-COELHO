@@ -1,9 +1,10 @@
 package br.com.coelho.escalas.api;
 
 import br.com.coelho.escalas.dominio.Ausencia;
-import br.com.coelho.escalas.motor.RegrasFerias;
 import br.com.coelho.escalas.servico.FeriasService;
 import br.com.coelho.escalas.servico.FeriasService.DadosFerias;
+import br.com.coelho.escalas.servico.FeriasService.Previa;
+import br.com.coelho.escalas.servico.FeriasService.Registro;
 import jakarta.validation.Valid;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
@@ -28,9 +29,9 @@ public class FeriasController {
         return ferias.listar();
     }
 
-    /** Prévia do período: dias, retorno, erros que impedem o registro e alertas de impacto na escala. */
+    /** Prévia do período: dias, retorno, erros que impedem o registro, alertas e quem cobre os turnos já escalados. */
     @GetMapping("/analise")
-    public RegrasFerias.Analise analisar(@RequestParam Long funcionarioId,
+    public Previa analisar(@RequestParam Long funcionarioId,
                                          @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate inicio,
                                          @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fim,
                                          @RequestParam(required = false) Long ignorar) {
@@ -39,12 +40,12 @@ public class FeriasController {
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    public Ausencia registrar(@Valid @RequestBody DadosFerias dados) {
+    public Registro registrar(@Valid @RequestBody DadosFerias dados) {
         return ferias.registrar(dados);
     }
 
     @PutMapping("/{id}")
-    public Ausencia atualizar(@PathVariable Long id, @Valid @RequestBody DadosFerias dados) {
+    public Registro atualizar(@PathVariable Long id, @Valid @RequestBody DadosFerias dados) {
         return ferias.atualizar(id, dados);
     }
 

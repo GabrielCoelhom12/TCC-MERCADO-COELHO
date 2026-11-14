@@ -123,7 +123,7 @@ public class FuncionarioService {
             throw new RegraNegocioException("O fim da ausência deve ser posterior ao início.");
         }
         if (dados.motivo() == Ausencia.Motivo.FERIAS) {
-            return ferias.registrar(new FeriasService.DadosFerias(funcionarioId, dados.inicio(), dados.fim(), dados.observacao()));
+            return ferias.registrar(new FeriasService.DadosFerias(funcionarioId, dados.inicio(), dados.fim(), dados.observacao())).ferias();
         }
         Ausencia a = new Ausencia();
         a.setFuncionario(buscar(funcionarioId));

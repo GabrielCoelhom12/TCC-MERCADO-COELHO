@@ -35,6 +35,12 @@ const lista = [
   ferias(3, 3, somar(-60), somar(-46)),
 ];
 
+const cobertura = (turnoId: number, data: string, substituto: [number, string, string] | null) => ({
+  turnoId, escalaId: 7, escalaNome: 'Escala 03/03 a 09/03', data, horaInicio: '07:00:00', horaFim: '15:20:00',
+  substitutoId: substituto?.[0] ?? null, substitutoNome: substituto?.[1] ?? null, substitutoSetor: substituto?.[2] ?? null,
+});
+const coberturas = [cobertura(50, '2031-03-04', [3, 'Carla Dias', 'Padaria']), cobertura(51, '2031-03-05', null)];
+
 const NOVO_INICIO = '2031-03-03';
 const NOVO_FIM = '2031-03-17';
 const analiseNova = `GET /api/ferias/analise?funcionarioId=2&inicio=${NOVO_INICIO}&fim=${NOVO_FIM}`;
@@ -85,25 +91,30 @@ describe('Férias', () => {
     expect(screen.queryByText('Ana Souza')).not.toBeInTheDocument();
   });
 
-  it('registra férias com a prévia de dias, retorno e impacto na escala', async () => {
+  it('registra férias mostrando antes quem cobre cada turno já escalado', async () => {
     const fetch = montar({
       [analiseNova]: {
-        corpo: { dias: 15, retorno: '2031-03-18', erros: [], alertas: ['2 turnos já escalados no período (04/03, 05/03).'], valida: true },
+        corpo: { dias: 15, retorno: '2031-03-18', erros: [], alertas: [], valida: true, coberturas },
       },
-      'POST /api/ferias': { status: 201, corpo: ferias(9, 2, NOVO_INICIO, NOVO_FIM) },
+      'POST /api/ferias': { status: 201, corpo: { ferias: ferias(9, 2, NOVO_INICIO, NOVO_FIM), coberturas } },
     });
     renderizar(<Ferias />);
 
     const dialogo = await preencherNovo();
     expect(within(dialogo).getByLabelText('Fim')).toHaveValue(NOVO_FIM);
     expect(await within(dialogo).findByText('15 dias · retorno em 18/03/2031')).toBeInTheDocument();
-    expect(within(dialogo).getByText(/2 turnos já escalados/)).toBeInTheDocument();
+    const plano = within(dialogo).getByRole('list', { name: 'Quem cobre os turnos já escalados' });
+    const itens = within(plano).getAllByRole('listitem');
+    expect(itens[0]).toHaveTextContent('Ter 04/03 · 07:00–15:20');
+    expect(itens[0]).toHaveTextContent('Carla Dias');
+    expect(itens[1]).toHaveTextContent('Ninguém pode cobrir: o turno será retirado');
     // Inativos não aparecem para seleção.
     expect(within(dialogo).queryByRole('option', { name: /Edu Inativo/ })).not.toBeInTheDocument();
 
     fireEvent.click(within(dialogo).getByRole('button', { name: 'Salvar' }));
 
-    expect(await screen.findByText('Férias de Bruno Lima registradas.')).toBeInTheDocument();
+    expect(await screen.findByText('Férias de Bruno Lima registradas · 1 turno repassado · 1 turno retirado sem substituto.'))
+      .toBeInTheDocument();
     const envio = fetch.mock.calls.find(([url, init]) => url === '/api/ferias' && init?.method === 'POST');
     expect(JSON.parse(String(envio?.[1]?.body))).toEqual({ funcionarioId: 2, inicio: NOVO_INICIO, fim: NOVO_FIM, observacao: '' });
     await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
@@ -113,7 +124,10 @@ describe('Férias', () => {
   it('não deixa salvar quando o período fere as regras', async () => {
     montar({
       [analiseNova]: {
-        corpo: { dias: 15, retorno: '2031-03-18', erros: ['As férias não podem começar nos dois dias que antecedem feriado.'], alertas: [], valida: false },
+        corpo: {
+          dias: 15, retorno: '2031-03-18', erros: ['As férias não podem começar nos dois dias que antecedem feriado.'], alertas: [],
+          valida: false, coberturas: [],
+        },
       },
     });
     renderizar(<Ferias />);
@@ -127,7 +141,7 @@ describe('Férias', () => {
   it('edita e remove férias', async () => {
     const fetch = montar({
       [`GET /api/ferias/analise?funcionarioId=1&inicio=${somar(-3)}&fim=${somar(10)}&ignorar=1`]: {
-        corpo: { dias: 14, retorno: somar(11), erros: [], alertas: [], valida: true },
+        corpo: { dias: 14, retorno: somar(11), erros: [], alertas: [], valida: true, coberturas: [] },
       },
       'DELETE /api/ferias/1': { status: 204 },
     });

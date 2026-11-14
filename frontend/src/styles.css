@@ -627,3 +627,9 @@ button.icone.ativo { background: var(--laranja-fundo); border-color: var(--laran
 .encerradas[open] summary { margin-bottom: 12px; }
 .tabela-ferias td { vertical-align: middle; }
 .modal .acoes .spacer { flex: 1; }
+.cobertura-ferias { padding: 12px 14px; border-radius: 10px; background: var(--fundo); }
+.cobertura-ferias p { margin: 2px 0 8px; }
+.cobertura-ferias ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 4px; }
+.cobertura-ferias li { display: flex; flex-wrap: wrap; gap: 4px 10px; padding: 6px 10px; border-radius: 8px; background: #fff; border: 1px solid var(--borda); font-size: 13px; }
+.cobertura-ferias li.sem-substituto { border-color: #f1dfb0; background: var(--alerta-fundo); }
+.cobertura-ferias .quando { font-weight: 600; font-variant-numeric: tabular-nums; min-width: 150px; }
