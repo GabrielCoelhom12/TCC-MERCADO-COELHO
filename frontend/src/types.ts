@@ -356,3 +356,36 @@ export interface PrevisaoDiaria {
   previsao: PrevisaoDia | null;
   setores: DemandaSetor[];
 }
+
+/** Semana do colaborador escalado em um turno (horas, dias trabalhados e dias em que pode trabalhar). */
+export interface DisponibilidadeColaborador {
+  funcionarioId: number;
+  nome: string;
+  setorNome: string;
+  setorCor: string;
+  horasSemana: number;
+  limiteSemanal: number;
+  diasEscalados: string[];
+  diasDisponiveis: DiaSemana[];
+}
+
+export interface CandidatoSubstituto {
+  funcionarioId: number;
+  nome: string;
+  setorNome: string;
+  setorCor: string;
+  mesmoSetor: boolean;
+  horasSemana: number;
+  horasComTroca: number;
+  custoTurno: number;
+  apto: boolean;
+  /** Regras que a troca violaria (erros): impedem a troca. */
+  impedimentos: string[];
+  /** Avisos que a troca geraria (ex.: hora extra), sem impedir. */
+  alertas: string[];
+}
+
+export interface SugestaoSubstituicao {
+  titular: DisponibilidadeColaborador;
+  candidatos: CandidatoSubstituto[];
+}
