@@ -233,12 +233,23 @@ public class EscalaService {
                 contextos.carregar(data.minusDays(MARGEM_DIAS), data.plusDays(MARGEM_DIAS)));
     }
 
-    /** Passa o turno (mesmo dia e horário) para outro colaborador, desde que ele esteja apto e o bloqueio financeiro permita. */
+    /**
+     * Passa o turno (mesmo dia e horário) para outro colaborador, desde que ele esteja apto pelas regras da CLT.
+     *
+     * <p>Em escala aprovada, é a troca de urgência (alguém avisou que não vem): vale na hora, sem reabrir a escala, só
+     * para hoje em diante, e fica registrada na observação da escala. O limite financeiro do dia não bloqueia a troca
+     * de urgência (a loja não pode ficar sem ninguém); se ele for ultrapassado, aparece como alerta na validação.
+     *
+     * @param usuario login de quem fez a troca, anotado na escala aprovada
+     */
     @Transactional
-    public Matriz substituir(Long escalaId, Long turnoId, SubstituicaoRequest req) {
+    public Matriz substituir(Long escalaId, Long turnoId, SubstituicaoRequest req, String usuario) {
         Escala e = buscar(escalaId);
-        exigirEditavel(e);
         Turno turno = turnoDa(e, turnoId);
+        boolean urgencia = !e.editavel();
+        if (urgencia && turno.getData().isBefore(LocalDate.now())) {
+            throw new RegraNegocioException("Este turno já passou e não pode mais ser trocado.");
+        }
         Funcionario novo = funcionarios.findById(req.funcionarioId())
                 .orElseThrow(() -> new NaoEncontradoException("Colaborador", req.funcionarioId()));
 
@@ -250,11 +261,17 @@ public class EscalaService {
             throw new RegraNegocioException(novo.getNome() + " não pode cobrir este turno: " + String.join(" ", candidato.impedimentos()));
         }
 
+        Funcionario titular = turno.getFuncionario();
         ContextoCalculo ctx = contextoDa(e);
         DiaSnapshot antes = snapshot(turno.getData(), ctx);
         turno.setFuncionario(novo);
         turnos.saveAndFlush(turno);
-        aplicarBloqueioFinanceiro(turno.getData(), antes, ctx);
+        if (urgencia) {
+            e.anotar("Troca de urgência em " + DIA_MES.format(turno.getData()) + ": " + titular.getNome() + " → "
+                    + novo.getNome() + " (por " + usuario + ").");
+        } else {
+            aplicarBloqueioFinanceiro(turno.getData(), antes, ctx);
+        }
         return matriz(escalaId);
     }
 
