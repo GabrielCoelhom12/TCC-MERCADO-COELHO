@@ -37,11 +37,11 @@ public class EscalaService {
     }
 
     public record TurnoDTO(Long id, Long funcionarioId, LocalDate data, LocalTime horaInicio, LocalTime horaFim,
-                           int intervaloMinutos, String rotulo, BigDecimal horas, BigDecimal custo) {
+                           int intervaloMinutos, String rotulo, BigDecimal horas, @Confidencial BigDecimal custo) {
     }
 
     public record LinhaFuncionario(Long id, String nome, String cargo, Long setorId, String setorNome, String setorCor,
-                                   BigDecimal custoHora, Set<DayOfWeek> diasDisponiveis, boolean ativo) {
+                                   @Confidencial BigDecimal custoHora, Set<DayOfWeek> diasDisponiveis, boolean ativo) {
     }
 
     public record Matriz(Escala escala, List<LinhaFuncionario> funcionarios, List<TurnoDTO> turnos,
@@ -49,6 +49,9 @@ public class EscalaService {
     }
 
     public record Geracao(int turnosCriados, List<GeradorEscala.Deficit> deficits, Matriz matriz) {
+    }
+
+    public record SubstituicaoRequest(Long funcionarioId) {
     }
 
     private final EscalaRepository escalas;
@@ -59,10 +62,11 @@ public class EscalaService {
     private final MotorFinanceiro motor;
     private final ValidadorEscala validador;
     private final GeradorEscala gerador;
+    private final SugestorSubstituicao sugestor;
 
     public EscalaService(EscalaRepository escalas, TurnoRepository turnos, FuncionarioRepository funcionarios,
                          TurnoModeloRepository modelos, ContextoService contextos, MotorFinanceiro motor,
-                         ValidadorEscala validador, GeradorEscala gerador) {
+                         ValidadorEscala validador, GeradorEscala gerador, SugestorSubstituicao sugestor) {
         this.escalas = escalas;
         this.turnos = turnos;
         this.funcionarios = funcionarios;
@@ -71,6 +75,7 @@ public class EscalaService {
         this.motor = motor;
         this.validador = validador;
         this.gerador = gerador;
+        this.sugestor = sugestor;
     }
 
     // ------------------------------------------------------------------ CRUD
@@ -215,6 +220,48 @@ public class EscalaService {
             return new Turno(f, req.data(), req.horaInicio(), req.horaFim(), intervalo, "Pers.");
         }
         return null; // folga
+    }
+
+    // ------------------------------------------------------------------ troca de colaborador
+
+    /** Semana do colaborador escalado no turno e colegas que podem cobri-lo, já validados pelas regras individuais. */
+    @Transactional(readOnly = true)
+    public SugestorSubstituicao.Sugestao substitutos(Long escalaId, Long turnoId) {
+        Turno turno = turnoDa(buscar(escalaId), turnoId);
+        LocalDate data = turno.getData();
+        return sugestor.sugerir(turno, turnos.findByDataBetween(data.minusDays(MARGEM_DIAS), data.plusDays(MARGEM_DIAS)),
+                contextos.carregar(data.minusDays(MARGEM_DIAS), data.plusDays(MARGEM_DIAS)));
+    }
+
+    /** Passa o turno (mesmo dia e horário) para outro colaborador, desde que ele esteja apto e o bloqueio financeiro permita. */
+    @Transactional
+    public Matriz substituir(Long escalaId, Long turnoId, SubstituicaoRequest req) {
+        Escala e = buscar(escalaId);
+        exigirEditavel(e);
+        Turno turno = turnoDa(e, turnoId);
+        Funcionario novo = funcionarios.findById(req.funcionarioId())
+                .orElseThrow(() -> new NaoEncontradoException("Colaborador", req.funcionarioId()));
+
+        SugestorSubstituicao.Candidato candidato = substitutos(escalaId, turnoId).candidatos().stream()
+                .filter(c -> c.funcionarioId().equals(novo.getId()))
+                .findFirst()
+                .orElseThrow(() -> new RegraNegocioException(novo.getNome() + " não pode cobrir este turno: já está escalado neste dia ou inativo."));
+        if (!candidato.apto()) {
+            throw new RegraNegocioException(novo.getNome() + " não pode cobrir este turno: " + String.join(" ", candidato.impedimentos()));
+        }
+
+        ContextoCalculo ctx = contextoDa(e);
+        DiaSnapshot antes = snapshot(turno.getData(), ctx);
+        turno.setFuncionario(novo);
+        turnos.saveAndFlush(turno);
+        aplicarBloqueioFinanceiro(turno.getData(), antes, ctx);
+        return matriz(escalaId);
+    }
+
+    private Turno turnoDa(Escala e, Long turnoId) {
+        return turnos.findById(turnoId)
+                .filter(t -> t.getEscala().getId().equals(e.getId()))
+                .orElseThrow(() -> new NaoEncontradoException("Turno", turnoId));
     }
 
     // ------------------------------------------------------------------ geração, validação e aprovação

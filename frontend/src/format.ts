@@ -1,9 +1,11 @@
-import type { DiaSemana, TipoDia } from './types';
+import type { DiaSemana, MotivoAusencia, TipoDia } from './types';
 
 const moedaFmt = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' });
 const numFmt = new Intl.NumberFormat('pt-BR', { maximumFractionDigits: 2 });
 
 export const moeda = (v: number | null | undefined) => moedaFmt.format(v ?? 0);
+/** Valor de remuneração individual: chega nulo para quem não pode vê-lo (perfil SUPERVISOR). */
+export const moedaConfidencial = (v: number | null | undefined) => (v == null ? '—' : moeda(v));
 export const numero = (v: number | null | undefined) => numFmt.format(v ?? 0);
 
 export const pct = (parte: number, total: number) =>
@@ -44,6 +46,13 @@ export const TIPOS_DIA: { tipo: TipoDia; rotulo: string }[] = [
   { tipo: 'SABADO', rotulo: 'Sáb' },
   { tipo: 'DOMINGO', rotulo: 'Dom' },
   { tipo: 'FERIADO', rotulo: 'Feriado' },
+];
+
+export const MOTIVOS_AUSENCIA: { valor: MotivoAusencia; rotulo: string }[] = [
+  { valor: 'FERIAS', rotulo: 'Férias' },
+  { valor: 'ATESTADO', rotulo: 'Atestado' },
+  { valor: 'FOLGA_ACORDADA', rotulo: 'Folga acordada' },
+  { valor: 'OUTRO', rotulo: 'Outro' },
 ];
 
 export const DIAS_SEMANA: { dia: DiaSemana; rotulo: string }[] = [

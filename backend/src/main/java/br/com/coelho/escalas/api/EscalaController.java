@@ -2,6 +2,7 @@ package br.com.coelho.escalas.api;
 
 import br.com.coelho.escalas.dominio.Escala;
 import br.com.coelho.escalas.motor.ResultadoValidacao;
+import br.com.coelho.escalas.motor.SugestorSubstituicao;
 import br.com.coelho.escalas.servico.EscalaService;
 import br.com.coelho.escalas.servico.EscalaService.*;
 import org.springframework.http.HttpStatus;
@@ -50,6 +51,16 @@ public class EscalaController {
     @PutMapping("/{id}/celula")
     public Matriz celula(@PathVariable Long id, @RequestBody CelulaRequest req) {
         return servico.definirCelula(id, req);
+    }
+
+    @GetMapping("/{id}/turnos/{turnoId}/substitutos")
+    public SugestorSubstituicao.Sugestao substitutos(@PathVariable Long id, @PathVariable Long turnoId) {
+        return servico.substitutos(id, turnoId);
+    }
+
+    @PostMapping("/{id}/turnos/{turnoId}/substituir")
+    public Matriz substituir(@PathVariable Long id, @PathVariable Long turnoId, @RequestBody SubstituicaoRequest req) {
+        return servico.substituir(id, turnoId, req);
     }
 
     @PostMapping("/{id}/gerar")

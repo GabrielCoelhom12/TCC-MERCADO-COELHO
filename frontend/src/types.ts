@@ -11,18 +11,19 @@ export interface Setor {
   clientesPorColaboradorHora: number | null;
 }
 
+/** Salário, encargos e custo/hora chegam nulos para quem não pode ver remuneração (perfil SUPERVISOR). */
 export interface Funcionario {
   id: number;
   nome: string;
   matricula: string | null;
   cargo: string | null;
   setor: Setor;
-  salarioMensal: number;
+  salarioMensal: number | null;
   cargaHorariaMensal: number;
-  percentualEncargos: number;
+  percentualEncargos: number | null;
   ativo: boolean;
   diasDisponiveis: DiaSemana[];
-  custoHora: number;
+  custoHora: number | null;
   foto: string | null;
 }
 
@@ -171,7 +172,7 @@ export interface TurnoDTO {
   intervaloMinutos: number;
   rotulo: string;
   horas: number;
-  custo: number;
+  custo: number | null;
 }
 
 export interface LinhaFuncionario {
@@ -181,7 +182,7 @@ export interface LinhaFuncionario {
   setorId: number;
   setorNome: string;
   setorCor: string;
-  custoHora: number;
+  custoHora: number | null;
   diasDisponiveis: DiaSemana[];
   ativo: boolean;
 }
@@ -355,4 +356,37 @@ export interface PrevisaoDiaria {
   origemReceita: 'INFORMADA' | 'PREVISAO' | 'PADRAO';
   previsao: PrevisaoDia | null;
   setores: DemandaSetor[];
+}
+
+/** Semana do colaborador escalado em um turno (horas, dias trabalhados e dias em que pode trabalhar). */
+export interface DisponibilidadeColaborador {
+  funcionarioId: number;
+  nome: string;
+  setorNome: string;
+  setorCor: string;
+  horasSemana: number;
+  limiteSemanal: number;
+  diasEscalados: string[];
+  diasDisponiveis: DiaSemana[];
+}
+
+export interface CandidatoSubstituto {
+  funcionarioId: number;
+  nome: string;
+  setorNome: string;
+  setorCor: string;
+  mesmoSetor: boolean;
+  horasSemana: number;
+  horasComTroca: number;
+  custoTurno: number | null;
+  apto: boolean;
+  /** Regras que a troca violaria (erros): impedem a troca. */
+  impedimentos: string[];
+  /** Avisos que a troca geraria (ex.: hora extra), sem impedir. */
+  alertas: string[];
+}
+
+export interface SugestaoSubstituicao {
+  titular: DisponibilidadeColaborador;
+  candidatos: CandidatoSubstituto[];
 }

@@ -11,5 +11,7 @@ public interface AusenciaRepository extends JpaRepository<Ausencia, Long> {
 
     List<Ausencia> findByFimGreaterThanEqualAndInicioLessThanEqual(LocalDate inicio, LocalDate fim);
 
+    List<Ausencia> findByMotivoOrderByInicioDesc(Ausencia.Motivo motivo);
+
     void deleteByFuncionario_Id(Long funcionarioId);
 }

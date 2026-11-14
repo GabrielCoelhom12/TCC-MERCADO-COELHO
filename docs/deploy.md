@@ -11,7 +11,7 @@
 | `APP_SEED` | — | `true` carrega o cenário de demonstração quando o banco está vazio. Use `false` em produção real. |
 | `PORT` / `MANAGEMENT_PORT` | — | Porta HTTP (8080) e porta de métricas/health (8081). |
 | `APP_GERACAO_AUTOMATICA` | — | `false` desliga o agendamento do rascunho semanal (a opção também pode ser desligada em Parâmetros). Roda todo dia às 6h e ao iniciar. |
-| `APP_WS_ORIGENS` | — | Origens extras aceitas no WebSocket do chat (a própria origem da aplicação é sempre aceita). |
+| `APP_WS_ORIGENS` | — | Origens extras aceitas no WebSocket do chat. Nos contêineres fica vazio (só a própria origem); fora deles o padrão é `http://localhost:5173`, o servidor do Vite. |
 
 ## Ambientes
 

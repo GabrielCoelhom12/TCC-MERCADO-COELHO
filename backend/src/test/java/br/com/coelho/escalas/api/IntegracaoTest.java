@@ -1,5 +1,6 @@
 package br.com.coelho.escalas.api;
 
+import br.com.coelho.escalas.seguranca.LimiteTentativas;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
@@ -38,8 +39,13 @@ abstract class IntegracaoTest {
 
     private String token;
 
+    @Autowired
+    private LimiteTentativas limiteTentativas;
+
     @BeforeEach
     void autenticar() throws Exception {
+        // As falhas de login ficam em memória e o contexto do Spring é compartilhado: cada teste começa do zero.
+        limiteTentativas.limpar();
         entrarComo("gestor", "senha-de-teste");
     }
 

@@ -49,6 +49,8 @@ O sistema tem três fluxos de negócio completos, cada um coberto por testes de 
 | RF25 | Prever o movimento dos próximos dias a partir dos fechamentos (média recente do mesmo dia da semana, efeitos aprendidos de início do mês e véspera de feriado, feriados e pico por faixa), com a explicação de cada previsão. |
 | RF26 | Calcular as pessoas necessárias por faixa nos setores que acompanham o movimento (capacidade de atendimento), escolher os turnos que cobrem os picos e alertar quando uma edição manual deixar um pico descoberto. |
 | RF27 | Criar automaticamente, como rascunho, a escala das próximas semanas (antecedência configurável), sem alterar escalas existentes. |
+| RF28 | No painel, mostrar a semana de quem trabalha no dia (horas escaladas × limite semanal, dias de trabalho e indisponíveis) e trocá-lo por um colega que o sistema valida antes (disponibilidade, ausências, interjornada, jornada e dias seguidos), indicando hora extra e custo de cada opção. |
+| RF29 | Operação de férias: registrar, editar e remover férias da equipe com as regras da CLT (5 a 30 dias por período, início fora dos dois dias que antecedem feriado ou domingo, sem sobrepor outra ausência), prévia de dias e retorno, repasse automático dos turnos já escalados no período a colegas aptos (inclusive em escala aprovada, anotando a troca na escala) e alerta de colegas do setor ausentes no mesmo período. |
 
 ## Requisitos não funcionais
 
@@ -171,3 +173,17 @@ Como gerente, quero que o sistema entenda os dias e horários de maior movimento
 - *Dado* um histórico em que o início do mês vende mais, *então* a previsão mostra o efeito aprendido ("+12%, aprendido de 22 dias").
 - *Dado* um pico previsto às 16h–19h, *então* a escala gerada reforça os turnos que cobrem esse horário.
 - *Quando* a semana seguinte ainda não tem escala, *então* o sistema cria o rascunho sozinho e eu ajusto o que quiser na matriz.
+
+**US12 — Cobrir uma falta no dia** (RF28)
+Como gerente, quero trocar quem está escalado por outro colaborador direto do painel, sem quebrar nenhuma regra.
+- *Quando* clico em um colaborador da equipe do dia, *então* vejo quantas horas ele já tem na semana e em quais dias trabalha.
+- *Quando* peço a troca, *então* vejo só os colegas que podem cobrir o turno (mesmo setor primeiro, com menos horas na semana) e o motivo de quem não pode.
+- *Dado* um colega que fechou a loja na véspera, *então* ele não aparece como opção para abrir no dia seguinte (interjornada de 11h).
+- *Dado* uma escala aprovada, *então* posso ver a disponibilidade, mas a troca exige reabrir a escala.
+
+**US13 — Programar as férias da equipe** (RF29)
+Como gerente, quero uma tela só para as férias, para programá-las sem ferir a CLT nem desfalcar a operação.
+- *Quando* abro Férias, *então* vejo quem está de férias hoje, quem começa nos próximos 30 dias e quem volta nesta semana.
+- *Quando* escolho o colaborador, o início e "15 dias", *então* vejo a data de retorno antes de salvar.
+- *Dado* um início numa sexta-feira (dois dias antes do domingo), *então* o sistema não deixa salvar e cita o art. 134, §3º da CLT.
+- *Dado* um colaborador já escalado no período, *então* vejo antes de salvar quem vai assumir cada turno e, ao salvar, o sistema faz as trocas sozinho; o turno que ninguém pode cobrir é retirado e o painel aponta o dia descoberto.
