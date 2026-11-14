@@ -137,6 +137,10 @@ Regras validadas a cada alteração:
 As duas versões geram para as **mesmas vagas** (vindas do planejador de demanda), então o botão "Comparar algoritmos"
 mede a diferença com os mesmos dados: vagas descobertas, custo, erros, alertas, desvio-padrão das horas e tempo.
 
+Em 30 cenários sorteados com pouca gente, o Timefold **nunca cobriu menos vagas e cobriu mais em 7 deles** (vagas sem
+ninguém: 29 → 22), sem nenhum erro de CLT nos dois; com equipe folgada, os dois empatam em cobertura. Método e números:
+[docs/experimento-otimizacao.md](docs/experimento-otimizacao.md).
+
 A **troca de colaborador** e a **cobertura de férias e afastamentos** reaproveitam o mesmo validador: cada candidato é simulado no
 turno e só entra quem não gera nenhum erro novo. A escolha prioriza o mesmo setor e quem tem menos horas na semana.
 
@@ -334,6 +338,7 @@ A documentação completa está na **[Wiki do projeto](../../wiki)**, publicada 
 - [Modelo de dados](docs/modelo-de-dados.md): diagramas entidade-relacionamento.
 - [Deploy](docs/deploy.md): ambientes, variáveis, pipeline, Terraform, rollback e monitoramento.
 - [Conformidade](docs/conformidade.md): LGPD, perfis de acesso, segurança (OWASP), acessibilidade (WCAG) e licenças.
+- [Experimento de otimização](docs/experimento-otimizacao.md): gerador guloso × Timefold, com método e resultados.
 - [Como contribuir](CONTRIBUTING.md): nomes de branch, TDD, comandos de teste, mensagens de commit e pull request.
 
 ## Limitações conhecidas
