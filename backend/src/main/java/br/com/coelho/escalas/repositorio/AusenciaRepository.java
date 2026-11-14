@@ -13,5 +13,7 @@ public interface AusenciaRepository extends JpaRepository<Ausencia, Long> {
 
     List<Ausencia> findByMotivoOrderByInicioDesc(Ausencia.Motivo motivo);
 
+    List<Ausencia> findByMotivoNotOrderByInicioDesc(Ausencia.Motivo motivo);
+
     void deleteByFuncionario_Id(Long funcionarioId);
 }

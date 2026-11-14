@@ -3,8 +3,8 @@ package br.com.coelho.escalas.api;
 import br.com.coelho.escalas.dominio.Ausencia;
 import br.com.coelho.escalas.servico.FeriasService;
 import br.com.coelho.escalas.servico.FeriasService.DadosFerias;
-import br.com.coelho.escalas.servico.FeriasService.Previa;
-import br.com.coelho.escalas.servico.FeriasService.Registro;
+import br.com.coelho.escalas.servico.CoberturaService.Previa;
+import br.com.coelho.escalas.servico.CoberturaService.Registro;
 import jakarta.validation.Valid;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
@@ -32,9 +32,9 @@ public class FeriasController {
     /** Prévia do período: dias, retorno, erros que impedem o registro, alertas e quem cobre os turnos já escalados. */
     @GetMapping("/analise")
     public Previa analisar(@RequestParam Long funcionarioId,
-                                         @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate inicio,
-                                         @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fim,
-                                         @RequestParam(required = false) Long ignorar) {
+                           @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate inicio,
+                           @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fim,
+                           @RequestParam(required = false) Long ignorar) {
         return ferias.analisar(funcionarioId, inicio, fim, ignorar);
     }
 

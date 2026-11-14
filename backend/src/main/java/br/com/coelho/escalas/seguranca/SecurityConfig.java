@@ -27,7 +27,7 @@ import java.nio.charset.StandardCharsets;
  *   <li><b>ADMIN</b>: tudo, inclusive usuários;</li>
  *   <li><b>GESTOR</b>: tudo, menos usuários;</li>
  *   <li><b>SUPERVISOR</b>: consulta (sem dados salariais, ver {@link SerializacaoConfidencial}) e as ações do dia a dia —
- *       trocar colaborador num turno, lançar o fechamento do dia e usar o chat.</li>
+ *       trocar colaborador num turno, registrar um afastamento (atestado), lançar o fechamento do dia e usar o chat.</li>
  * </ul>
  */
 @Configuration
@@ -48,6 +48,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/chat/**").authenticated()
                         .requestMatchers(HttpMethod.POST, "/api/escalas/*/turnos/*/substituir").authenticated()
                         .requestMatchers(HttpMethod.PUT, "/api/movimento/fechamentos/*").authenticated()
+                        .requestMatchers(HttpMethod.POST, "/api/afastamentos").authenticated()
                         // Qualquer outra alteração: só quem administra a operação.
                         .requestMatchers("/api/**").hasAnyRole("ADMIN", "GESTOR")
                         .anyRequest().permitAll())

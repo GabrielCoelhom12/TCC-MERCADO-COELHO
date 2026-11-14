@@ -3,7 +3,6 @@ package br.com.coelho.escalas.motor;
 import br.com.coelho.escalas.dominio.Ausencia;
 import br.com.coelho.escalas.dominio.Funcionario;
 import br.com.coelho.escalas.dominio.Setor;
-import br.com.coelho.escalas.motor.RegrasFerias.Analise;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -30,7 +29,7 @@ class RegrasFeriasTest {
         ana = c.funcionario("Ana", caixa, "10");
     }
 
-    private Analise analisar(LocalDate inicio, LocalDate fim) {
+    private AnaliseAusencia analisar(LocalDate inicio, LocalDate fim) {
         return RegrasFerias.analisar(ana, inicio, fim, ausencias, feriados);
     }
 

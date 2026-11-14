@@ -51,14 +51,16 @@ public class FuncionarioService {
     private final AusenciaRepository ausencias;
     private final TurnoRepository turnos;
     private final FeriasService ferias;
+    private final AfastamentoService afastamentos;
 
     public FuncionarioService(FuncionarioRepository funcionarios, SetorRepository setores, AusenciaRepository ausencias,
-                              TurnoRepository turnos, FeriasService ferias) {
+                              TurnoRepository turnos, FeriasService ferias, AfastamentoService afastamentos) {
         this.funcionarios = funcionarios;
         this.setores = setores;
         this.ausencias = ausencias;
         this.turnos = turnos;
         this.ferias = ferias;
+        this.afastamentos = afastamentos;
     }
 
     // ------------------------------------------------------------------ colaboradores
@@ -122,16 +124,13 @@ public class FuncionarioService {
         if (dados.fim().isBefore(dados.inicio())) {
             throw new RegraNegocioException("O fim da ausência deve ser posterior ao início.");
         }
+        // Pelo cadastro do colaborador valem as mesmas regras e a mesma cobertura dos turnos das operações dedicadas.
         if (dados.motivo() == Ausencia.Motivo.FERIAS) {
-            return ferias.registrar(new FeriasService.DadosFerias(funcionarioId, dados.inicio(), dados.fim(), dados.observacao())).ferias();
+            return ferias.registrar(new FeriasService.DadosFerias(funcionarioId, dados.inicio(), dados.fim(), dados.observacao())).ausencia();
         }
-        Ausencia a = new Ausencia();
-        a.setFuncionario(buscar(funcionarioId));
-        a.setInicio(dados.inicio());
-        a.setFim(dados.fim());
-        a.setMotivo(dados.motivo() == null ? Ausencia.Motivo.OUTRO : dados.motivo());
-        a.setObservacao(dados.observacao());
-        return ausencias.save(a);
+        Ausencia.Motivo motivo = dados.motivo() == null ? Ausencia.Motivo.OUTRO : dados.motivo();
+        return afastamentos.registrar(new AfastamentoService.DadosAfastamento(funcionarioId, motivo, dados.inicio(), dados.fim(),
+                dados.observacao())).ausencia();
     }
 
     @Transactional

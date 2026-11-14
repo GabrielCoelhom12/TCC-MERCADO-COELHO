@@ -23,16 +23,16 @@ class FeriasIntegracaoTest extends IntegracaoTest {
 
         JsonNode f = corpo(post("/api/ferias", ferias(funcionario, SEGUNDA, "2031-03-16"))
                 .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.ferias.motivo").value("FERIAS"))
-                .andExpect(jsonPath("$.ferias.funcionarioId").value(funcionario))
+                .andExpect(jsonPath("$.ausencia.motivo").value("FERIAS"))
+                .andExpect(jsonPath("$.ausencia.funcionarioId").value(funcionario))
                 .andExpect(jsonPath("$.coberturas", empty())));
-        long id = f.at("/ferias/id").asLong();
+        long id = f.at("/ausencia/id").asLong();
         get("/api/ferias").andExpect(jsonPath("$[*].id", hasItem((int) id)));
 
         // Editar o próprio período não conta como sobreposição.
         put("/api/ferias/" + id, ferias(funcionario, SEGUNDA, "2031-03-21"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.ferias.fim").value("2031-03-21"));
+                .andExpect(jsonPath("$.ausencia.fim").value("2031-03-21"));
 
         delete("/api/ferias/" + id).andExpect(status().isNoContent());
         delete("/api/ferias/" + id).andExpect(status().isNotFound());
