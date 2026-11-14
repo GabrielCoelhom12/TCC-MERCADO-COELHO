@@ -50,7 +50,7 @@ flowchart TB
         seg["seguranca<br/>JwtFiltro · AutenticadorJwt · JwtService · SecurityConfig"]
         ctrl["api<br/>Controllers REST + TratadorErros<br/>(somente HTTP)"]
         serv["servico<br/>Escalas: EscalaService · MotorService · MovimentoService · ContextoService<br/>Cadastros: Funcionario · Setor · TurnoModelo · Feriado · Projecao · Parametros · Usuario"]
-        motor["motor (Java puro)<br/>MotorFinanceiro · ValidadorEscala · GeradorEscala<br/>SimuladorCusto · PrevisaoMovimento · PlanejadorDemanda"]
+        motor["motor (Java puro)<br/>MotorFinanceiro · ValidadorEscala · GeradorEscala · OtimizadorEscala (Timefold)<br/>SimuladorCusto · PrevisaoMovimento · PlanejadorDemanda"]
         repo["repositorio<br/>Spring Data JPA"]
         dom["dominio<br/>Entidades JPA"]
     end
@@ -145,6 +145,7 @@ O modelo de dados está em [modelo-de-dados.md](modelo-de-dados.md).
 | **PostgreSQL 17** | Banco relacional robusto e gratuito, com integridade referencial e restrições únicas que protegem as regras (ex.: um feriado por data). Usado também nos testes, para que eles rodem no mesmo banco da produção. |
 | **React 18 + TypeScript** | A matriz colaborador × dia é uma tela muito interativa (validação a cada clique); componentes React e tipos compartilhados com a API evitam erros de contrato em tempo de compilação. |
 | **Vite** | Build rápido e servidor de desenvolvimento com proxy para a API. |
+| **Timefold Solver** | Biblioteca Java de otimização com restrições (Apache 2.0), feita para problemas de escala de pessoal. As regras viram *constraint streams* testáveis, e o motor continua Java puro. |
 | **JUnit 5, AssertJ, MockMvc e JaCoCo** | Testes unitários do motor e de integração da API inteira contra o PostgreSQL; o JaCoCo bloqueia o build abaixo de 75%. |
 | **ArchUnit** | Transforma o desenho em camadas em teste automatizado: o build falha se um controller acessar um repositório ou se o motor depender do banco. |
 | **Vitest + Testing Library** | Mesma configuração do Vite; testa as telas como o usuário as usa (por papel, rótulo e texto). |
@@ -165,6 +166,7 @@ O modelo de dados está em [modelo-de-dados.md](modelo-de-dados.md).
 | **JWT stateless**, com o usuário conferido a cada requisição | Escala horizontal sem sessão no servidor; segredo fornecido pelo ambiente (`APP_JWT_SECRET`). Como situação e perfil vêm do banco (`AutenticadorJwt`), desativar uma conta ou mudar o perfil vale na hora, sem esperar o token expirar. |
 | **PostgreSQL** em todos os ambientes, inclusive nos testes de integração | Mesmo dialeto em testes e produção; atende à exigência de persistência real. |
 | **Porta de gerência separada (8081)** | Métricas e health check ficam fora da porta pública. |
+| **Dois geradores: guloso (rápido) e otimizado (Timefold Solver)** | O guloso preenche dia a dia, com quem tem menos horas, em milissegundos — é o usado na geração automática diária. O otimizador modela cada pessoa necessária como uma *vaga* e busca a melhor atribuição da semana inteira (heurística de construção + busca local, com tempo limite), com pontuação em três níveis: hard = CLT (nunca violada), medium = vagas sem ninguém, soft = custo e equilíbrio de horas. As vagas vêm do mesmo planejador de demanda, então os dois geram para a mesma demanda e podem ser comparados. |
 | **Previsão explicável (estatística), não um modelo opaco** | Média ponderada recente do mesmo dia da semana + efeitos medidos no próprio histórico (início do mês, véspera de feriado), com a justificativa de cada número. Funciona com poucas semanas de dados, é testável com cenários exatos e o gestor entende e confia na previsão; sem histórico, vale a configuração manual. |
 | **Demanda por faixa com escolha gulosa de turnos** | Pessoas por faixa = ⌈clientes ÷ (capacidade × horas)⌉; a cada passo, o modelo de turno que cobre mais faixas descobertas. Simples de explicar e próximo do ótimo para os poucos modelos de turno de uma loja. Abaixo do previsto é alerta (o gestor decide); abaixo do piso manual é erro. |
 | **VM no Azure com Docker Compose**, provisionada com **Terraform** | Mantém o controle da arquitetura exigido pela linha Web Apps (sem PaaS que esconda a infraestrutura) e roda a mesma composição do desenvolvimento, com monitoramento junto. A infraestrutura é reproduzível e revisável em PR. |

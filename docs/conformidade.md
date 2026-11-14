@@ -91,7 +91,8 @@ esconde os botões que o perfil não pode usar. Testado em `SegurancaIntegracaoT
 
 | Componente | Licença |
 |------------|---------|
-| Spring Boot, Spring Security, Spring Data, Micrometer, JJWT | Apache 2.0 |
+| Spring Boot, Spring Security, Spring Data, Micrometer, JJWT, Timefold Solver | Apache 2.0 |
+| OpenPDF | LGPL 2.1 / MPL 2.0 |
 | Driver JDBC do PostgreSQL | BSD-2-Clause |
 | Lombok | MIT |
 | ArchUnit (somente nos testes) | Apache 2.0 |

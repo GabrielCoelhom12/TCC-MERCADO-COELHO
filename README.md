@@ -53,7 +53,9 @@ que o sistema já validou e registra férias, atestados e licenças com a substi
 - Grade completa da semana sob demanda e quadro "De férias nesta semana".
 
 **Escalas**
-- Matriz colaborador × dia com revalidação imediata a cada célula, geração automática, aprovação e reabertura.
+- Matriz colaborador × dia com revalidação imediata a cada célula, aprovação e reabertura.
+- **Dois geradores:** "Gerar (rápido)", o guloso, e **"Otimizar com Timefold"**, que busca a melhor escala da
+  semana inteira; o botão **"Comparar algoritmos"** mostra os dois lado a lado sem alterar a escala.
 - Rascunho das próximas semanas criado sozinho todo dia às 6h (antecedência de 1 a 4 semanas, configurável).
 - Modo financeiro **BLOQUEAR** (recusa a alocação que estoura o limite) ou **ALERTAR**.
 - **Imprimir ou baixar em PDF** (Painel, matriz e lista de escalas): A4 deitado com a logo do supermercado, colaboradores
@@ -92,7 +94,7 @@ que o sistema já validou e registra férias, atestados e licenças com a substi
 **Comunicação e administração**
 - Usuários com três perfis (ver [Perfis de acesso](#perfis-de-acesso)), senha forte e foto.
 
-São **29 requisitos funcionais, 8 não funcionais, 16 regras de negócio e 15 histórias de usuário**, descritos em
+São **30 requisitos funcionais, 8 não funcionais, 16 regras de negócio e 16 histórias de usuário**, descritos em
 [docs/requisitos.md](docs/requisitos.md).
 
 ## Motor de custo e regras
@@ -121,6 +123,19 @@ Regras validadas a cada alteração:
 | Folga em domingo ao menos a cada 3 semanas | Lei 10.101/2000, art. 6º | Erro |
 | Indisponibilidade, ausência e colaborador inativo | — | Erro |
 | Setor abaixo do mínimo, pico sem cobertura, acima de `L_max` ou do teto | — | Erro / Alerta |
+
+### Geração da escala: guloso × otimizado
+
+| | Gerador guloso ("Gerar rápido") | Otimizador ("Otimizar com Timefold") |
+|---|---|---|
+| Como decide | Dia a dia, setor a setor: cada vaga vai para quem pode trabalhar e tem menos horas na semana (empate: menor custo-hora) | Monta todas as vagas da semana e busca a melhor atribuição de uma vez (heurística de construção + busca local do Timefold Solver) |
+| Regras da CLT | Conferidas antes de cada escolha | Restrições *hard*: nunca violadas |
+| O que otimiza | Nada além da escolha local | *Medium*: vagas sem ninguém; *soft*: custo (R$) e equilíbrio das horas entre as pessoas |
+| Tempo | Milissegundos | Até 5 s (para antes se parar de melhorar; `APP_OTIMIZACAO_SEGUNDOS`) |
+| Uso | Geração automática diária das próximas semanas | Sob demanda, na matriz da escala |
+
+As duas versões geram para as **mesmas vagas** (vindas do planejador de demanda), então o botão "Comparar algoritmos"
+mede a diferença com os mesmos dados: vagas descobertas, custo, erros, alertas, desvio-padrão das horas e tempo.
 
 A **troca de colaborador** e a **cobertura de férias e afastamentos** reaproveitam o mesmo validador: cada candidato é simulado no
 turno e só entra quem não gera nenhum erro novo. A escolha prioriza o mesmo setor e quem tem menos horas na semana.
@@ -203,6 +218,7 @@ npm, defina `NODE_OPTIONS=--use-system-ca` antes do `npm install`.
 | `APP_ADMIN_SENHA` | Senha do usuário `gestor` criado no primeiro início. Sem ela, uma senha aleatória aparece uma única vez no log |
 | `APP_SEED` | `true` carrega o cenário de demonstração quando o banco está vazio; use `false` com dados reais |
 | `APP_GERACAO_AUTOMATICA` | Liga ou desliga a criação automática dos rascunhos semanais |
+| `APP_OTIMIZACAO_SEGUNDOS` | Tempo máximo do otimizador por escala (padrão: 5 s) |
 
 Lista completa e ambientes: [docs/deploy.md](docs/deploy.md).
 
@@ -224,9 +240,10 @@ Roteiro de demonstração (cerca de 5 minutos), entrando como `gestor`:
    salve. Depois, mude o tipo para licença-maternidade e use o atalho "120 dias".
 5. **Escalas → Abrir matriz:** mude uma célula para criar uma interjornada menor que 11 h e veja o erro aparecer e a
    aprovação ficar bloqueada.
-6. **Movimento e previsão:** lance o fechamento de ontem e veja a explicação da previsão dos próximos dias.
-7. **Simulador de custos:** monte um quadro com gente demais e compare com o recomendado.
-8. Entre com um usuário **SUPERVISOR** e confira que salários aparecem como "—" e os botões de edição somem.
+6. Na matriz, clique em **Comparar algoritmos** e depois em **Otimizar com Timefold**.
+7. **Movimento e previsão:** lance o fechamento de ontem e veja a explicação da previsão dos próximos dias.
+8. **Simulador de custos:** monte um quadro com gente demais e compare com o recomendado.
+9. Entre com um usuário **SUPERVISOR** e confira que salários aparecem como "—" e os botões de edição somem.
 
 ## Testes e qualidade
 
@@ -248,8 +265,8 @@ Os testes seguem os fluxos de negócio:
 - **Integração** (API completa contra o PostgreSQL): `CadastrosIntegracaoTest`, `EscalaIntegracaoTest`,
   `MotorIntegracaoTest`, `MovimentoIntegracaoTest`, `FeriasIntegracaoTest`, `AfastamentoIntegracaoTest`,
   `SegurancaIntegracaoTest`, `DocumentoAfastamentoIntegracaoTest` e usuários.
-- **Unitários do motor**: validador, gerador, previsão, calendário sazonal, sugestor de substituição e regras de
-  férias e de afastamentos.
+- **Unitários do motor**: validador, gerador, otimizador (Timefold), previsão, calendário sazonal, sugestor de
+  substituição e regras de férias e de afastamentos.
 - **Arquitetura** (`ArquiteturaTest`): as camadas só dependem umas das outras no sentido
   `api → servico → motor/repositorio → dominio`.
 - **Frontend**: Painel, troca de colaborador, Escalas, Férias, Afastamentos, Movimento, cadastros e usuários, além da
@@ -295,7 +312,7 @@ Passo a passo, variáveis e rollback: [docs/deploy.md](docs/deploy.md).
 |---|---|
 | `backend/src/main/java/.../api/` | Controllers REST (só HTTP) e tratamento uniforme de erros |
 | `backend/src/main/java/.../servico/` | Regras de negócio e transações: escalas, férias, afastamentos e cobertura dos turnos, movimento, cadastros e usuários |
-| `backend/src/main/java/.../motor/` | Motor financeiro, validador, gerador, previsão, planejador de demanda, sugestor de substituição e regras de férias e de afastamentos (Java puro) |
+| `backend/src/main/java/.../motor/` | Motor financeiro, validador, gerador guloso, otimizador (`otimizacao/`, Timefold), previsão, planejador de demanda, sugestor de substituição e regras de férias e de afastamentos (Java puro) |
 | `backend/src/main/java/.../repositorio/` | Acesso a dados (Spring Data JPA) |
 | `backend/src/main/java/.../dominio/` | Entidades JPA |
 | `backend/src/main/java/.../seguranca/` | JWT, permissões, limite de tentativas e dados confidenciais |
