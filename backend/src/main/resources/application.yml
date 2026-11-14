@@ -54,6 +54,9 @@ app:
     # Senha do usuário "gestor" criado no primeiro start. Sem valor definido, uma senha aleatória é gerada e
     # exibida uma única vez no log.
     senha: ${APP_ADMIN_SENHA:}
+  otimizacao:
+    # Tempo máximo do Timefold para otimizar uma escala (ele para antes se deixar de melhorar).
+    segundos: ${APP_OTIMIZACAO_SEGUNDOS:5}
   escala:
     geracao-automatica:
       # Cria sozinho o rascunho das próximas semanas (liga/desliga e antecedência ficam em Parâmetros).

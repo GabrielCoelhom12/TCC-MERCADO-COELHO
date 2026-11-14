@@ -3,6 +3,7 @@ package br.com.coelho.escalas.api;
 import br.com.coelho.escalas.dominio.Escala;
 import br.com.coelho.escalas.motor.ResultadoValidacao;
 import br.com.coelho.escalas.motor.SugestorSubstituicao;
+import br.com.coelho.escalas.servico.ComparacaoAlgoritmosService;
 import br.com.coelho.escalas.servico.EscalaPdfService;
 import br.com.coelho.escalas.servico.EscalaService;
 import br.com.coelho.escalas.servico.EscalaService.*;
@@ -23,10 +24,12 @@ public class EscalaController {
 
     private final EscalaService servico;
     private final EscalaPdfService pdfs;
+    private final ComparacaoAlgoritmosService comparacao;
 
-    public EscalaController(EscalaService servico, EscalaPdfService pdfs) {
+    public EscalaController(EscalaService servico, EscalaPdfService pdfs, ComparacaoAlgoritmosService comparacao) {
         this.servico = servico;
         this.pdfs = pdfs;
+        this.comparacao = comparacao;
     }
 
     @GetMapping
@@ -87,6 +90,18 @@ public class EscalaController {
     @PostMapping("/{id}/gerar")
     public Geracao gerar(@PathVariable Long id) {
         return servico.gerar(id);
+    }
+
+    /** Gera com otimização (Timefold Solver), em vez do gerador guloso. */
+    @PostMapping("/{id}/otimizar")
+    public Geracao otimizar(@PathVariable Long id) {
+        return servico.otimizar(id);
+    }
+
+    /** Compara os dois algoritmos gerando do zero para o período da escala, sem gravar nada. */
+    @GetMapping("/{id}/comparacao")
+    public ComparacaoAlgoritmosService.Comparacao comparacao(@PathVariable Long id) {
+        return comparacao.comparar(id);
     }
 
     @PostMapping("/{id}/limpar")

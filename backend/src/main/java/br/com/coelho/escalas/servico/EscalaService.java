@@ -2,6 +2,7 @@ package br.com.coelho.escalas.servico;
 
 import br.com.coelho.escalas.dominio.*;
 import br.com.coelho.escalas.motor.*;
+import br.com.coelho.escalas.motor.otimizacao.OtimizadorEscala;
 import br.com.coelho.escalas.repositorio.*;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -62,11 +63,13 @@ public class EscalaService {
     private final MotorFinanceiro motor;
     private final ValidadorEscala validador;
     private final GeradorEscala gerador;
+    private final OtimizadorEscala otimizador;
     private final SugestorSubstituicao sugestor;
 
     public EscalaService(EscalaRepository escalas, TurnoRepository turnos, FuncionarioRepository funcionarios,
                          TurnoModeloRepository modelos, ContextoService contextos, MotorFinanceiro motor,
-                         ValidadorEscala validador, GeradorEscala gerador, SugestorSubstituicao sugestor) {
+                         ValidadorEscala validador, GeradorEscala gerador, SugestorSubstituicao sugestor,
+                         OtimizadorEscala otimizador) {
         this.escalas = escalas;
         this.turnos = turnos;
         this.funcionarios = funcionarios;
@@ -75,6 +78,7 @@ public class EscalaService {
         this.motor = motor;
         this.validador = validador;
         this.gerador = gerador;
+        this.otimizador = otimizador;
         this.sugestor = sugestor;
     }
 
@@ -268,6 +272,23 @@ public class EscalaService {
 
     @Transactional
     public Geracao gerar(Long id) {
+        return gerarCom(id, gerador::gerar);
+    }
+
+    /** Como {@link #gerar}, mas com o otimizador (Timefold), que escolhe quem ocupa cada vaga olhando a semana toda. */
+    @Transactional
+    public Geracao otimizar(Long id) {
+        return gerarCom(id, otimizador::gerar);
+    }
+
+    /** Assinatura comum ao gerador guloso e ao otimizador. */
+    @FunctionalInterface
+    private interface Algoritmo {
+        GeradorEscala.ResultadoGeracao gerar(LocalDate inicio, LocalDate fim, List<Turno> vizinhos, List<TurnoModelo> modelos,
+                                             ContextoCalculo ctx);
+    }
+
+    private Geracao gerarCom(Long id, Algoritmo algoritmo) {
         Escala e = buscar(id);
         exigirEditavel(e);
         turnos.deleteByEscalaId(id);
@@ -275,7 +296,7 @@ public class EscalaService {
 
         ContextoCalculo ctx = contextoDa(e);
         List<Turno> vizinhos = turnos.findByDataBetween(e.getDataInicio().minusDays(MARGEM_DIAS), e.getDataFim().plusDays(MARGEM_DIAS));
-        GeradorEscala.ResultadoGeracao resultado = gerador.gerar(e.getDataInicio(), e.getDataFim(), vizinhos,
+        GeradorEscala.ResultadoGeracao resultado = algoritmo.gerar(e.getDataInicio(), e.getDataFim(), vizinhos,
                 modelos.findAllByOrderByHoraInicioAsc(), ctx);
         resultado.turnos().forEach(t -> t.setEscala(e));
         turnos.saveAll(resultado.turnos());
