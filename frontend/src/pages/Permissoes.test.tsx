@@ -131,7 +131,7 @@ describe('perfil SUPERVISOR', () => {
 
   it('não tem o simulador de custos no menu', async () => {
     logar('SUPERVISOR');
-    mockFetch({ 'GET /api/escalas': { corpo: [] }, 'GET /api/chat/conversas': { corpo: [] } });
+    mockFetch({ 'GET /api/escalas': { corpo: [] } });
     renderizar(<App />, '/simulador');
 
     expect(await screen.findByRole('link', { name: /Painel/ })).toBeInTheDocument();

@@ -13,8 +13,8 @@ import java.util.List;
 import java.util.Optional;
 
 /**
- * Converte o cabeçalho {@code Authorization: Bearer <jwt>} na autenticação do Spring Security. É o ponto único de
- * autenticação da API REST ({@link JwtFiltro}) e do WebSocket ({@link AutenticacaoStomp}).
+ * Converte o cabeçalho {@code Authorization: Bearer <jwt>} na autenticação do Spring Security: é o ponto único de
+ * autenticação da API REST ({@link JwtFiltro}).
  *
  * <p>O token só identifica o usuário: a situação (ativo) e o perfil são lidos do banco a cada requisição, de modo que
  * desativar uma conta ou trocar o seu perfil vale imediatamente, sem esperar o token expirar. Da mesma forma, um token

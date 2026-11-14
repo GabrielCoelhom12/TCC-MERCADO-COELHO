@@ -1,12 +1,11 @@
 import { useLayoutEffect, useRef, useState, type CSSProperties } from 'react';
 import { NavLink, Outlet, useLocation } from 'react-router-dom';
 import {
-  CalendarDays, CalendarRange, Calculator, Clock3, LayoutDashboard, LogOut, MessageCircle, Palmtree, SlidersHorizontal, Stethoscope, Store, TrendingUp,
+  CalendarDays, CalendarRange, Calculator, Clock3, LayoutDashboard, LogOut, Palmtree, SlidersHorizontal, Stethoscope, Store, TrendingUp,
   UserCog, Users,
   type LucideIcon,
 } from 'lucide-react';
 import { useAuth, usePermissoes } from '../auth';
-import { useChat } from '../chat/ChatProvider';
 import Avatar from './Avatar';
 
 type Item = { para: string; rotulo: string; Icone: LucideIcon; exato?: boolean; soGestao?: boolean };
@@ -22,7 +21,6 @@ const GRUPOS: Grupo[] = [
       { para: '/afastamentos', rotulo: 'Afastamentos', Icone: Stethoscope },
       { para: '/movimento', rotulo: 'Movimento e previsão', Icone: TrendingUp },
       { para: '/simulador', rotulo: 'Simulador de custos', Icone: Calculator, soGestao: true },
-      { para: '/mensagens', rotulo: 'Mensagens', Icone: MessageCircle },
     ],
   },
   {
@@ -76,7 +74,6 @@ export default function Layout() {
   const { usuario, sair } = useAuth();
   const { pathname } = useLocation();
   const { nav, estilo } = useIndicador(pathname);
-  const { naoLidas } = useChat();
   const { podeEditar, admin } = usePermissoes();
   const grupos = (admin ? [...GRUPOS, ADMINISTRACAO] : GRUPOS)
     .map((g) => ({ ...g, itens: g.itens.filter((i) => podeEditar || !i.soGestao) }));
@@ -96,9 +93,6 @@ export default function Layout() {
                 <NavLink key={para} to={para} end={exato}>
                   <Icone className="nav-icone" size={18} strokeWidth={1.75} aria-hidden />
                   <span>{rotulo}</span>
-                  {para === '/mensagens' && naoLidas > 0 && (
-                    <span className="nav-contador" aria-label={`${naoLidas} mensagens não lidas`}>{naoLidas > 99 ? '99+' : naoLidas}</span>
-                  )}
                 </NavLink>
               ))}
             </div>

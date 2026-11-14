@@ -22,10 +22,9 @@ import java.util.Map;
 
 /**
  * Base dos testes de integração: sobe a aplicação completa contra o PostgreSQL de teste (com o cenário
- * de demonstração carregado) e desfaz as alterações de cada teste ao final. O servidor roda numa porta real para que
- * os testes de WebSocket compartilhem o mesmo contexto (e o mesmo esquema de banco) dos demais.
+ * de demonstração carregado) e desfaz as alterações de cada teste ao final.
  */
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
+@SpringBootTest
 @AutoConfigureMockMvc
 @ActiveProfiles("test")
 @Transactional
@@ -86,7 +85,7 @@ abstract class IntegracaoTest {
         return mvc.perform(autenticado(req));
     }
 
-    /** Token JWT do usuário atual (para clientes que não passam pelo MockMvc, como o WebSocket). */
+    /** Token JWT do usuário atual (para trocar de sessão no meio do teste). */
     protected String token() {
         return token;
     }

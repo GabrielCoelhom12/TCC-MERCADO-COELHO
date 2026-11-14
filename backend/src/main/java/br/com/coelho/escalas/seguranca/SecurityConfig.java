@@ -1,6 +1,5 @@
 package br.com.coelho.escalas.seguranca;
 
-import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
@@ -27,7 +26,7 @@ import java.nio.charset.StandardCharsets;
  *   <li><b>ADMIN</b>: tudo, inclusive usuários;</li>
  *   <li><b>GESTOR</b>: tudo, menos usuários;</li>
  *   <li><b>SUPERVISOR</b>: consulta (sem dados salariais, ver {@link SerializacaoConfidencial}) e as ações do dia a dia —
- *       trocar colaborador num turno, registrar um afastamento (atestado), lançar o fechamento do dia e usar o chat.</li>
+ *       trocar colaborador num turno, registrar um afastamento (atestado) e lançar o fechamento do dia.</li>
  * </ul>
  */
 @Configuration
@@ -47,7 +46,6 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/api/afastamentos/documentos/*").hasAnyRole("ADMIN", "GESTOR")
                         .requestMatchers(HttpMethod.GET, "/api/**").authenticated()
                         // Ações do dia a dia, liberadas também ao SUPERVISOR.
-                        .requestMatchers("/api/chat/**").authenticated()
                         .requestMatchers(HttpMethod.POST, "/api/escalas/*/turnos/*/substituir").authenticated()
                         .requestMatchers(HttpMethod.PUT, "/api/movimento/fechamentos/*").authenticated()
                         .requestMatchers(HttpMethod.POST, "/api/afastamentos", "/api/afastamentos/*/documentos").authenticated()
@@ -76,10 +74,7 @@ public class SecurityConfig {
         };
     }
 
-    /**
-     * Content-Security-Policy: só recursos da própria origem (scripts, fontes, imagens) e nenhum enquadramento. O
-     * WebSocket do chat é liberado explicitamente para o próprio host, porque nem todo navegador inclui ws/wss em 'self'.
-     */
+    /** Content-Security-Policy: só recursos da própria origem (scripts, fontes, imagens, conexões) e nenhum enquadramento. */
     static HeaderWriter politicaDeConteudo() {
         return (request, response) -> response.setHeader("Content-Security-Policy", String.join("; ",
                 "default-src 'self'",
@@ -87,19 +82,13 @@ public class SecurityConfig {
                 "style-src 'self' 'unsafe-inline'",
                 "img-src 'self' data: blob:",
                 "font-src 'self' data:",
-                "connect-src 'self' " + webSocketDe(request),
+                "connect-src 'self'",
                 // O botão Imprimir carrega o PDF da escala num quadro invisível a partir de um blob.
                 "frame-src 'self' blob:",
                 "frame-ancestors 'none'",
                 "base-uri 'self'",
                 "form-action 'self'",
                 "object-src 'none'"));
-    }
-
-    private static String webSocketDe(HttpServletRequest request) {
-        boolean portaPadrao = request.getServerPort() == 80 || request.getServerPort() == 443;
-        String host = request.getServerName() + (portaPadrao ? "" : ":" + request.getServerPort());
-        return (request.isSecure() ? "wss://" : "ws://") + host;
     }
 
     @Bean

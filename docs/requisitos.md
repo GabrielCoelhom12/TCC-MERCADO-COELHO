@@ -42,9 +42,6 @@ O sistema tem três fluxos de negócio completos, cada um coberto por testes de 
 | RF18 | Permitir que administradores criem e editem usuários (nome, login, perfil, senha, foto e situação), mantendo sempre ao menos um administrador ativo. Usuários desativados não conseguem entrar, e o token que já tinham deixa de valer na hora. |
 | RF19 | Exigir senha forte (8 a 64 caracteres, com maiúscula, minúscula, número e caractere especial), exibindo os requisitos durante a digitação e avisando quando o Caps Lock estiver ativo. |
 | RF20 | Aceitar foto de usuários e colaboradores em PNG ou JPEG de até 2 MB, verificada pelo conteúdo do arquivo e regravada no servidor como JPEG 256×256 (sem metadados). |
-| RF21 | Permitir conversas privadas entre usuários e grupos livres (criar, renomear, adicionar pessoas e sair), com entrega das mensagens em tempo real. |
-| RF22 | Anexar imagens (PNG/JPEG até 5 MB, regravadas no servidor) e mencionar escalas nas mensagens, com link para a matriz. |
-| RF23 | Exibir quem está online, o contador de mensagens não lidas (no menu e por conversa) e a indicação de leitura nas conversas privadas. |
 | RF24 | Registrar o fechamento de cada dia (clientes e vendas por faixa de horário configurável) e corrigi-lo depois, destacando os dias pendentes. |
 | RF25 | Prever o movimento dos próximos dias a partir dos fechamentos (média recente do mesmo dia da semana, efeitos aprendidos de início do mês e véspera de feriado, feriados e pico por faixa), com a explicação de cada previsão. |
 | RF26 | Calcular as pessoas necessárias por faixa nos setores que acompanham o movimento (capacidade de atendimento), escolher os turnos que cobrem os picos e alertar quando uma edição manual deixar um pico descoberto. |
@@ -67,7 +64,6 @@ O sistema tem três fluxos de negócio completos, cada um coberto por testes de 
 | RNF06 | Observabilidade: health check e métricas Prometheus (Spring Actuator + Micrometer), visualizadas no Grafana. |
 | RNF07 | Interface web responsiva em português, com retorno ao usuário (carregamento, erros e confirmações). |
 | RNF08 | Implantação em contêiner (Docker), com a SPA e a API servidas por uma única imagem. |
-| RNF09 | Comunicação em tempo real por WebSocket/STOMP autenticado com o mesmo JWT da API; cada usuário só recebe eventos das conversas de que participa. |
 
 ## Regras de negócio
 
@@ -92,7 +88,6 @@ aparece na matriz, mas deixa a decisão com o gestor.
 | RN14 | Colaborador com histórico de escala não é excluído, só desativado, para preservar a auditoria. | LGPD art. 16, I | — |
 | RN15 | Deve existir sempre ao menos um administrador ativo. | — | Bloqueio |
 | RN16 | Senha forte: 8+ caracteres, com maiúscula, minúscula, número e caractere especial. | Segurança | Bloqueio |
-| RN17 | Só existe uma conversa privada entre o mesmo par de usuários. | — | — |
 
 ## Fluxos alternativos
 
@@ -122,7 +117,8 @@ O sistema **não** faz:
 - **Várias lojas**: atende uma unidade, com um único conjunto de parâmetros.
 - **Acesso dos colaboradores**: só a gestão usa o sistema; o colaborador não consulta a própria escala nem pede trocas.
 - **Aplicativo móvel nativo**: a interface web é responsiva e funciona no navegador do celular.
-- **Chamadas de voz**: o chat é só de texto, imagens e menção de escalas.
+- **Chat interno** (conversas, imagens e presença online): retirado do escopo em 14/11/2026; a comunicação da
+  equipe segue pelos canais que a loja já usa. Os números RF21–RF23 e US10 ficaram vagos para não renumerar o resto.
 
 ## User stories
 
@@ -163,12 +159,6 @@ Como administrador, quero criar e editar os usuários da equipe de gestão para 
 - *Quando* escolho uma foto PNG ou JPEG, *então* ela aparece na lista de usuários e no menu lateral do próprio usuário.
 - *Quando* desativo um usuário, *então* ele não consegue mais entrar, mas o histórico de aprovações dele é mantido.
 - *Dado* que sou o único administrador ativo, *quando* tento rebaixar ou desativar a minha conta, *então* a alteração é recusada.
-
-**US10 — Conversar com a equipe** (RF21–RF23)
-Como gestor, quero conversar com outros gestores dentro do sistema para combinar trocas de turno sem depender de outros aplicativos.
-- *Quando* envio uma mensagem, *então* a outra pessoa a recebe na hora, com o contador de não lidas no menu.
-- *Quando* menciono uma escala, *então* quem recebe abre a matriz dela com um clique.
-- *Quando* a outra pessoa lê a minha mensagem, *então* vejo a indicação "Lida".
 
 **US11 — Escala que acompanha o movimento** (RF24–RF27)
 Como gerente, quero que o sistema entenda os dias e horários de maior movimento e monte a escala sozinho, para eu só revisar.

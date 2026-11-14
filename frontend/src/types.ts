@@ -261,46 +261,6 @@ export interface Usuario {
   foto: string | null;
 }
 
-// ---------------------------------------------------------------- chat
-
-export interface Contato {
-  id: number;
-  nome: string;
-  foto: string | null;
-  online: boolean;
-}
-
-export interface MensagemChat {
-  id: number;
-  conversaId: number;
-  autorId: number;
-  autorNome: string;
-  texto: string | null;
-  /** URL protegida da imagem anexada (exige o token). */
-  imagem: string | null;
-  escala: { id: number; nome: string } | null;
-  enviadaEm: string;
-}
-
-export interface ConversaChat {
-  id: number;
-  tipo: 'DIRETA' | 'GRUPO';
-  nome: string;
-  foto: string | null;
-  participantes: Contato[];
-  ultimaMensagem: MensagemChat | null;
-  naoLidas: number;
-  /** Última mensagem lida por participante (id do usuário → id da mensagem). */
-  leituras: Record<string, number>;
-  atualizadaEm: string;
-}
-
-export type EventoChat =
-  | { tipo: 'MENSAGEM'; conversaId: number; mensagem: MensagemChat }
-  | { tipo: 'CONVERSA'; conversaId: number; conversa: ConversaChat }
-  | { tipo: 'SAIU'; conversaId: number }
-  | { tipo: 'LEITURA'; conversaId: number; usuarioId: number; mensagemId: number };
-
 // ---------------------------------------------------------------- movimento e previsão
 
 export interface FaixaHoraria {

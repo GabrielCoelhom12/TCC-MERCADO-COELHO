@@ -90,11 +90,9 @@ que o sistema já validou e registra férias, atestados e licenças com a substi
 - **Simulador de custos:** compara um quadro montado "no olho" com o recomendado pelo motor e mostra a economia.
 
 **Comunicação e administração**
-- Chat em tempo real (WebSocket/STOMP) com conversas privadas e grupos, imagens, menção a escalas, quem está online,
-  não lidas e indicação de leitura.
 - Usuários com três perfis (ver [Perfis de acesso](#perfis-de-acesso)), senha forte e foto.
 
-São **32 requisitos funcionais, 9 não funcionais, 17 regras de negócio e 16 histórias de usuário**, descritos em
+São **29 requisitos funcionais, 8 não funcionais, 16 regras de negócio e 15 histórias de usuário**, descritos em
 [docs/requisitos.md](docs/requisitos.md).
 
 ## Motor de custo e regras
@@ -146,7 +144,7 @@ A previsão é **explicável**: cada número mostra de onde veio.
 | Ação | ADMIN | GESTOR | SUPERVISOR |
 |------|:-----:|:------:|:----------:|
 | Consultar painel, escalas, férias, movimento e cadastros | ✅ | ✅ | ✅ |
-| Trocar colaborador num turno, registrar afastamento (atestado) e anexar o documento, lançar o fechamento do dia, chat | ✅ | ✅ | ✅ |
+| Trocar colaborador num turno, registrar afastamento (atestado) e anexar o documento, lançar o fechamento do dia | ✅ | ✅ | ✅ |
 | Editar matriz, gerar, aprovar e reabrir escala; registrar férias; editar ou remover afastamentos; abrir documentos anexados | ✅ | ✅ | ❌ |
 | Alterar cadastros, parâmetros, feriados e projeções; simulador | ✅ | ✅ | ❌ |
 | Ver salário, encargos e custo individual | ✅ | ✅ | ❌ |
@@ -205,7 +203,6 @@ npm, defina `NODE_OPTIONS=--use-system-ca` antes do `npm install`.
 | `APP_ADMIN_SENHA` | Senha do usuário `gestor` criado no primeiro início. Sem ela, uma senha aleatória aparece uma única vez no log |
 | `APP_SEED` | `true` carrega o cenário de demonstração quando o banco está vazio; use `false` com dados reais |
 | `APP_GERACAO_AUTOMATICA` | Liga ou desliga a criação automática dos rascunhos semanais |
-| `APP_WS_ORIGENS` | Origens extras aceitas no WebSocket do chat |
 
 Lista completa e ambientes: [docs/deploy.md](docs/deploy.md).
 
@@ -250,12 +247,12 @@ Resultado com todos os pull requests de novembro integrados (14/11/2026):
 Os testes seguem os fluxos de negócio:
 - **Integração** (API completa contra o PostgreSQL): `CadastrosIntegracaoTest`, `EscalaIntegracaoTest`,
   `MotorIntegracaoTest`, `MovimentoIntegracaoTest`, `FeriasIntegracaoTest`, `AfastamentoIntegracaoTest`,
-  `SegurancaIntegracaoTest`, chat e usuários.
+  `SegurancaIntegracaoTest`, `DocumentoAfastamentoIntegracaoTest` e usuários.
 - **Unitários do motor**: validador, gerador, previsão, calendário sazonal, sugestor de substituição e regras de
   férias e de afastamentos.
 - **Arquitetura** (`ArquiteturaTest`): as camadas só dependem umas das outras no sentido
   `api → servico → motor/repositorio → dominio`.
-- **Frontend**: Painel, troca de colaborador, Escalas, Férias, Afastamentos, Movimento, Mensagens, cadastros e usuários, além da
+- **Frontend**: Painel, troca de colaborador, Escalas, Férias, Afastamentos, Movimento, cadastros e usuários, além da
   visão do perfil SUPERVISOR em cada tela de cadastro e na matriz (`Permissoes.test.tsx`).
 
 **Pipeline** ([`.github/workflows/ci.yml`](.github/workflows/ci.yml)), a cada pull request e a cada push na `main`:
@@ -273,8 +270,7 @@ Desenvolvimento por **branch → testes → commit → pull request**, sem commi
 - **Autorização** por perfil no servidor e **dados salariais ocultos** de quem não precisa deles (LGPD, necessidade).
 - **Entrada:** consultas parametrizadas (Spring Data JPA), Bean Validation e limites de período, quantidade e tamanho
   em todas as rotas; imagens verificadas pelo conteúdo e regravadas em JPEG (descarta metadados).
-- **Navegador:** Content-Security-Policy só com a própria origem, `X-Frame-Options`, `Referrer-Policy` e
-  `Permissions-Policy`; WebSocket só da própria origem em produção.
+- **Navegador:** Content-Security-Policy só com a própria origem, `X-Frame-Options`, `Referrer-Policy` e `Permissions-Policy`.
 - **Operação:** nenhum segredo no repositório, contêiner sem privilégios, métricas só na rede interna, HTTPS com HSTS.
 - **Dependências:** `npm audit` sem vulnerabilidades e Spring Boot na última versão de correção.
 
@@ -298,15 +294,14 @@ Passo a passo, variáveis e rollback: [docs/deploy.md](docs/deploy.md).
 | Caminho | Conteúdo |
 |---|---|
 | `backend/src/main/java/.../api/` | Controllers REST (só HTTP) e tratamento uniforme de erros |
-| `backend/src/main/java/.../servico/` | Regras de negócio e transações: escalas, férias, afastamentos e cobertura dos turnos, movimento, cadastros, usuários e chat |
+| `backend/src/main/java/.../servico/` | Regras de negócio e transações: escalas, férias, afastamentos e cobertura dos turnos, movimento, cadastros e usuários |
 | `backend/src/main/java/.../motor/` | Motor financeiro, validador, gerador, previsão, planejador de demanda, sugestor de substituição e regras de férias e de afastamentos (Java puro) |
 | `backend/src/main/java/.../repositorio/` | Acesso a dados (Spring Data JPA) |
 | `backend/src/main/java/.../dominio/` | Entidades JPA |
-| `backend/src/main/java/.../seguranca/` | JWT (API e WebSocket), permissões, limite de tentativas e dados confidenciais |
-| `backend/src/main/java/.../config/` | Dados de demonstração, ajustes de esquema, WebSocket e encaminhamento da SPA |
+| `backend/src/main/java/.../seguranca/` | JWT, permissões, limite de tentativas e dados confidenciais |
+| `backend/src/main/java/.../config/` | Dados de demonstração, ajustes de esquema e encaminhamento da SPA |
 | `backend/src/test/` | Testes unitários do motor, de integração da API e de arquitetura |
-| `frontend/src/pages/` | Uma tela por arquivo (Painel, Escalas, Matriz, Férias, Afastamentos, Movimento, Simulador, Mensagens, cadastros…) |
-| `frontend/src/chat/` | Estado, conexão em tempo real (STOMP) e componentes do chat |
+| `frontend/src/pages/` | Uma tela por arquivo (Painel, Escalas, Matriz, Férias, Afastamentos, Movimento, Simulador, cadastros…) |
 | `frontend/src/components/` | Layout e componentes reutilizáveis |
 | `docs/` | Requisitos, arquitetura (C4), modelo de dados, deploy e conformidade — publicados na Wiki |
 | `infra/` | Terraform (Azure), Caddyfile e script de atualização da VM |
@@ -336,7 +331,7 @@ A documentação completa está na **[Wiki do projeto](../../wiki)**, publicada 
   (o Painel aponta). O limite financeiro não impede a troca, porque ninguém pode trabalhar de férias ou afastado.
 - **Afastamento lançado depois do fato:** turnos de dias que já passaram são retirados, sem substituto, porque o
   sistema não sabe quem cobriu na prática; o custo daquele dia passa a refletir só quem ficou na escala.
-- **Uma instância:** o limite de tentativas de login e o broker do chat ficam em memória; com várias instâncias, seria
+- **Uma instância:** o limite de tentativas de login fica em memória; com várias instâncias, seria
   preciso um armazenamento compartilhado (ex.: Redis).
 - **Bloqueio de login pode ser abusado:** quem errar de propósito 5 vezes a senha de um usuário o deixa 15 minutos sem
   entrar — o equilíbrio padrão desse tipo de proteção.

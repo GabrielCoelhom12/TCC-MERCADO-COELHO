@@ -56,7 +56,7 @@ export const useAuth = () => useContext(Ctx);
 
 /**
  * O que o perfil logado pode fazer na interface. O SUPERVISOR só consulta (e faz as ações do dia a dia: trocar
- * colaborador, lançar o fechamento e usar o chat). É só conforto visual: o servidor confere cada ação de novo.
+ * colaborador, registrar afastamento e lançar o fechamento). É só conforto visual: o servidor confere cada ação de novo.
  */
 export function usePermissoes() {
   const { usuario } = useAuth();

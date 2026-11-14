@@ -47,7 +47,7 @@ class SegurancaIntegracaoTest extends IntegracaoTest {
     }
 
     @Test
-    void supervisorTrocaColaboradorLancaFechamentoEUsaOChat() throws Exception {
+    void supervisorTrocaColaboradorELancaFechamento() throws Exception {
         entrarComo(criarUsuario("sup.dia", "SUPERVISOR"), SENHA);
 
         // Não é 403: a regra de negócio responde (aqui, turno inexistente).
@@ -55,7 +55,6 @@ class SegurancaIntegracaoTest extends IntegracaoTest {
                 .andExpect(status().isNotFound());
         put("/api/movimento/fechamentos/2032-01-05", Map.of("faixas", java.util.List.of()))
                 .andExpect(result -> assertThat(result.getResponse().getStatus()).isNotEqualTo(403));
-        get("/api/chat/conversas").andExpect(status().isOk());
     }
 
     @Test

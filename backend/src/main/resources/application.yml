@@ -20,8 +20,8 @@ spring:
         format_sql: false
   servlet:
     multipart:
-      # Fotos (2 MB) e imagens do chat (5 MB) são validadas no serviço; o limite do servidor fica um pouco acima
-      # para devolver a mensagem amigável.
+      # Fotos (2 MB) e documentos de afastamento (5 MB) são validados no serviço; o limite do servidor fica um pouco
+      # acima para devolver a mensagem amigável.
       max-file-size: 6MB
       max-request-size: 6MB
   jackson:
@@ -54,9 +54,6 @@ app:
     # Senha do usuário "gestor" criado no primeiro start. Sem valor definido, uma senha aleatória é gerada e
     # exibida uma única vez no log.
     senha: ${APP_ADMIN_SENHA:}
-  ws:
-    # Origens extras aceitas no WebSocket do chat (a própria origem da aplicação é sempre aceita).
-    origens: ${APP_WS_ORIGENS:http://localhost:5173}
   escala:
     geracao-automatica:
       # Cria sozinho o rascunho das próximas semanas (liga/desliga e antecedência ficam em Parâmetros).

@@ -30,8 +30,6 @@ services:
       APP_JWT_SECRET: ${APP_JWT_SECRET:?Defina APP_JWT_SECRET no .env}
       APP_ADMIN_SENHA: ${APP_ADMIN_SENHA:-}
       APP_SEED: ${APP_SEED:-true}
-      # Vazio: o WebSocket do chat só aceita a própria origem (o localhost:5173 do application.yml é só para o Vite).
-      APP_WS_ORIGENS: ${APP_WS_ORIGENS:-}
     # A porta 8081 (métricas/health) fica só na rede interna, acessível ao Prometheus.
 
   prometheus:

@@ -1,4 +1,4 @@
-import { fireEvent, screen, waitFor, within } from '@testing-library/react';
+import { fireEvent, screen, waitFor } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 import App from './App';
 import { logar, mockFetch, renderizar } from './test/util';
@@ -52,23 +52,6 @@ describe('App', () => {
 
     expect(await screen.findByRole('heading', { name: 'Usuários' })).toBeInTheDocument();
     expect(screen.getByRole('link', { name: /Usuários/ })).toHaveAttribute('href', '/usuarios');
-  });
-
-  it('mostra no menu o total de mensagens não lidas', async () => {
-    logar();
-    const conversa = (id: number, naoLidas: number) => ({
-      id, tipo: 'DIRETA', nome: `C${id}`, foto: null, participantes: [], ultimaMensagem: null, naoLidas, leituras: {},
-      atualizadaEm: '2026-10-09T08:00:00',
-    });
-    mockFetch({
-      'GET /api/turnos-modelo': { corpo: [] },
-      'GET /api/chat/conversas': { corpo: [conversa(1, 2), conversa(2, 3)] },
-      'GET /api/chat/usuarios': { corpo: [] },
-    });
-    renderizar(<App />, '/turnos');
-
-    const link = screen.getByRole('link', { name: /Mensagens/ });
-    expect(await within(link).findByLabelText('5 mensagens não lidas')).toHaveTextContent('5');
   });
 
   it('com sessão, mostra o menu e permite sair', async () => {
