@@ -241,8 +241,8 @@ Resultado com todos os pull requests de novembro integrados (14/11/2026):
 
 | | Testes | Cobertura de linhas | Mínimo exigido |
 |---|---|---|---|
-| Backend (JUnit 5, MockMvc, ArchUnit) | 331, 0 falhas | 97,3% (JaCoCo) | 75% |
-| Frontend (Vitest, Testing Library) | 134, 0 falhas | 80,1% | 25% |
+| Backend (JUnit 5, MockMvc, ArchUnit) | 309, 0 falhas | 97,3% (JaCoCo) | 75% |
+| Frontend (Vitest, Testing Library) | 113, 0 falhas | 80,5% | 25% |
 
 Os testes seguem os fluxos de negócio:
 - **Integração** (API completa contra o PostgreSQL): `CadastrosIntegracaoTest`, `EscalaIntegracaoTest`,
