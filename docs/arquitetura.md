@@ -35,7 +35,6 @@ flowchart TB
 
     gestor -- "HTTPS" --> spa
     spa -- "JSON/HTTPS + Bearer JWT<br/>porta 8080" --> api
-    api -- "Eventos do chat<br/>WebSocket/STOMP (/ws)" --> spa
     api -- "JDBC" --> db
     prom -- "GET /actuator/prometheus<br/>porta 8081 (interna)" --> api
     graf -- "PromQL" --> prom
@@ -50,9 +49,8 @@ flowchart TB
     subgraph api["API REST (Spring Boot)"]
         seg["seguranca<br/>JwtFiltro · AutenticadorJwt · JwtService · SecurityConfig"]
         ctrl["api<br/>Controllers REST + TratadorErros<br/>(somente HTTP)"]
-        serv["servico<br/>Escalas: EscalaService · MotorService · MovimentoService · ContextoService<br/>Cadastros: Funcionario · Setor · TurnoModelo · Feriado · Projecao · Parametros · Usuario<br/>Chat: ChatService · PresencaChat · NotificadorChat"]
-        ws["config/seguranca<br/>WebSocketConfig · AutenticacaoStomp"]
-        motor["motor (Java puro)<br/>MotorFinanceiro · ValidadorEscala · GeradorEscala<br/>SimuladorCusto · PrevisaoMovimento · PlanejadorDemanda"]
+        serv["servico<br/>Escalas: EscalaService · MotorService · MovimentoService · ContextoService<br/>Cadastros: Funcionario · Setor · TurnoModelo · Feriado · Projecao · Parametros · Usuario"]
+        motor["motor (Java puro)<br/>MotorFinanceiro · ValidadorEscala · GeradorEscala · OtimizadorEscala (Timefold)<br/>SimuladorCusto · PrevisaoMovimento · PlanejadorDemanda"]
         repo["repositorio<br/>Spring Data JPA"]
         dom["dominio<br/>Entidades JPA"]
     end
@@ -60,8 +58,6 @@ flowchart TB
     db[("PostgreSQL")]
 
     spa --> seg --> ctrl
-    spa -. "STOMP /ws" .-> ws
-    serv -- "eventos após o commit" --> ws
     ctrl --> serv
     serv --> motor
     serv --> repo
@@ -116,8 +112,8 @@ flowchart TB
     arm -- "executa o script na VM<br/>(sem SSH)" --> servidor
     ghcr -- "docker pull da imagem<br/>do commit publicado" --> app
 
-    gestor -- "HTTPS 443<br/>páginas, API e WebSocket /ws" --> proxy
-    proxy -- "HTTP 8080<br/>repassa o upgrade do WebSocket" --> app
+    gestor -- "HTTPS 443<br/>páginas e API" --> proxy
+    proxy -- "HTTP 8080" --> app
     proxy -- "/grafana" --> graf
     app -- "JDBC 5432" --> db
     prom -- "scrape a cada 15 s<br/>GET /actuator/prometheus · 8081" --> app
@@ -126,8 +122,8 @@ flowchart TB
 
 | Elemento | Exposição | Observação |
 |----------|-----------|------------|
-| Caddy (proxy reverso) | Pública (80/443) | Termina o TLS; senhas, tokens e mensagens do chat nunca trafegam em texto aberto. |
-| `app` | Interna (8080 via proxy) | Uma única instância, porque o broker do chat é em memória. Segredos vêm de `/etc/escalas/env`, gravado pelo Terraform. |
+| Caddy (proxy reverso) | Pública (80/443) | Termina o TLS; senhas, tokens e documentos nunca trafegam em texto aberto. |
+| `app` | Interna (8080 via proxy) | Uma única instância, porque o limite de tentativas de login fica em memória. Segredos vêm de `/etc/escalas/env`, gravado pelo Terraform. |
 | Porta 8081 | Somente rede interna | Health check do provedor e coleta do Prometheus; nunca exposta à internet. |
 | `db` | Somente rede interna | Dados persistidos no volume `dados-postgres`; pode ser trocado por um PostgreSQL gerenciado. |
 | Prometheus | Somente rede interna | Coleta as métricas da aplicação a cada 15 s. |
@@ -143,13 +139,13 @@ O modelo de dados está em [modelo-de-dados.md](modelo-de-dados.md).
 | Tecnologia | Por que foi escolhida |
 |------------|-----------------------|
 | **Java 21** | Tipagem forte e `BigDecimal` para valores monetários sem erro de arredondamento; `record` deixa os DTOs e os resultados do motor imutáveis e curtos. Versão LTS. |
-| **Spring Boot 3.5** | Reúne em um só projeto API REST, segurança, JPA, validação, WebSocket, agendamento (geração automática da escala) e métricas, com convenções que reduzem configuração. |
-| **Spring Security + JWT (JJWT)** | Autenticação stateless: o mesmo token vale para a API REST e para a conexão WebSocket do chat, sem sessão guardada no servidor. O token só identifica o usuário; situação e perfil são conferidos no banco a cada requisição. |
+| **Spring Boot 3.5** | Reúne em um só projeto API REST, segurança, JPA, validação, agendamento (geração automática da escala) e métricas, com convenções que reduzem configuração. |
+| **Spring Security + JWT (JJWT)** | Autenticação stateless: o token vai no cabeçalho de cada requisição, sem sessão guardada no servidor. O token só identifica o usuário; situação e perfil são conferidos no banco a cada requisição. |
 | **Spring Data JPA (Hibernate)** | Repositórios com consultas parametrizadas (protege contra SQL injection) e mapeamento das entidades sem SQL manual para o CRUD. |
 | **PostgreSQL 17** | Banco relacional robusto e gratuito, com integridade referencial e restrições únicas que protegem as regras (ex.: um feriado por data). Usado também nos testes, para que eles rodem no mesmo banco da produção. |
 | **React 18 + TypeScript** | A matriz colaborador × dia é uma tela muito interativa (validação a cada clique); componentes React e tipos compartilhados com a API evitam erros de contrato em tempo de compilação. |
 | **Vite** | Build rápido e servidor de desenvolvimento com proxy para a API. |
-| **STOMP sobre WebSocket** | Entrega em tempo real das mensagens do chat e da presença online, com o broker já embutido no Spring. |
+| **Timefold Solver** | Biblioteca Java de otimização com restrições (Apache 2.0), feita para problemas de escala de pessoal. As regras viram *constraint streams* testáveis, e o motor continua Java puro. |
 | **JUnit 5, AssertJ, MockMvc e JaCoCo** | Testes unitários do motor e de integração da API inteira contra o PostgreSQL; o JaCoCo bloqueia o build abaixo de 75%. |
 | **ArchUnit** | Transforma o desenho em camadas em teste automatizado: o build falha se um controller acessar um repositório ou se o motor depender do banco. |
 | **Vitest + Testing Library** | Mesma configuração do Vite; testa as telas como o usuário as usa (por papel, rótulo e texto). |
@@ -159,7 +155,7 @@ O modelo de dados está em [modelo-de-dados.md](modelo-de-dados.md).
 | **SonarCloud** | Análise estática e de segurança gratuita para repositório público, com os relatórios de cobertura dos dois lados. |
 | **Prometheus + Grafana** | Monitoramento open source; o Spring Actuator expõe as métricas no formato do Prometheus sem código extra. |
 | **Azure + Terraform** | VM com controle total do ambiente (não é PaaS que esconda a infraestrutura) e infraestrutura reproduzível como código; crédito estudantil sem cartão. |
-| **Caddy** | Proxy reverso com HTTPS automático e suporte a WebSocket sem configuração extra. |
+| **Caddy** | Proxy reverso com HTTPS automático, sem configuração extra. |
 
 ## Decisões
 
@@ -170,9 +166,10 @@ O modelo de dados está em [modelo-de-dados.md](modelo-de-dados.md).
 | **JWT stateless**, com o usuário conferido a cada requisição | Escala horizontal sem sessão no servidor; segredo fornecido pelo ambiente (`APP_JWT_SECRET`). Como situação e perfil vêm do banco (`AutenticadorJwt`), desativar uma conta ou mudar o perfil vale na hora, sem esperar o token expirar. |
 | **PostgreSQL** em todos os ambientes, inclusive nos testes de integração | Mesmo dialeto em testes e produção; atende à exigência de persistência real. |
 | **Porta de gerência separada (8081)** | Métricas e health check ficam fora da porta pública. |
+| **Dois geradores: guloso (rápido) e otimizado (Timefold Solver)** | O guloso preenche dia a dia, com quem tem menos horas, em milissegundos — é o usado na geração automática diária. O otimizador modela cada pessoa necessária como uma *vaga* e busca a melhor atribuição da semana inteira (heurística de construção + busca local, com tempo limite), com pontuação em três níveis: hard = CLT (nunca violada), medium = vagas sem ninguém, soft = custo e equilíbrio de horas. As vagas vêm do mesmo planejador de demanda, então os dois geram para a mesma demanda e podem ser comparados. |
+| **Otimização síncrona, com tempo e simultaneidade limitados** | Gerar com o Timefold e comparar os algoritmos respondem na mesma requisição: o solver para em no máximo `APP_OTIMIZACAO_SEGUNDOS` (5 s), ou antes, quando passa um quarto desse tempo sem melhorar, e a tela mostra o andamento enquanto isso. Para que vários pedidos ao mesmo tempo não ocupem o servidor, no máximo `APP_OTIMIZACAO_SIMULTANEAS` (2) rodam juntos (`LimiteOtimizacoes`); os demais recebem HTTP 429 na hora, com `Retry-After`. Uma fila assíncrona (disparar, acompanhar e buscar o resultado) só se justificaria com tempos bem maiores ou muitos usuários simultâneos. |
 | **Previsão explicável (estatística), não um modelo opaco** | Média ponderada recente do mesmo dia da semana + efeitos medidos no próprio histórico (início do mês, véspera de feriado), com a justificativa de cada número. Funciona com poucas semanas de dados, é testável com cenários exatos e o gestor entende e confia na previsão; sem histórico, vale a configuração manual. |
 | **Demanda por faixa com escolha gulosa de turnos** | Pessoas por faixa = ⌈clientes ÷ (capacidade × horas)⌉; a cada passo, o modelo de turno que cobre mais faixas descobertas. Simples de explicar e próximo do ótimo para os poucos modelos de turno de uma loja. Abaixo do previsto é alerta (o gestor decide); abaixo do piso manual é erro. |
-| **Chat: envio por REST, entrega por WebSocket** | As mensagens passam pela mesma validação, autorização e testes da API; o WebSocket (STOMP) só entrega eventos, e apenas após o commit. O broker é em memória: para mais de uma instância da aplicação, trocar por um broker externo (ex.: RabbitMQ). |
 | **VM no Azure com Docker Compose**, provisionada com **Terraform** | Mantém o controle da arquitetura exigido pela linha Web Apps (sem PaaS que esconda a infraestrutura) e roda a mesma composição do desenvolvimento, com monitoramento junto. A infraestrutura é reproduzível e revisável em PR. |
 | **Deploy por run-command com login OIDC**, sem SSH | O pipeline não guarda senha nem chave: o Azure confia só em jobs do ambiente `producao` deste repositório, e a permissão vale apenas para a VM. Cada deploy é um commit; o rollback é reimplantar um commit anterior. |
-| **Caddy como proxy reverso** | HTTPS com certificado renovado automaticamente e WebSocket sem configuração extra; o Grafana fica no mesmo domínio, em `/grafana`. |
+| **Caddy como proxy reverso** | HTTPS com certificado renovado automaticamente; o Grafana fica no mesmo domínio, em `/grafana`. |

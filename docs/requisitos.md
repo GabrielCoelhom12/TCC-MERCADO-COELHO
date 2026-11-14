@@ -42,13 +42,16 @@ O sistema tem três fluxos de negócio completos, cada um coberto por testes de 
 | RF18 | Permitir que administradores criem e editem usuários (nome, login, perfil, senha, foto e situação), mantendo sempre ao menos um administrador ativo. Usuários desativados não conseguem entrar, e o token que já tinham deixa de valer na hora. |
 | RF19 | Exigir senha forte (8 a 64 caracteres, com maiúscula, minúscula, número e caractere especial), exibindo os requisitos durante a digitação e avisando quando o Caps Lock estiver ativo. |
 | RF20 | Aceitar foto de usuários e colaboradores em PNG ou JPEG de até 2 MB, verificada pelo conteúdo do arquivo e regravada no servidor como JPEG 256×256 (sem metadados). |
-| RF21 | Permitir conversas privadas entre usuários e grupos livres (criar, renomear, adicionar pessoas e sair), com entrega das mensagens em tempo real. |
-| RF22 | Anexar imagens (PNG/JPEG até 5 MB, regravadas no servidor) e mencionar escalas nas mensagens, com link para a matriz. |
-| RF23 | Exibir quem está online, o contador de mensagens não lidas (no menu e por conversa) e a indicação de leitura nas conversas privadas. |
 | RF24 | Registrar o fechamento de cada dia (clientes e vendas por faixa de horário configurável) e corrigi-lo depois, destacando os dias pendentes. |
 | RF25 | Prever o movimento dos próximos dias a partir dos fechamentos (média recente do mesmo dia da semana, efeitos aprendidos de início do mês e véspera de feriado, feriados e pico por faixa), com a explicação de cada previsão. |
 | RF26 | Calcular as pessoas necessárias por faixa nos setores que acompanham o movimento (capacidade de atendimento), escolher os turnos que cobrem os picos e alertar quando uma edição manual deixar um pico descoberto. |
 | RF27 | Criar automaticamente, como rascunho, a escala das próximas semanas (antecedência configurável), sem alterar escalas existentes. |
+| RF28 | No painel, mostrar a semana de quem trabalha no dia (horas escaladas × limite semanal, dias de trabalho e indisponíveis) e trocá-lo por um colega que o sistema valida antes (disponibilidade, ausências, interjornada, jornada e dias seguidos), indicando hora extra e custo de cada opção. |
+| RF29 | Operação de férias: registrar, editar e remover férias da equipe com as regras da CLT (5 a 30 dias por período, início fora dos dois dias que antecedem feriado ou domingo, sem sobrepor outra ausência), prévia de dias e retorno, repasse automático dos turnos já escalados no período a colegas aptos (inclusive em escala aprovada, anotando a troca na escala) e alerta de colegas do setor ausentes no mesmo período. |
+| RF30 | Operação de afastamentos: registrar atestado médico, licença-maternidade, licença-paternidade, afastamento pelo INSS, acidente de trabalho, licença por luto, licença-casamento, folga acordada e outros, inclusive com data já passada, repassando na hora os turnos já escalados a colegas aptos (os de dias passados são só retirados) e alertando o que a lei garante a cada tipo. Só o tipo é guardado: diagnóstico e CID não entram no sistema. |
+| RF31 | Imprimir ou baixar a escala em PDF (A4 deitado) com a logo do supermercado: colaboradores por setor, turnos com a sigla, folgas, férias e ausências (sem o motivo de atestados e licenças), feriados destacados, total de pessoas por dia, legenda dos turnos e espaço para a assinatura da gerência, sem custos nem salários. |
+| RF32 | Anexar documentos a um afastamento (atestado, declaração, certidão) em PDF, JPG ou PNG de até 5 MB, no máximo 10 por afastamento, verificados pelo conteúdo; fotos são regravadas em JPEG. Qualquer perfil envia; só a gerência abre ou remove. Registra quem enviou e quando, e apaga os documentos junto com o afastamento. |
+| RF33 | Gerar a escala com otimização (Timefold Solver), escolhendo quem ocupa cada vaga olhando a semana inteira: regras da CLT como restrições obrigatórias, cobertura das vagas em seguida e, por último, menor custo e horas equilibradas; e comparar, sem alterar a escala, o gerador guloso e o otimizado (vagas descobertas, custo, erros, alertas, equilíbrio de horas e tempo). |
 
 ## Requisitos não funcionais
 
@@ -62,7 +65,6 @@ O sistema tem três fluxos de negócio completos, cada um coberto por testes de 
 | RNF06 | Observabilidade: health check e métricas Prometheus (Spring Actuator + Micrometer), visualizadas no Grafana. |
 | RNF07 | Interface web responsiva em português, com retorno ao usuário (carregamento, erros e confirmações). |
 | RNF08 | Implantação em contêiner (Docker), com a SPA e a API servidas por uma única imagem. |
-| RNF09 | Comunicação em tempo real por WebSocket/STOMP autenticado com o mesmo JWT da API; cada usuário só recebe eventos das conversas de que participa. |
 
 ## Regras de negócio
 
@@ -87,7 +89,6 @@ aparece na matriz, mas deixa a decisão com o gestor.
 | RN14 | Colaborador com histórico de escala não é excluído, só desativado, para preservar a auditoria. | LGPD art. 16, I | — |
 | RN15 | Deve existir sempre ao menos um administrador ativo. | — | Bloqueio |
 | RN16 | Senha forte: 8+ caracteres, com maiúscula, minúscula, número e caractere especial. | Segurança | Bloqueio |
-| RN17 | Só existe uma conversa privada entre o mesmo par de usuários. | — | — |
 
 ## Fluxos alternativos
 
@@ -117,7 +118,8 @@ O sistema **não** faz:
 - **Várias lojas**: atende uma unidade, com um único conjunto de parâmetros.
 - **Acesso dos colaboradores**: só a gestão usa o sistema; o colaborador não consulta a própria escala nem pede trocas.
 - **Aplicativo móvel nativo**: a interface web é responsiva e funciona no navegador do celular.
-- **Chamadas de voz**: o chat é só de texto, imagens e menção de escalas.
+- **Chat interno** (conversas, imagens e presença online): retirado do escopo em 14/11/2026; a comunicação da
+  equipe segue pelos canais que a loja já usa. Os números RF21–RF23 e US10 ficaram vagos para não renumerar o resto.
 
 ## User stories
 
@@ -159,15 +161,48 @@ Como administrador, quero criar e editar os usuários da equipe de gestão para 
 - *Quando* desativo um usuário, *então* ele não consegue mais entrar, mas o histórico de aprovações dele é mantido.
 - *Dado* que sou o único administrador ativo, *quando* tento rebaixar ou desativar a minha conta, *então* a alteração é recusada.
 
-**US10 — Conversar com a equipe** (RF21–RF23)
-Como gestor, quero conversar com outros gestores dentro do sistema para combinar trocas de turno sem depender de outros aplicativos.
-- *Quando* envio uma mensagem, *então* a outra pessoa a recebe na hora, com o contador de não lidas no menu.
-- *Quando* menciono uma escala, *então* quem recebe abre a matriz dela com um clique.
-- *Quando* a outra pessoa lê a minha mensagem, *então* vejo a indicação "Lida".
-
 **US11 — Escala que acompanha o movimento** (RF24–RF27)
 Como gerente, quero que o sistema entenda os dias e horários de maior movimento e monte a escala sozinho, para eu só revisar.
 - *Quando* lanço o fechamento do dia (clientes e vendas por faixa), *então* a previsão dos próximos dias passa a considerá-lo.
 - *Dado* um histórico em que o início do mês vende mais, *então* a previsão mostra o efeito aprendido ("+12%, aprendido de 22 dias").
 - *Dado* um pico previsto às 16h–19h, *então* a escala gerada reforça os turnos que cobrem esse horário.
 - *Quando* a semana seguinte ainda não tem escala, *então* o sistema cria o rascunho sozinho e eu ajusto o que quiser na matriz.
+
+**US12 — Cobrir uma falta no dia** (RF28)
+Como gerente, quero trocar quem está escalado por outro colaborador direto do painel, sem quebrar nenhuma regra.
+- *Quando* clico em um colaborador da equipe do dia, *então* vejo quantas horas ele já tem na semana e em quais dias trabalha.
+- *Quando* peço a troca, *então* vejo só os colegas que podem cobrir o turno (mesmo setor primeiro, com menos horas na semana) e o motivo de quem não pode.
+- *Dado* um colega que fechou a loja na véspera, *então* ele não aparece como opção para abrir no dia seguinte (interjornada de 11h).
+- *Dado* uma escala aprovada, *então* posso ver a disponibilidade, mas a troca exige reabrir a escala.
+
+**US13 — Programar as férias da equipe** (RF29)
+Como gerente, quero uma tela só para as férias, para programá-las sem ferir a CLT nem desfalcar a operação.
+- *Quando* abro Férias, *então* vejo quem está de férias hoje, quem começa nos próximos 30 dias e quem volta nesta semana.
+- *Quando* escolho o colaborador, o início e "15 dias", *então* vejo a data de retorno antes de salvar.
+- *Dado* um início numa sexta-feira (dois dias antes do domingo), *então* o sistema não deixa salvar e cita o art. 134, §3º da CLT.
+- *Dado* um colaborador já escalado no período, *então* vejo antes de salvar quem vai assumir cada turno e, ao salvar, o sistema faz as trocas sozinho; o turno que ninguém pode cobrir é retirado e o painel aponta o dia descoberto.
+
+**US14 — Cobrir um atestado ou uma licença** (RF30)
+Como gerente ou supervisor, quero registrar o atestado ou a licença de um colaborador e ter os turnos dele cobertos na hora.
+- *Quando* registro um atestado de 2 dias a partir de hoje, *então* vejo antes de salvar quem assume cada turno e, ao salvar, as trocas são feitas.
+- *Dado* um atestado que chegou depois (ontem), *então* o turno de ontem é retirado, porque a pessoa não trabalhou.
+- *Dado* um atestado de mais de 15 dias, *então* sou lembrado de que a partir do 16º dia o afastamento é pago pelo INSS.
+- *Dada* uma licença-maternidade, *então* o atalho "120 dias" preenche o fim e o sistema avisa se o período ficar menor.
+- *Dado* o perfil SUPERVISOR, *então* posso registrar o afastamento, mas só a gerência edita ou remove.
+
+**US15 — Afixar a escala da semana** (RF31)
+Como gerente, quero imprimir ou baixar a escala da semana com a identidade do supermercado, para afixar no mural e enviar à equipe.
+- *Quando* clico em "Baixar PDF" no Painel, na matriz ou na lista de escalas, *então* recebo o arquivo `escala-<início>-a-<fim>.pdf`.
+- *Quando* clico em "Imprimir", *então* o diálogo de impressão abre com a escala pronta em uma folha A4.
+- *Dado* um colaborador de atestado, *então* a escala impressa mostra só "Ausente", sem o motivo.
+
+**US16 — Guardar o atestado junto do afastamento** (RF32)
+Como supervisor ou gerente, quero anexar a foto ou o PDF do atestado ao registrar o afastamento, para a gerência ter o comprovante.
+- *Quando* anexo o PDF do atestado e salvo, *então* a lista mostra o clipe com a quantidade de documentos.
+- *Dado* o perfil SUPERVISOR, *então* posso anexar, mas não abrir o documento (pode ter diagnóstico).
+- *Quando* a gerência remove o afastamento, *então* os documentos são apagados junto.
+
+**US17 — Escala otimizada** (RF33)
+Como gerente, quero que o sistema procure a melhor escala da semana, e não só uma escala válida, e me mostre a diferença.
+- *Quando* clico em "Otimizar com Timefold", *então* em alguns segundos a matriz é preenchida sem ferir nenhuma regra da CLT.
+- *Quando* clico em "Comparar algoritmos", *então* vejo lado a lado o gerador rápido e o otimizado (vagas sem ninguém, custo, alertas, equilíbrio de horas e tempo), sem que a escala mude.

@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { api } from '../api';
+import { usePermissoes } from '../auth';
+import ExportarEscala from '../components/ExportarEscala';
 import { Carregando, Modal, mensagemErro, useCarregar, useToast } from '../components/ui';
 import { dataLonga, isoDe } from '../format';
 import type { Escala, Geracao } from '../types';
@@ -12,6 +14,7 @@ const proximaSegunda = () => {
 };
 
 export default function Escalas() {
+  const { podeEditar } = usePermissoes();
   const { dados, erro, recarregar } = useCarregar(() => api.get<Escala[]>('/escalas'));
   const [aberto, setAberto] = useState(false);
   const [form, setForm] = useState({ nome: '', dataInicio: '', dataFim: '', observacao: '', gerar: true });
@@ -64,7 +67,7 @@ export default function Escalas() {
           <p>Escalas por período, com validação de custos e regras trabalhistas.</p>
         </div>
         <div className="spacer" />
-        <button className="primario" onClick={abrir}>+ Nova escala</button>
+        {podeEditar && <button className="primario" onClick={abrir}>+ Nova escala</button>}
       </div>
 
       {!dados ? <Carregando erro={erro} /> : (
@@ -88,7 +91,8 @@ export default function Escalas() {
                     </td>
                     <td className="num">
                       <Link className="btn" to={`/escalas/${e.id}`}>Abrir matriz</Link>{' '}
-                      {e.status === 'RASCUNHO' && <button className="perigo" onClick={() => excluir(e)}>Excluir</button>}
+                      <ExportarEscala escala={e} apenasBaixar />{' '}
+                      {podeEditar && e.status === 'RASCUNHO' && <button className="perigo" onClick={() => excluir(e)}>Excluir</button>}
                     </td>
                   </tr>
                 ))}

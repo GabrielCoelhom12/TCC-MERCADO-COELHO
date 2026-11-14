@@ -1,6 +1,7 @@
 package br.com.coelho.escalas.dominio;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonInclude;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -15,7 +16,29 @@ import java.time.LocalDate;
 @NoArgsConstructor
 public class Ausencia {
 
-    public enum Motivo { FERIAS, ATESTADO, FOLGA_ACORDADA, OUTRO }
+    /** Tipo da ausência. Só o tipo é guardado: diagnóstico e CID não entram no sistema (LGPD, dado de saúde). */
+    public enum Motivo {
+        FERIAS("férias"),
+        ATESTADO("atestado médico"),
+        LICENCA_MATERNIDADE("licença-maternidade"),
+        LICENCA_PATERNIDADE("licença-paternidade"),
+        AFASTAMENTO_INSS("afastamento pelo INSS"),
+        ACIDENTE_TRABALHO("acidente de trabalho"),
+        LUTO("licença por luto"),
+        CASAMENTO("licença-casamento"),
+        FOLGA_ACORDADA("folga acordada"),
+        OUTRO("ausência");
+
+        private final String rotulo;
+
+        Motivo(String rotulo) {
+            this.rotulo = rotulo;
+        }
+
+        public String getRotulo() {
+            return rotulo;
+        }
+    }
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -35,6 +58,11 @@ public class Ausencia {
     private Motivo motivo = Motivo.OUTRO;
 
     private String observacao;
+
+    /** Quantidade de documentos anexados; preenchida só na lista de afastamentos (não é coluna). */
+    @Transient
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    private Integer documentos;
 
     public Long getFuncionarioId() {
         return funcionario == null ? null : funcionario.getId();
