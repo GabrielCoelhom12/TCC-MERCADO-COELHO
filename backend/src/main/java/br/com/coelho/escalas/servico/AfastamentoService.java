@@ -5,6 +5,7 @@ import br.com.coelho.escalas.dominio.Funcionario;
 import br.com.coelho.escalas.motor.AnaliseAusencia;
 import br.com.coelho.escalas.motor.RegrasAfastamento;
 import br.com.coelho.escalas.repositorio.AusenciaRepository;
+import br.com.coelho.escalas.repositorio.DocumentoAusenciaRepository;
 import br.com.coelho.escalas.repositorio.FuncionarioRepository;
 import br.com.coelho.escalas.servico.CoberturaService.CoberturaTurno;
 import br.com.coelho.escalas.servico.CoberturaService.Previa;
@@ -16,6 +17,8 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
  * Operação de afastamentos (atestado, licenças, afastamento pelo INSS, acidente de trabalho, luto, casamento, folga
@@ -32,17 +35,27 @@ public class AfastamentoService {
     private final AusenciaRepository ausencias;
     private final FuncionarioRepository funcionarios;
     private final CoberturaService cobertura;
+    private final DocumentoAusenciaRepository documentos;
 
-    public AfastamentoService(AusenciaRepository ausencias, FuncionarioRepository funcionarios, CoberturaService cobertura) {
+    public AfastamentoService(AusenciaRepository ausencias, FuncionarioRepository funcionarios, CoberturaService cobertura,
+                              DocumentoAusenciaRepository documentos) {
         this.ausencias = ausencias;
         this.funcionarios = funcionarios;
         this.cobertura = cobertura;
+        this.documentos = documentos;
     }
 
-    /** Todas as ausências, menos férias (que têm operação própria), das mais recentes para as mais antigas. */
+    /**
+     * Todas as ausências, menos férias (que têm operação própria), das mais recentes para as mais antigas, com a
+     * quantidade de documentos anexados a cada uma.
+     */
     @Transactional(readOnly = true)
     public List<Ausencia> listar() {
-        return ausencias.findByMotivoNotOrderByInicioDesc(Ausencia.Motivo.FERIAS);
+        List<Ausencia> lista = ausencias.findByMotivoNotOrderByInicioDesc(Ausencia.Motivo.FERIAS);
+        Map<Long, Long> anexos = lista.isEmpty() ? Map.of() : documentos.contarPorAusencia(lista.stream().map(Ausencia::getId).toList())
+                .stream().collect(Collectors.toMap(l -> (Long) l[0], l -> (Long) l[1]));
+        lista.forEach(a -> a.setDocumentos(anexos.getOrDefault(a.getId(), 0L).intValue()));
+        return lista;
     }
 
     @Transactional(readOnly = true)
@@ -73,9 +86,12 @@ public class AfastamentoService {
         return new Registro(a, cobertura.repassar(f, dados.motivo(), dados.inicio(), dados.fim()));
     }
 
+    /** Os documentos anexados vão junto (dado de saúde não fica guardado sem o afastamento). */
     @Transactional
     public void remover(Long id) {
-        ausencias.delete(buscar(id));
+        Ausencia a = buscar(id);
+        documentos.deleteByAusencia_Id(a.getId());
+        ausencias.delete(a);
     }
 
     private AnaliseAusencia analisar(Funcionario f, Ausencia.Motivo motivo, LocalDate inicio, LocalDate fim, Long ignorarId) {

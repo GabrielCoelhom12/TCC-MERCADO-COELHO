@@ -88,6 +88,11 @@ final class Imagens {
         }
     }
 
+    /** PNG ou JPEG pela assinatura do arquivo. */
+    static boolean ehImagem(byte[] b) {
+        return ehPng(b) || ehJpeg(b);
+    }
+
     private static boolean ehPng(byte[] b) {
         return b.length > 8 && (b[0] & 0xFF) == 0x89 && b[1] == 'P' && b[2] == 'N' && b[3] == 'G';
     }

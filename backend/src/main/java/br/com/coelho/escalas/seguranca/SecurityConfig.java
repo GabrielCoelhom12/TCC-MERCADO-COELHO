@@ -43,12 +43,14 @@ public class SecurityConfig {
                 .authorizeHttpRequests(a -> a
                         .requestMatchers(HttpMethod.POST, "/api/auth/login").permitAll()
                         .requestMatchers("/api/usuarios/**").hasRole("ADMIN")
+                        // Documentos de afastamento (atestados) são dado de saúde: só a gerência abre.
+                        .requestMatchers(HttpMethod.GET, "/api/afastamentos/documentos/*").hasAnyRole("ADMIN", "GESTOR")
                         .requestMatchers(HttpMethod.GET, "/api/**").authenticated()
                         // Ações do dia a dia, liberadas também ao SUPERVISOR.
                         .requestMatchers("/api/chat/**").authenticated()
                         .requestMatchers(HttpMethod.POST, "/api/escalas/*/turnos/*/substituir").authenticated()
                         .requestMatchers(HttpMethod.PUT, "/api/movimento/fechamentos/*").authenticated()
-                        .requestMatchers(HttpMethod.POST, "/api/afastamentos").authenticated()
+                        .requestMatchers(HttpMethod.POST, "/api/afastamentos", "/api/afastamentos/*/documentos").authenticated()
                         // Qualquer outra alteração: só quem administra a operação.
                         .requestMatchers("/api/**").hasAnyRole("ADMIN", "GESTOR")
                         .anyRequest().permitAll())

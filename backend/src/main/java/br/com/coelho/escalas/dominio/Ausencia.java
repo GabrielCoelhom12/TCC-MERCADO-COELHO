@@ -1,6 +1,7 @@
 package br.com.coelho.escalas.dominio;
 
 import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.fasterxml.jackson.annotation.JsonInclude;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -57,6 +58,11 @@ public class Ausencia {
     private Motivo motivo = Motivo.OUTRO;
 
     private String observacao;
+
+    /** Quantidade de documentos anexados; preenchida só na lista de afastamentos (não é coluna). */
+    @Transient
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    private Integer documentos;
 
     public Long getFuncionarioId() {
         return funcionario == null ? null : funcionario.getId();
