@@ -79,6 +79,7 @@ describe('App', () => {
     expect(await screen.findByRole('heading', { name: 'Modelos de turno' })).toBeInTheDocument();
     expect(screen.getByRole('link', { name: /Colaboradores/ })).toHaveAttribute('href', '/funcionarios');
     expect(screen.getByRole('link', { name: /Férias/ })).toHaveAttribute('href', '/ferias');
+    expect(screen.getByRole('link', { name: /Afastamentos/ })).toHaveAttribute('href', '/afastamentos');
 
     fireEvent.click(screen.getByRole('button', { name: 'Sair' }));
     await waitFor(() => expect(screen.getByRole('heading', { name: 'Escalas de trabalho' })).toBeInTheDocument());

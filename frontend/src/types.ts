@@ -27,7 +27,9 @@ export interface Funcionario {
   foto: string | null;
 }
 
-export type MotivoAusencia = 'FERIAS' | 'ATESTADO' | 'FOLGA_ACORDADA' | 'OUTRO';
+export type MotivoAusencia =
+  | 'FERIAS' | 'ATESTADO' | 'LICENCA_MATERNIDADE' | 'LICENCA_PATERNIDADE' | 'AFASTAMENTO_INSS' | 'ACIDENTE_TRABALHO'
+  | 'LUTO' | 'CASAMENTO' | 'FOLGA_ACORDADA' | 'OUTRO';
 
 export interface Ausencia {
   id: number;
@@ -389,4 +391,35 @@ export interface CandidatoSubstituto {
 export interface SugestaoSubstituicao {
   titular: DisponibilidadeColaborador;
   candidatos: CandidatoSubstituto[];
+}
+
+/** Turno já escalado no período de uma ausência e quem o assume (sem substituto: o turno é retirado). */
+export interface CoberturaTurno {
+  turnoId: number;
+  escalaId: number;
+  escalaNome: string;
+  data: string;
+  horaInicio: string;
+  horaFim: string;
+  substitutoId: number | null;
+  substitutoNome: string | null;
+  substitutoSetor: string | null;
+  /** Dia que já passou: o turno é só retirado (a pessoa não trabalhou). */
+  passado?: boolean;
+}
+
+/** Prévia de férias ou afastamento: regras do período e quem cobre os turnos já escalados. */
+export interface PreviaAusencia {
+  dias: number;
+  retorno: string | null;
+  erros: string[];
+  alertas: string[];
+  valida: boolean;
+  coberturas: CoberturaTurno[];
+}
+
+/** Resposta ao registrar ou editar férias e afastamentos. */
+export interface RegistroAusencia {
+  ausencia: Ausencia;
+  coberturas: CoberturaTurno[];
 }

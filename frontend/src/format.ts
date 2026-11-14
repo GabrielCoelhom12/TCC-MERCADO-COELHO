@@ -50,7 +50,13 @@ export const TIPOS_DIA: { tipo: TipoDia; rotulo: string }[] = [
 
 export const MOTIVOS_AUSENCIA: { valor: MotivoAusencia; rotulo: string }[] = [
   { valor: 'FERIAS', rotulo: 'Férias' },
-  { valor: 'ATESTADO', rotulo: 'Atestado' },
+  { valor: 'ATESTADO', rotulo: 'Atestado médico' },
+  { valor: 'LICENCA_MATERNIDADE', rotulo: 'Licença-maternidade' },
+  { valor: 'LICENCA_PATERNIDADE', rotulo: 'Licença-paternidade' },
+  { valor: 'AFASTAMENTO_INSS', rotulo: 'Afastamento pelo INSS' },
+  { valor: 'ACIDENTE_TRABALHO', rotulo: 'Acidente de trabalho' },
+  { valor: 'LUTO', rotulo: 'Licença por luto' },
+  { valor: 'CASAMENTO', rotulo: 'Licença-casamento' },
   { valor: 'FOLGA_ACORDADA', rotulo: 'Folga acordada' },
   { valor: 'OUTRO', rotulo: 'Outro' },
 ];

@@ -2,53 +2,15 @@ import { useEffect, useState } from 'react';
 import { Palmtree, Search } from 'lucide-react';
 import { api } from '../api';
 import { usePermissoes } from '../auth';
+import { PlanoCobertura, diasEntre as entre, resumoRegistro, rotuloDias as dias, somarDias } from '../components/Ausencias';
 import Avatar from '../components/Avatar';
 import { Carregando, Modal, mensagemErro, useCarregar, useToast } from '../components/ui';
-import { DIAS_SEMANA, dataCurta, dataLonga, diaSemanaDe, hora, isoDe, paraData } from '../format';
-import type { Ausencia, Funcionario } from '../types';
-
-/** Turno já escalado no período e quem o assume (sem substituto: o turno é retirado). */
-interface CoberturaTurno {
-  turnoId: number;
-  escalaId: number;
-  escalaNome: string;
-  data: string;
-  horaInicio: string;
-  horaFim: string;
-  substitutoId: number | null;
-  substitutoNome: string | null;
-  substitutoSetor: string | null;
-}
-
-/** Prévia devolvida por GET /ferias/analise. */
-interface Analise {
-  dias: number;
-  retorno: string | null;
-  erros: string[];
-  alertas: string[];
-  valida: boolean;
-  coberturas: CoberturaTurno[];
-}
-
-type Form = { id?: number; funcionarioId: number | ''; inicio: string; fim: string; observacao: string };
+import { dataCurta, dataLonga, isoDe } from '../format';
+import type { Ausencia, Funcionario, PreviaAusencia as Analise, RegistroAusencia } from '../types';
 
 const DURACOES = [30, 20, 15, 10, 5];
-const DIA_MS = 86400000;
-const entre = (de: string, ate: string) => Math.round((paraData(ate).getTime() - paraData(de).getTime()) / DIA_MS);
-const somarDias = (iso: string, n: number) => isoDe(new Date(paraData(iso).getTime() + n * DIA_MS));
-const dias = (n: number) => (n === 1 ? '1 dia' : `${n} dias`);
-const rotuloDia = (d: string) => DIAS_SEMANA.find((x) => x.dia === diaSemanaDe(d))?.rotulo;
-const turnos = (n: number, um: string, varios: string) => (n === 1 ? `1 turno ${um}` : `${n} turnos ${varios}`);
 
-/** "Férias de Ana registradas · 2 turnos repassados · 1 turno retirado sem substituto." */
-function mensagemRegistro(nome: string | undefined, editando: boolean, coberturas: CoberturaTurno[]) {
-  const repassados = coberturas.filter((c) => c.substitutoId !== null).length;
-  const retirados = coberturas.length - repassados;
-  const partes = [editando ? 'Férias atualizadas' : `Férias de ${nome} registradas`];
-  if (repassados) partes.push(turnos(repassados, 'repassado', 'repassados'));
-  if (retirados) partes.push(turnos(retirados, 'retirado sem substituto', 'retirados sem substituto'));
-  return `${partes.join(' · ')}.`;
-}
+type Form = { id?: number; funcionarioId: number | ''; inicio: string; fim: string; observacao: string };
 
 export default function Ferias() {
   const { dados, erro, recarregar } = useCarregar(() =>
@@ -222,9 +184,9 @@ function ModalFerias({ form, setForm, funcionarios, onSalvo }: {
     try {
       const corpo = { funcionarioId: form.funcionarioId, inicio: form.inicio, fim: form.fim, observacao: form.observacao };
       const registro = form.id
-        ? await api.put<{ coberturas: CoberturaTurno[] }>(`/ferias/${form.id}`, corpo)
-        : await api.post<{ coberturas: CoberturaTurno[] }>('/ferias', corpo);
-      toast('ok', mensagemRegistro(nome, !!form.id, registro.coberturas));
+        ? await api.put<RegistroAusencia>(`/ferias/${form.id}`, corpo)
+        : await api.post<RegistroAusencia>('/ferias', corpo);
+      toast('ok', resumoRegistro(form.id ? 'Férias atualizadas' : `Férias de ${nome} registradas`, registro.coberturas));
       onSalvo();
     } catch (e) {
       toast('erro', mensagemErro(e));
@@ -301,25 +263,5 @@ function ModalFerias({ form, setForm, funcionarios, onSalvo }: {
         )}
       </div>
     </Modal>
-  );
-}
-
-/** Quem assume cada turno que o colaborador já tinha no período; aplicado ao salvar. */
-function PlanoCobertura({ coberturas }: { coberturas: CoberturaTurno[] }) {
-  return (
-    <div className="cobertura-ferias">
-      <strong>Turnos já escalados no período</strong>
-      <p className="small muted">Ao salvar, o sistema repassa cada turno para um colega apto (mesmo setor e menos horas primeiro).</p>
-      <ul aria-label="Quem cobre os turnos já escalados">
-        {coberturas.map((c) => (
-          <li key={c.turnoId} className={c.substitutoId === null ? 'sem-substituto' : undefined}>
-            <span className="quando">{rotuloDia(c.data)} {dataCurta(c.data)} · {hora(c.horaInicio)}–{hora(c.horaFim)}</span>
-            {c.substitutoNome
-              ? <span>→ <strong>{c.substitutoNome}</strong> <span className="muted">({c.substitutoSetor})</span></span>
-              : <span className="texto-alerta">Ninguém pode cobrir: o turno será retirado</span>}
-          </li>
-        ))}
-      </ul>
-    </div>
   );
 }
