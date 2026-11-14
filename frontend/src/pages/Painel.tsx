@@ -1,10 +1,10 @@
 import { useEffect, useRef, useState, type KeyboardEvent } from 'react';
 import { Link } from 'react-router-dom';
-import { ChevronLeft, ChevronRight, LayoutGrid } from 'lucide-react';
+import { ChevronLeft, ChevronRight, LayoutGrid, Palmtree } from 'lucide-react';
 import { api } from '../api';
 import { BadgeSituacao, Carregando, ListaViolacoes, useCarregar } from '../components/ui';
 import { DIAS_SEMANA, MOTIVOS_AUSENCIA, dataCurta, diaSemanaDe, isoDe, moeda, numero, paraData, pct } from '../format';
-import type { Escala, Matriz, ResultadoValidacao, ResumoDia, TurnoDTO } from '../types';
+import type { Ausencia, Escala, Matriz, ResultadoValidacao, ResumoDia, TurnoDTO } from '../types';
 import TrocaColaborador from './TrocaColaborador';
 
 const DIA_MS = 86400000;
@@ -52,6 +52,8 @@ export default function Painel() {
     [daSemana?.id],
   );
 
+  const { dados: ferias } = useCarregar(() => api.get<Ausencia[]>('/ferias'), []);
+
   const mover = (n: number) => setInicio((i) => (i ? somarDias(i, n) : i));
   const semanaAtual = inicio !== null && fim !== null && hoje >= inicio && hoje <= fim;
 
@@ -74,6 +76,8 @@ export default function Painel() {
       {!dados || !diaEscolhido ? <Carregando erro={erro} /> : (
         <>
           <Indicadores r={dados} />
+
+          {ferias && inicio && fim && <DeFerias ferias={ferias} inicio={inicio} fim={fim} matriz={matriz} />}
 
           <section className="card semana" aria-labelledby="titulo-semana">
             <div className="row cabecalho-semana">
@@ -154,6 +158,46 @@ function Indicadores({ r }: { r: ResultadoValidacao }) {
         <div className="detalhe">{r.alertas === 1 ? '1 alerta' : `${r.alertas} alertas`} para revisar</div>
       </div>
     </div>
+  );
+}
+
+// ------------------------------------------------------------------ de férias na semana
+
+function DeFerias({ ferias, inicio, fim, matriz }: { ferias: Ausencia[]; inicio: string; fim: string; matriz: Matriz | null }) {
+  const daSemana = ferias.filter((f) => f.inicio <= fim && f.fim >= inicio).sort((a, b) => a.fim.localeCompare(b.fim));
+  const pessoa = (id: number) => matriz?.funcionarios.find((f) => f.id === id);
+  return (
+    <section className="card de-ferias" aria-labelledby="titulo-ferias">
+      <div className="row">
+        <Palmtree size={18} className="icone-ferias" aria-hidden />
+        <h2 id="titulo-ferias">De férias nesta semana</h2>
+        <span className="badge laranja">{daSemana.length}</span>
+        <div className="spacer" />
+        <Link to="/ferias">Ver férias</Link>
+      </div>
+      {daSemana.length === 0 ? <p className="muted">Ninguém de férias nesta semana.</p> : (
+        <ul className="lista-ferias">
+          {daSemana.map((f) => {
+            const p = pessoa(f.funcionarioId);
+            return (
+              <li key={f.id}>
+                <span className="membro">
+                  <strong>{f.funcionarioNome}</strong>
+                  {p && (
+                    <span className="small muted">
+                      <span className="ponto-setor" style={{ background: p.setorCor }} aria-hidden />{p.setorNome}
+                    </span>
+                  )}
+                </span>
+                <span className="small periodo-ferias">
+                  {f.inicio > inicio && <>a partir de {dataCurta(f.inicio)} · </>}volta em {dataCurta(somarDias(f.fim, 1))}
+                </span>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+    </section>
   );
 }
 
