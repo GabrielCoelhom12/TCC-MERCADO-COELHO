@@ -236,12 +236,12 @@ cd frontend; npm run lint             # ESLint, sem avisos
 cd frontend; npm run test:coverage    # Vitest + cobertura ≥ 25%
 ```
 
-Resultado com todos os pull requests de novembro integrados (13/11/2026):
+Resultado com todos os pull requests de novembro integrados (14/11/2026):
 
 | | Testes | Cobertura de linhas | Mínimo exigido |
 |---|---|---|---|
-| Backend (JUnit 5, MockMvc, ArchUnit) | 306, 0 falhas | 97,6% (JaCoCo) | 75% |
-| Frontend (Vitest, Testing Library) | 120, 0 falhas | 79,3% | 25% |
+| Backend (JUnit 5, MockMvc, ArchUnit) | 322, 0 falhas | 97,7% (JaCoCo) | 75% |
+| Frontend (Vitest, Testing Library) | 126, 0 falhas | 79,9% | 25% |
 
 Os testes seguem os fluxos de negócio:
 - **Integração** (API completa contra o PostgreSQL): `CadastrosIntegracaoTest`, `EscalaIntegracaoTest`,
