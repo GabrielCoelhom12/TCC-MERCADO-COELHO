@@ -10,6 +10,8 @@
 | `APP_ADMIN_SENHA` | recomendada | Senha do usuário `gestor` criado no primeiro start. Sem ela, é gerada e exibida uma vez no log. |
 | `APP_SEED` | — | `true` carrega o cenário de demonstração quando o banco está vazio. Use `false` em produção real. |
 | `PORT` / `MANAGEMENT_PORT` | — | Porta HTTP (8080) e porta de métricas/health (8081). |
+| `APP_OTIMIZACAO_SEGUNDOS` | — | Tempo máximo de cada otimização com o Timefold (padrão `5`). |
+| `APP_OTIMIZACAO_SIMULTANEAS` | — | Quantas otimizações podem rodar ao mesmo tempo (padrão `2`); as demais recebem HTTP 429. |
 | `APP_GERACAO_AUTOMATICA` | — | `false` desliga o agendamento do rascunho semanal (a opção também pode ser desligada em Parâmetros). Roda todo dia às 6h e ao iniciar. |
 
 ## Ambientes

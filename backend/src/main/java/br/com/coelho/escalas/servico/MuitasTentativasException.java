@@ -2,13 +2,18 @@ package br.com.coelho.escalas.servico;
 
 import java.time.Duration;
 
-/** Login bloqueado temporariamente por excesso de senhas erradas (HTTP 429). */
+/** Pedido recusado por excesso de tentativas ou de carga; pode ser repetido depois de {@link #getEspera()} (HTTP 429). */
 public class MuitasTentativasException extends RuntimeException {
 
     private final Duration espera;
 
+    /** Login bloqueado temporariamente por excesso de senhas erradas. */
     public MuitasTentativasException(Duration espera) {
-        super("Muitas tentativas de login. Tente novamente em " + minutos(espera) + ".");
+        this("Muitas tentativas de login. Tente novamente em " + minutos(espera) + ".", espera);
+    }
+
+    public MuitasTentativasException(String mensagem, Duration espera) {
+        super(mensagem);
         this.espera = espera;
     }
 

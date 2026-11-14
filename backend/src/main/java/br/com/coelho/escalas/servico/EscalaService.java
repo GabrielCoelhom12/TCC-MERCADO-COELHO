@@ -65,11 +65,12 @@ public class EscalaService {
     private final GeradorEscala gerador;
     private final OtimizadorEscala otimizador;
     private final SugestorSubstituicao sugestor;
+    private final LimiteOtimizacoes limiteOtimizacoes;
 
     public EscalaService(EscalaRepository escalas, TurnoRepository turnos, FuncionarioRepository funcionarios,
                          TurnoModeloRepository modelos, ContextoService contextos, MotorFinanceiro motor,
                          ValidadorEscala validador, GeradorEscala gerador, SugestorSubstituicao sugestor,
-                         OtimizadorEscala otimizador) {
+                         OtimizadorEscala otimizador, LimiteOtimizacoes limiteOtimizacoes) {
         this.escalas = escalas;
         this.turnos = turnos;
         this.funcionarios = funcionarios;
@@ -78,6 +79,7 @@ public class EscalaService {
         this.motor = motor;
         this.validador = validador;
         this.gerador = gerador;
+        this.limiteOtimizacoes = limiteOtimizacoes;
         this.otimizador = otimizador;
         this.sugestor = sugestor;
     }
@@ -278,7 +280,7 @@ public class EscalaService {
     /** Como {@link #gerar}, mas com o otimizador (Timefold), que escolhe quem ocupa cada vaga olhando a semana toda. */
     @Transactional
     public Geracao otimizar(Long id) {
-        return gerarCom(id, otimizador::gerar);
+        return limiteOtimizacoes.executar(() -> gerarCom(id, otimizador::gerar));
     }
 
     /** Assinatura comum ao gerador guloso e ao otimizador. */

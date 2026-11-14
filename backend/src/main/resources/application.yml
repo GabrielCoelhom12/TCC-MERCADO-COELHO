@@ -57,6 +57,8 @@ app:
   otimizacao:
     # Tempo máximo do Timefold para otimizar uma escala (ele para antes se deixar de melhorar).
     segundos: ${APP_OTIMIZACAO_SEGUNDOS:5}
+    # Quantas otimizações podem rodar ao mesmo tempo; as que passarem disso recebem HTTP 429 (tente de novo).
+    simultaneas: ${APP_OTIMIZACAO_SIMULTANEAS:2}
   escala:
     geracao-automatica:
       # Cria sozinho o rascunho das próximas semanas (liga/desliga e antecedência ficam em Parâmetros).

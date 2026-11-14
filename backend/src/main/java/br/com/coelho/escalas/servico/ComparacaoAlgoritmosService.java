@@ -51,10 +51,12 @@ public class ComparacaoAlgoritmosService {
     private final OtimizadorEscala otimizador;
     private final ValidadorEscala validador;
     private final MotorFinanceiro motor;
+    private final LimiteOtimizacoes limiteOtimizacoes;
 
     public ComparacaoAlgoritmosService(EscalaRepository escalas, TurnoRepository turnos, TurnoModeloRepository modelos,
                                        ContextoService contextos, GeradorEscala gerador, OtimizadorEscala otimizador,
-                                       ValidadorEscala validador, MotorFinanceiro motor) {
+                                       ValidadorEscala validador, MotorFinanceiro motor,
+                                       LimiteOtimizacoes limiteOtimizacoes) {
         this.escalas = escalas;
         this.turnos = turnos;
         this.modelos = modelos;
@@ -63,10 +65,15 @@ public class ComparacaoAlgoritmosService {
         this.otimizador = otimizador;
         this.validador = validador;
         this.motor = motor;
+        this.limiteOtimizacoes = limiteOtimizacoes;
     }
 
     @Transactional(readOnly = true)
     public Comparacao comparar(Long escalaId) {
+        return limiteOtimizacoes.executar(() -> compararSemLimite(escalaId));
+    }
+
+    private Comparacao compararSemLimite(Long escalaId) {
         Escala e = escalas.findById(escalaId).orElseThrow(() -> new NaoEncontradoException("Escala", escalaId));
         LocalDate de = e.getDataInicio().minusDays(MARGEM_DIAS);
         LocalDate ate = e.getDataFim().plusDays(MARGEM_DIAS);
