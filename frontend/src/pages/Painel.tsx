@@ -201,16 +201,16 @@ function QuadroAusencias({ id, titulo, Icone, itens, inicio, fim, matriz, link, 
               <li key={a.id}>
                 <span className="membro">
                   <strong>{a.funcionarioNome}</strong>
-                  {p && (
+                  {/* O tipo vai na linha do setor: os cartões dos dois quadros têm a mesma altura. */}
+                  {(p || comTipo) && (
                     <span className="small muted">
-                      <span className="ponto-setor" style={{ background: p.setorCor }} aria-hidden />{p.setorNome}
+                      {p && <><span className="ponto-setor" style={{ background: p.setorCor }} aria-hidden />{p.setorNome}</>}
+                      {p && comTipo && ' · '}
+                      {comTipo && <strong className="tipo-ausencia">{rotuloMotivo(a.motivo)}</strong>}
                     </span>
                   )}
                 </span>
-                {/* O tipo vai na linha das datas: todos os cartões têm a mesma altura nos dois quadros. */}
                 <span className="small periodo-ferias">
-                  {comTipo && <strong className="tipo-ausencia">{rotuloMotivo(a.motivo)}</strong>}
-                  {comTipo && ' · '}
                   {a.inicio > inicio && <>a partir de {dataCurta(a.inicio)} · </>}volta em {dataCurta(somarDias(a.fim, 1))}
                 </span>
               </li>
