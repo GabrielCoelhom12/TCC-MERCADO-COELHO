@@ -101,5 +101,7 @@ export const api = {
   del: <T = void>(c: string) => requisicao<T>('DELETE', c),
   /** Envio de arquivo (multipart); o navegador define o Content-Type com o boundary. */
   enviar: <T>(c: string, dados: FormData) => requisicao<T>('PUT', c, dados),
+  /** Envio de arquivo que cria um recurso (multipart, POST). */
+  anexar: <T>(c: string, dados: FormData) => requisicao<T>('POST', c, dados),
   arquivo,
 };

@@ -141,6 +141,77 @@ describe('Afastamentos', () => {
     expect(screen.queryByRole('button', { name: /Editar afastamento/ })).not.toBeInTheDocument();
   });
 
+  it('anexa o atestado ao registrar e conta os documentos na lista', async () => {
+    const hoje = somar(0);
+    const fetch = montar({
+      [`GET /api/afastamentos/analise?funcionarioId=2&motivo=ATESTADO&inicio=${hoje}&fim=${hoje}`]: {
+        corpo: { dias: 1, retorno: somar(1), erros: [], alertas: [], valida: true, coberturas: [] },
+      },
+      'POST /api/afastamentos': { status: 201, corpo: { ausencia: afastamento(9, 2, 'ATESTADO', hoje, hoje), coberturas: [] } },
+      'POST /api/afastamentos/9/documentos': { status: 201, corpo: { id: 3, ausenciaId: 9, nomeArquivo: 'atestado.pdf' } },
+    });
+    renderizar(<Afastamentos />);
+
+    fireEvent.click(await screen.findByRole('button', { name: /Registrar afastamento/ }));
+    const dialogo = screen.getByRole('dialog', { name: 'Registrar afastamento' });
+    fireEvent.change(within(dialogo).getByLabelText('Colaborador'), { target: { value: '2' } });
+    fireEvent.click(within(dialogo).getByRole('button', { name: '1 dia' }));
+    const arquivo = new File(['%PDF-1.4'], 'atestado.pdf', { type: 'application/pdf' });
+    fireEvent.change(within(dialogo).getByLabelText(/Anexar documento/), { target: { files: [arquivo] } });
+    expect(within(dialogo).getByText('atestado.pdf')).toBeInTheDocument();
+    expect(within(dialogo).getByText(/só a gerência consegue abrir/)).toBeInTheDocument();
+
+    await within(dialogo).findByText(/1 dia · retorno em/);
+    fireEvent.click(within(dialogo).getByRole('button', { name: 'Salvar' }));
+
+    expect(await screen.findByText('Afastamento de Bruno Lima registrado · 1 documento anexado.')).toBeInTheDocument();
+    const envio = fetch.mock.calls.find(([url]) => url === '/api/afastamentos/9/documentos');
+    expect(envio?.[1]?.method).toBe('POST');
+    expect((envio?.[1]?.body as FormData).get('arquivo')).toBe(arquivo);
+  });
+
+  it('recusa no navegador arquivos grandes ou de outro tipo', async () => {
+    montar();
+    renderizar(<Afastamentos />);
+
+    fireEvent.click(await screen.findByRole('button', { name: /Registrar afastamento/ }));
+    const dialogo = screen.getByRole('dialog', { name: 'Registrar afastamento' });
+    const grande = new File([new Uint8Array(5 * 1024 * 1024 + 1)], 'grande.pdf', { type: 'application/pdf' });
+    const planilha = new File(['a;b'], 'notas.csv', { type: 'text/csv' });
+    fireEvent.change(within(dialogo).getByLabelText(/Anexar documento/), { target: { files: [grande, planilha] } });
+
+    expect(await screen.findByText(/grande.pdf: máximo de 5 MB/)).toBeInTheDocument();
+    expect(within(dialogo).queryByText('notas.csv')).not.toBeInTheDocument();
+  });
+
+  it('a gerência vê, abre e remove os documentos ao editar', async () => {
+    const lista = [{ ...afastamento(1, 1, 'ATESTADO', somar(0), somar(2)), documentos: 1 }];
+    const fetch = mockFetch({
+      'GET /api/afastamentos': { corpo: lista },
+      'GET /api/funcionarios': { corpo: funcionarios },
+      [`GET /api/afastamentos/analise?funcionarioId=1&motivo=ATESTADO&inicio=${somar(0)}&fim=${somar(2)}&ignorar=1`]: {
+        corpo: { dias: 3, retorno: somar(3), erros: [], alertas: [], valida: true, coberturas: [] },
+      },
+      'GET /api/afastamentos/1/documentos': {
+        corpo: [{ id: 3, ausenciaId: 1, nomeArquivo: 'atestado.pdf', tipo: 'application/pdf', tamanho: 2048,
+          enviadoEm: `${somar(0)}T08:30:00`, enviadoPor: 'sup.loja' }],
+      },
+      'DELETE /api/afastamentos/documentos/3': { status: 204 },
+    });
+    renderizar(<Afastamentos />);
+
+    expect(await screen.findByLabelText('1 documento anexado')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Editar afastamento de Ana Souza' }));
+    const dialogo = screen.getByRole('dialog', { name: 'Editar afastamento' });
+    const doc = (await within(dialogo).findByText('atestado.pdf')).closest('li')!;
+    expect(doc).toHaveTextContent('enviado por sup.loja');
+    expect(within(doc).getByRole('button', { name: 'Abrir atestado.pdf' })).toBeInTheDocument();
+
+    fireEvent.click(within(doc).getByRole('button', { name: 'Remover atestado.pdf' }));
+
+    await waitFor(() => expect(fetch.mock.calls.some(([url, init]) => url === '/api/afastamentos/documentos/3' && init?.method === 'DELETE')).toBe(true));
+  });
+
   it('o gestor edita e remove', async () => {
     const fetch = montar({
       [`GET /api/afastamentos/analise?funcionarioId=1&motivo=ATESTADO&inicio=${somar(0)}&fim=${somar(2)}&ignorar=1`]: {

@@ -39,6 +39,8 @@ export interface Ausencia {
   fim: string;
   motivo: MotivoAusencia;
   observacao: string | null;
+  /** Documentos anexados (só na lista de afastamentos). */
+  documentos?: number;
 }
 
 export type Aplicacao = 'DIAS_UTEIS' | 'DOMINGOS_FERIADOS' | 'TODOS';
@@ -422,4 +424,15 @@ export interface PreviaAusencia {
 export interface RegistroAusencia {
   ausencia: Ausencia;
   coberturas: CoberturaTurno[];
+}
+
+/** Documento anexado a um afastamento (atestado, declaração...), sem o conteúdo. */
+export interface DocumentoResumo {
+  id: number;
+  ausenciaId: number;
+  nomeArquivo: string;
+  tipo: string;
+  tamanho: number;
+  enviadoEm: string;
+  enviadoPor: string;
 }

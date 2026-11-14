@@ -1,12 +1,12 @@
 import { useEffect, useState } from 'react';
-import { Search, Stethoscope } from 'lucide-react';
+import { FileText, Paperclip, Search, Stethoscope, X } from 'lucide-react';
 import { api } from '../api';
 import { usePermissoes } from '../auth';
 import { PlanoCobertura, diasEntre, resumoRegistro, rotuloDias, somarDias } from '../components/Ausencias';
 import Avatar from '../components/Avatar';
 import { Carregando, Modal, mensagemErro, useCarregar, useToast } from '../components/ui';
 import { MOTIVOS_AUSENCIA, dataCurta, dataLonga, isoDe } from '../format';
-import type { Ausencia, Funcionario, MotivoAusencia, PreviaAusencia, RegistroAusencia } from '../types';
+import type { Ausencia, DocumentoResumo, Funcionario, MotivoAusencia, PreviaAusencia, RegistroAusencia } from '../types';
 
 /** Tipos desta operação (férias têm operação própria). */
 const TIPOS = MOTIVOS_AUSENCIA.filter((m) => m.valor !== 'FERIAS');
@@ -140,7 +140,15 @@ function Tabela({ itens, porId, hoje, onEditar }: Lista) {
                     </div>
                   </div>
                 </td>
-                <td><span className="badge neutro">{rotuloTipo(a.motivo)}</span></td>
+                <td>
+                  <span className="badge neutro">{rotuloTipo(a.motivo)}</span>
+                  {!!a.documentos && (
+                    <span className="anexos" title="Documentos anexados"
+                      aria-label={a.documentos === 1 ? '1 documento anexado' : `${a.documentos} documentos anexados`}>
+                      <Paperclip size={13} aria-hidden />{a.documentos}
+                    </span>
+                  )}
+                </td>
                 <td>{dataCurta(a.inicio)} – {dataLonga(a.fim)}</td>
                 <td className="num">{rotuloDias(diasEntre(a.inicio, a.fim) + 1)}</td>
                 <td><Situacao a={a} hoje={hoje} /></td>
@@ -175,6 +183,7 @@ function ModalAfastamento({ form, setForm, funcionarios, podeRemover, onSalvo }:
   const toast = useToast();
   const [analise, setAnalise] = useState<PreviaAusencia | null>(null);
   const [salvando, setSalvando] = useState(false);
+  const [pendentes, setPendentes] = useState<File[]>([]);
   const completo = form.funcionarioId !== '' && !!form.inicio && !!form.fim;
 
   // Prévia ao vivo: dias, retorno, alertas da lei e quem cobre os turnos já escalados.
@@ -203,13 +212,33 @@ function ModalAfastamento({ form, setForm, funcionarios, podeRemover, onSalvo }:
       const registro = form.id
         ? await api.put<RegistroAusencia>(`/afastamentos/${form.id}`, corpo)
         : await api.post<RegistroAusencia>('/afastamentos', corpo);
-      toast('ok', resumoRegistro(form.id ? 'Afastamento atualizado' : `Afastamento de ${nome} registrado`, registro.coberturas));
+      const anexados = await enviarDocumentos(registro.ausencia.id);
+      const resumo = resumoRegistro(form.id ? 'Afastamento atualizado' : `Afastamento de ${nome} registrado`, registro.coberturas);
+      toast('ok', anexados
+        ? resumo.replace(/\.$/, ` · ${anexados === 1 ? '1 documento anexado' : `${anexados} documentos anexados`}.`)
+        : resumo);
       onSalvo();
     } catch (e) {
       toast('erro', mensagemErro(e));
     } finally {
       setSalvando(false);
     }
+  };
+
+  /** O afastamento já foi salvo: se um documento falhar, avisa e segue com os outros. */
+  const enviarDocumentos = async (afastamentoId: number) => {
+    let enviados = 0;
+    for (const arquivo of pendentes) {
+      const dados = new FormData();
+      dados.append('arquivo', arquivo);
+      try {
+        await api.anexar(`/afastamentos/${afastamentoId}/documentos`, dados);
+        enviados++;
+      } catch (e) {
+        toast('erro', `Afastamento salvo, mas "${arquivo.name}" não foi anexado: ${mensagemErro(e)}`);
+      }
+    }
+    return enviados;
   };
 
   const remover = async () => {
@@ -275,6 +304,7 @@ function ModalAfastamento({ form, setForm, funcionarios, podeRemover, onSalvo }:
           <input value={form.observacao} maxLength={255} onChange={(e) => setForm({ ...form, observacao: e.target.value })} placeholder="Opcional" />
           <span className="ajuda">Não informe diagnóstico nem CID: para a escala basta o tipo do afastamento (LGPD, dado de saúde).</span>
         </label>
+        <Documentos afastamentoId={form.id} pendentes={pendentes} setPendentes={setPendentes} podeGerir={podeRemover} />
 
         {completo && !analise && <p className="muted small">Verificando o período…</p>}
         {analise && (
@@ -290,5 +320,109 @@ function ModalAfastamento({ form, setForm, funcionarios, podeRemover, onSalvo }:
         )}
       </div>
     </Modal>
+  );
+}
+
+const LIMITE_DOCUMENTO = 5 * 1024 * 1024;
+const TIPOS_DOCUMENTO = ['application/pdf', 'image/jpeg', 'image/png'];
+const tamanho = (bytes: number) => (bytes < 1024 * 1024 ? `${Math.max(1, Math.round(bytes / 1024))} KB` : `${(bytes / 1024 / 1024).toFixed(1).replace('.', ',')} MB`);
+
+/**
+ * Documentos do afastamento: os já enviados (a gerência abre e remove) e os escolhidos agora, enviados ao salvar.
+ * O documento pode trazer diagnóstico ou CID: só a gerência consegue abri-lo.
+ */
+function Documentos({ afastamentoId, pendentes, setPendentes, podeGerir }: {
+  afastamentoId?: number;
+  pendentes: File[];
+  setPendentes: (f: File[]) => void;
+  podeGerir: boolean;
+}) {
+  const toast = useToast();
+  const { dados: enviados, recarregar } = useCarregar(
+    () => (afastamentoId ? api.get<DocumentoResumo[]>(`/afastamentos/${afastamentoId}/documentos`) : Promise.resolve([])),
+    [afastamentoId],
+  );
+
+  const escolher = (arquivos: FileList | null) => {
+    const aceitos: File[] = [];
+    const recusados: string[] = [];
+    for (const f of Array.from(arquivos ?? [])) {
+      if (!TIPOS_DOCUMENTO.includes(f.type)) recusados.push(`${f.name}: envie PDF, JPG ou PNG.`);
+      else if (f.size > LIMITE_DOCUMENTO) recusados.push(`${f.name}: máximo de 5 MB.`);
+      else aceitos.push(f);
+    }
+    // Um aviso só, com todos os recusados (um aviso novo substituiria o anterior).
+    if (recusados.length) toast('erro', recusados.join(' '));
+    setPendentes([...pendentes, ...aceitos]);
+  };
+
+  const abrir = async (d: DocumentoResumo) => {
+    // A aba abre já no clique (senão o navegador bloqueia) e recebe o arquivo quando ele chegar.
+    const aba = window.open('', '_blank');
+    try {
+      const url = URL.createObjectURL(await api.arquivo(`/afastamentos/documentos/${d.id}`));
+      if (aba) aba.location.href = url;
+      else window.location.assign(url);
+    } catch (e) {
+      aba?.close();
+      toast('erro', mensagemErro(e));
+    }
+  };
+
+  const remover = async (d: DocumentoResumo) => {
+    try {
+      await api.del(`/afastamentos/documentos/${d.id}`);
+      toast('ok', 'Documento removido.');
+      recarregar();
+    } catch (e) {
+      toast('erro', mensagemErro(e));
+    }
+  };
+
+  return (
+    <div className="documentos-afastamento">
+      <div className="row">
+        <strong className="small">Documentos</strong>
+        <div className="spacer" />
+        <label className="btn anexar">
+          <Paperclip size={15} aria-hidden />Anexar documento
+          <input type="file" accept=".pdf,image/jpeg,image/png" multiple className="visualmente-oculto"
+            onChange={(e) => {
+              escolher(e.target.files);
+              e.target.value = '';
+            }} />
+        </label>
+      </div>
+      <p className="ajuda">Atestado, declaração ou certidão em PDF, JPG ou PNG, até 5 MB. O documento pode conter
+        diagnóstico: só a gerência consegue abrir.</p>
+      {((enviados?.length ?? 0) > 0 || pendentes.length > 0) && (
+        <ul>
+          {enviados?.map((d) => (
+            <li key={d.id}>
+              <FileText size={15} aria-hidden />
+              <span className="nome">{d.nomeArquivo}</span>
+              <span className="small muted">{tamanho(d.tamanho)} · enviado por {d.enviadoPor} em {dataCurta(d.enviadoEm.slice(0, 10))}</span>
+              {podeGerir && (
+                <>
+                  <button type="button" className="link" onClick={() => abrir(d)} aria-label={`Abrir ${d.nomeArquivo}`}>Abrir</button>
+                  <button type="button" className="link perigo" onClick={() => remover(d)} aria-label={`Remover ${d.nomeArquivo}`}>Remover</button>
+                </>
+              )}
+            </li>
+          ))}
+          {pendentes.map((f, i) => (
+            <li key={`${f.name}-${i}`} className="pendente">
+              <FileText size={15} aria-hidden />
+              <span className="nome">{f.name}</span>
+              <span className="small muted">{tamanho(f.size)} · será enviado ao salvar</span>
+              <button type="button" className="icone" aria-label={`Tirar ${f.name}`}
+                onClick={() => setPendentes(pendentes.filter((_, j) => j !== i))}>
+                <X size={14} aria-hidden />
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
   );
 }
