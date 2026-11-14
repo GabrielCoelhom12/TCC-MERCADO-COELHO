@@ -1,14 +1,15 @@
 # Ambiente de desenvolvimento: carregado automaticamente por "docker compose up" junto com o docker-compose.yml.
+# As portas ficam só em 127.0.0.1: nada fica acessível a outras máquinas da rede (o Prometheus não tem senha).
 services:
   app:
     build: .
     ports:
-      - "8080:8080"
+      - "127.0.0.1:8080:8080"
 
   prometheus:
     ports:
-      - "9090:9090"
+      - "127.0.0.1:9090:9090"
 
   grafana:
     ports:
-      - "3000:3000"
+      - "127.0.0.1:3000:3000"

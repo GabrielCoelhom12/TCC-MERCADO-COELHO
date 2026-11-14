@@ -21,10 +21,13 @@ O sistema trata dados pessoais de **colaboradores** do supermercado e dos **usu�
 - **Minimização:** só são guardados os dados necessários para montar e validar a escala. Não há CPF, endereço,
   telefone nem dado sensível (art. 5º, II). Ausências registram o motivo (férias, atestado, folga acordada) e uma
   observação livre, que **não deve conter diagnóstico** ou CID — orientação repassada aos gestores do parceiro.
-- **Controle de acesso:** toda a API exige autenticação JWT (`SecurityConfig`); a gestão de usuários é restrita ao
-  perfil `ADMIN`. A situação e o perfil do usuário são conferidos no banco a cada requisição (`AutenticadorJwt`):
-  uma conta desativada perde o acesso imediatamente, mesmo com um token ainda dentro da validade. No chat, cada
-  usuário só recebe eventos das conversas de que participa.
+- **Controle de acesso:** toda a API exige autenticação JWT (`SecurityConfig`), com permissões por perfil (tabela
+  abaixo). A situação e o perfil do usuário são conferidos no banco a cada requisição (`AutenticadorJwt`): uma conta
+  desativada perde o acesso imediatamente, e **trocar a senha encerra as sessões abertas** (tokens emitidos antes da
+  troca são recusados). No chat, cada usuário só recebe eventos das conversas de que participa.
+- **Necessidade (art. 6º, III):** salário, encargos e custo por hora ou por turno de cada pessoa só chegam aos perfis
+  `ADMIN` e `GESTOR`. Para o `SUPERVISOR` a API envia esses campos vazios (`@Confidencial` +
+  `SerializacaoConfidencial`); os totais do dia e da semana continuam visíveis.
 - **Senhas:** armazenadas apenas como hash **BCrypt**, com política de senha forte (`SenhaForteValidator`).
 - **Imagens:** fotos e anexos são validados e **regravados em JPEG** no servidor (`Imagens`), o que descarta metadados
   como localização (EXIF). Imagens do chat só são servidas a participantes da conversa.
@@ -37,17 +40,33 @@ O sistema trata dados pessoais de **colaboradores** do supermercado e dos **usu�
 - **Dados de demonstração:** o cenário carregado no primeiro start (`APP_SEED`) usa **nomes e valores fictícios**.
   Os dados reais do parceiro só entram no ambiente de produção, com `APP_SEED=false`.
 
+## Perfis de acesso
+
+| Ação | ADMIN | GESTOR | SUPERVISOR |
+|------|:-----:|:------:|:----------:|
+| Consultar painel, escalas, férias, movimento e cadastros | ✅ | ✅ | ✅ |
+| Trocar colaborador num turno, lançar o fechamento do dia, chat | ✅ | ✅ | ✅ |
+| Editar matriz, gerar, aprovar e reabrir escala; registrar férias | ✅ | ✅ | ❌ |
+| Alterar cadastros, parâmetros, feriados e projeções; simulador de custos | ✅ | ✅ | ❌ |
+| Ver salário, encargos e custo individual | ✅ | ✅ | ❌ |
+| Gerenciar usuários | ✅ | ❌ | ❌ |
+
+A regra vale no servidor (`SecurityConfig`, 403 com a mensagem "Seu perfil não permite esta ação."); a interface só
+esconde os botões que o perfil não pode usar. Testado em `SegurancaIntegracaoTest` e `Permissoes.test.tsx`.
+
 ## Segurança (OWASP Top 10)
 
 | Risco | Medida |
 |-------|--------|
-| Quebra de controle de acesso | Rotas protegidas por padrão; perfil `ADMIN` para usuários; filtro por participante no chat. Testado em `*IntegracaoTest`. |
-| Falhas de criptografia | BCrypt nas senhas; JWT assinado (HMAC-SHA) com chave do ambiente e expiração de 10 h; HTTPS em produção. |
+| Quebra de controle de acesso | Rotas protegidas por padrão e permissões por perfil (tabela acima); dados salariais ocultos de quem não pode vê-los; filtro por participante no chat. Testado em `*IntegracaoTest`. |
+| Falhas de criptografia | BCrypt nas senhas; JWT assinado (HMAC-SHA) com chave do ambiente e expiração de 10 h; HTTPS com HSTS em produção. |
 | Injeção | Acesso a dados só por Spring Data JPA (consultas parametrizadas); validação de entrada com Bean Validation. |
-| XSS | O React escapa todo conteúdo renderizado; não há `dangerouslySetInnerHTML`. Imagens enviadas são regravadas. |
+| XSS | O React escapa todo conteúdo renderizado; não há `dangerouslySetInnerHTML`. Imagens enviadas são regravadas. **Content-Security-Policy** só permite scripts, estilos, fontes e conexões da própria origem e proíbe enquadramento. |
 | CSRF | Não se aplica: a autenticação é por cabeçalho `Authorization` (sem cookie de sessão), por isso o CSRF do Spring fica desligado. |
-| Configuração insegura | Métricas e health check só na porta interna 8081; contêiner roda com usuário sem privilégios. |
-| Componentes vulneráveis | Análise estática e de segurança no SonarCloud a cada push. |
+| Falhas de identificação e autenticação | **Limite de tentativas** (`LimiteTentativas`): 5 senhas erradas bloqueiam o login por 15 min (HTTP 429), e 30 falhas do mesmo IP bloqueiam esse IP. A resposta tem o mesmo texto e o mesmo tempo para login inexistente e senha errada. Trocar a senha encerra as sessões. |
+| Configuração insegura | Métricas e health check só na porta interna 8081; contêiner sem privilégios; cabeçalhos `X-Frame-Options`, `X-Content-Type-Options`, `Referrer-Policy` e `Permissions-Policy`; WebSocket aceita só a própria origem em produção; em desenvolvimento as portas ficam só em `127.0.0.1`. |
+| Negação de serviço | Limites de entrada: períodos máximos nas consultas por data, até 500 pessoas por setor no simulador, imagens de até 5 MB e 4096 px, login e senha com tamanho máximo, até 100 participantes por pedido no chat. |
+| Componentes vulneráveis | Análise estática e de segurança no SonarCloud a cada push; dependências mantidas sem alertas no `npm audit` e na última versão de correção do Spring Boot. |
 
 ## Acessibilidade (WCAG 2.1)
 
