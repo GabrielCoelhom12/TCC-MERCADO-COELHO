@@ -35,7 +35,7 @@ export default function App() {
           <Route path="escalas/:id" element={<MatrizEscala />} />
           <Route path="ferias" element={<Ferias />} />
           <Route path="movimento" element={<Movimento />} />
-          <Route path="simulador" element={<Simulador />} />
+          {usuario.perfil !== 'SUPERVISOR' && <Route path="simulador" element={<Simulador />} />}
           <Route path="mensagens" element={<Mensagens />} />
           <Route path="funcionarios" element={<Funcionarios />} />
           <Route path="setores" element={<Setores />} />

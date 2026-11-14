@@ -11,18 +11,19 @@ export interface Setor {
   clientesPorColaboradorHora: number | null;
 }
 
+/** Salário, encargos e custo/hora chegam nulos para quem não pode ver remuneração (perfil SUPERVISOR). */
 export interface Funcionario {
   id: number;
   nome: string;
   matricula: string | null;
   cargo: string | null;
   setor: Setor;
-  salarioMensal: number;
+  salarioMensal: number | null;
   cargaHorariaMensal: number;
-  percentualEncargos: number;
+  percentualEncargos: number | null;
   ativo: boolean;
   diasDisponiveis: DiaSemana[];
-  custoHora: number;
+  custoHora: number | null;
   foto: string | null;
 }
 
@@ -171,7 +172,7 @@ export interface TurnoDTO {
   intervaloMinutos: number;
   rotulo: string;
   horas: number;
-  custo: number;
+  custo: number | null;
 }
 
 export interface LinhaFuncionario {
@@ -181,7 +182,7 @@ export interface LinhaFuncionario {
   setorId: number;
   setorNome: string;
   setorCor: string;
-  custoHora: number;
+  custoHora: number | null;
   diasDisponiveis: DiaSemana[];
   ativo: boolean;
 }
@@ -377,7 +378,7 @@ export interface CandidatoSubstituto {
   mesmoSetor: boolean;
   horasSemana: number;
   horasComTroca: number;
-  custoTurno: number;
+  custoTurno: number | null;
   apto: boolean;
   /** Regras que a troca violaria (erros): impedem a troca. */
   impedimentos: string[];

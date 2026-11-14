@@ -644,3 +644,9 @@ button.icone.ativo { background: var(--laranja-fundo); border-color: var(--laran
 .lista-ferias .membro { display: flex; flex-direction: column; line-height: 1.3; min-width: 0; }
 .lista-ferias .membro strong, .lista-ferias .membro span { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .lista-ferias .periodo-ferias { color: var(--tinta-2); white-space: nowrap; }
+
+/* ---------- perfil que só consulta ---------- */
+fieldset.somente-leitura { border: 0; margin: 0; min-width: 0; }
+fieldset.somente-leitura.card { border: 1px solid var(--borda); }
+fieldset.somente-leitura.form-grid { padding: 0; }
+fieldset.somente-leitura:disabled input, fieldset.somente-leitura:disabled select { background: var(--fundo); color: var(--tinta-2); cursor: default; }

@@ -1,9 +1,10 @@
 import { useState } from 'react';
 import { api } from '../api';
+import { usePermissoes } from '../auth';
 import Avatar from '../components/Avatar';
 import SeletorFoto, { aplicarFoto, fotoInicial, type EstadoFoto } from '../components/SeletorFoto';
-import { Carregando, Modal, mensagemErro, useCarregar, useToast } from '../components/ui';
-import { DIAS_SEMANA, MOTIVOS_AUSENCIA, dataLonga, moeda } from '../format';
+import { AvisoConsulta, Carregando, Modal, mensagemErro, useCarregar, useToast } from '../components/ui';
+import { DIAS_SEMANA, MOTIVOS_AUSENCIA, dataLonga, moeda, moedaConfidencial } from '../format';
 import type { Ausencia, DiaSemana, Funcionario, MotivoAusencia, Setor } from '../types';
 
 type Form = {
@@ -27,6 +28,7 @@ export default function Funcionarios() {
   const [ausenciasDe, setAusenciasDe] = useState<Funcionario | null>(null);
   const [filtroSetor, setFiltroSetor] = useState<number | 0>(0);
   const toast = useToast();
+  const { podeEditar } = usePermissoes();
 
   if (!dados) return <Carregando erro={erro} />;
   const [funcionarios, setores, ausencias] = dados;
@@ -40,7 +42,7 @@ export default function Funcionarios() {
 
   const editar = (f: Funcionario) => setForm({
     id: f.id, nome: f.nome, matricula: f.matricula ?? '', cargo: f.cargo ?? '', setorId: f.setor.id,
-    salarioMensal: f.salarioMensal, cargaHorariaMensal: f.cargaHorariaMensal, percentualEncargos: f.percentualEncargos,
+    salarioMensal: f.salarioMensal ?? 0, cargaHorariaMensal: f.cargaHorariaMensal, percentualEncargos: f.percentualEncargos ?? 0,
     ativo: f.ativo, diasDisponiveis: f.diasDisponiveis, foto: fotoInicial(f.foto),
   });
 
@@ -87,8 +89,10 @@ export default function Funcionarios() {
           <option value={0}>Todos os setores</option>
           {setores.map((s) => <option key={s.id} value={s.id}>{s.nome}</option>)}
         </select>
-        <button className="primario" onClick={novo} disabled={!setores.length}>+ Novo colaborador</button>
+        {podeEditar && <button className="primario" onClick={novo} disabled={!setores.length}>+ Novo colaborador</button>}
       </div>
+
+      {!podeEditar && <AvisoConsulta />}
 
       <div className="card tabela-wrap">
         <table>
@@ -113,21 +117,23 @@ export default function Funcionarios() {
                     </div>
                   </td>
                   <td><span className="ponto" style={{ background: f.setor.cor }} /> {f.setor.nome}</td>
-                  <td className="num">{moeda(f.salarioMensal)}</td>
-                  <td className="num">{f.percentualEncargos}%</td>
-                  <td className="num"><strong>{moeda(f.custoHora)}</strong></td>
+                  <td className="num">{moedaConfidencial(f.salarioMensal)}</td>
+                  <td className="num">{f.percentualEncargos == null ? '—' : `${f.percentualEncargos}%`}</td>
+                  <td className="num"><strong>{moedaConfidencial(f.custoHora)}</strong></td>
                   <td className="small">
                     {f.diasDisponiveis.length === 7 ? 'Todos os dias'
                       : DIAS_SEMANA.filter((d) => f.diasDisponiveis.includes(d.dia)).map((d) => d.rotulo).join(', ')}
                   </td>
                   <td>
-                    <button className="link" onClick={() => setAusenciasDe(f)}>
-                      {aus.length ? `${aus.length} registro(s)` : 'Registrar'}
-                    </button>
+                    {podeEditar ? (
+                      <button className="link" onClick={() => setAusenciasDe(f)}>
+                        {aus.length ? `${aus.length} registro(s)` : 'Registrar'}
+                      </button>
+                    ) : <span className="small muted">{aus.length ? `${aus.length} registro(s)` : '—'}</span>}
                   </td>
                   <td className="num">
-                    <button onClick={() => editar(f)}>Editar</button>{' '}
-                    <button className="perigo" onClick={() => excluir(f)}>Excluir</button>
+                    {podeEditar && <><button onClick={() => editar(f)}>Editar</button>{' '}
+                      <button className="perigo" onClick={() => excluir(f)}>Excluir</button></>}
                   </td>
                 </tr>
               );

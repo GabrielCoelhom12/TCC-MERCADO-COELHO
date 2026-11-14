@@ -130,7 +130,7 @@ function Candidatos({ candidatos, enviando, onTrocar }: {
                 <span className="ponto-setor" style={{ background: c.setorCor }} aria-hidden />{c.setorNome}
                 {c.mesmoSetor && <span className="badge ok">Mesmo setor</span>}
               </span>
-              <span className="small">{`${horas(c.horasSemana)} → ${horas(c.horasComTroca)} na semana`} · {moeda(c.custoTurno)}</span>
+              <span className="small">{`${horas(c.horasSemana)} → ${horas(c.horasComTroca)} na semana`}{c.custoTurno != null && ` · ${moeda(c.custoTurno)}`}</span>
               {c.alertas.map((a) => <span key={a} className="small texto-alerta">{a}</span>)}
             </span>
             <button onClick={() => onTrocar(c)} disabled={enviando !== null} aria-label={`Passar turno para ${c.nome}`}>

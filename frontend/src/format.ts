@@ -4,6 +4,8 @@ const moedaFmt = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: '
 const numFmt = new Intl.NumberFormat('pt-BR', { maximumFractionDigits: 2 });
 
 export const moeda = (v: number | null | undefined) => moedaFmt.format(v ?? 0);
+/** Valor de remuneração individual: chega nulo para quem não pode vê-lo (perfil SUPERVISOR). */
+export const moedaConfidencial = (v: number | null | undefined) => (v == null ? '—' : moeda(v));
 export const numero = (v: number | null | undefined) => numFmt.format(v ?? 0);
 
 export const pct = (parte: number, total: number) =>

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Palmtree, Search } from 'lucide-react';
 import { api } from '../api';
+import { usePermissoes } from '../auth';
 import Avatar from '../components/Avatar';
 import { Carregando, Modal, mensagemErro, useCarregar, useToast } from '../components/ui';
 import { DIAS_SEMANA, dataCurta, dataLonga, diaSemanaDe, hora, isoDe, paraData } from '../format';
@@ -54,6 +55,7 @@ export default function Ferias() {
     Promise.all([api.get<Ausencia[]>('/ferias'), api.get<Funcionario[]>('/funcionarios')]));
   const [busca, setBusca] = useState('');
   const [form, setForm] = useState<Form | null>(null);
+  const { podeEditar } = usePermissoes();
 
   if (!dados) return <Carregando erro={erro} />;
   const [ferias, funcionarios] = dados;
@@ -81,9 +83,9 @@ export default function Ferias() {
           <Search size={16} aria-hidden />
           <input placeholder="Buscar colaborador" value={busca} onChange={(e) => setBusca(e.target.value)} aria-label="Buscar colaborador" />
         </label>
-        <button className="primario" onClick={() => setForm({ funcionarioId: '', inicio: '', fim: '', observacao: '' })}>
+        {podeEditar && <button className="primario" onClick={() => setForm({ funcionarioId: '', inicio: '', fim: '', observacao: '' })}>
           <Palmtree size={16} aria-hidden />Registrar férias
-        </button>
+        </button>}
       </div>
 
       <div className="grid-kpi">
@@ -104,14 +106,14 @@ export default function Ferias() {
         </div>
       </div>
 
-      <Secao titulo="Em andamento" itens={andamento} porId={porId} hoje={hoje} onEditar={editar}
+      <Secao titulo="Em andamento" itens={andamento} porId={porId} hoje={hoje} onEditar={podeEditar ? editar : undefined}
         vazio="Ninguém de férias hoje." />
-      <Secao titulo="Programadas" itens={programadas} porId={porId} hoje={hoje} onEditar={editar}
+      <Secao titulo="Programadas" itens={programadas} porId={porId} hoje={hoje} onEditar={podeEditar ? editar : undefined}
         vazio="Nenhuma férias programada." />
       {encerradas.length > 0 && (
         <details className="card encerradas">
           <summary>Encerradas ({encerradas.length})</summary>
-          <TabelaFerias itens={encerradas} porId={porId} hoje={hoje} onEditar={editar} />
+          <TabelaFerias itens={encerradas} porId={porId} hoje={hoje} onEditar={podeEditar ? editar : undefined} />
         </details>
       )}
 
@@ -126,7 +128,8 @@ export default function Ferias() {
   );
 }
 
-type Lista = { itens: Ausencia[]; porId: Map<number, Funcionario>; hoje: string; onEditar: (f: Ausencia) => void };
+/** Sem {@code onEditar} (perfil que só consulta), as linhas não têm o botão Editar. */
+type Lista = { itens: Ausencia[]; porId: Map<number, Funcionario>; hoje: string; onEditar?: (f: Ausencia) => void };
 
 function Secao({ titulo, vazio, ...lista }: Lista & { titulo: string; vazio: string }) {
   const id = `ferias-${titulo.toLowerCase().replace(/\s+/g, '-')}`;
@@ -167,7 +170,7 @@ function TabelaFerias({ itens, porId, hoje, onEditar }: Lista) {
                 <td className="num">{dias(entre(f.inicio, f.fim) + 1)}</td>
                 <td><Situacao f={f} hoje={hoje} /></td>
                 <td className="num">
-                  <button className="link" onClick={() => onEditar(f)} aria-label={`Editar férias de ${f.funcionarioNome}`}>Editar</button>
+                  {onEditar && <button className="link" onClick={() => onEditar(f)} aria-label={`Editar férias de ${f.funcionarioNome}`}>Editar</button>}
                 </td>
               </tr>
             );

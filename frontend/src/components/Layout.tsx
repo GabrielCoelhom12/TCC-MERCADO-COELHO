@@ -5,11 +5,11 @@ import {
   UserCog, Users,
   type LucideIcon,
 } from 'lucide-react';
-import { useAuth } from '../auth';
+import { useAuth, usePermissoes } from '../auth';
 import { useChat } from '../chat/ChatProvider';
 import Avatar from './Avatar';
 
-type Item = { para: string; rotulo: string; Icone: LucideIcon; exato?: boolean };
+type Item = { para: string; rotulo: string; Icone: LucideIcon; exato?: boolean; soGestao?: boolean };
 type Grupo = { titulo: string; itens: Item[] };
 
 const GRUPOS: Grupo[] = [
@@ -20,7 +20,7 @@ const GRUPOS: Grupo[] = [
       { para: '/escalas', rotulo: 'Escalas', Icone: CalendarDays },
       { para: '/ferias', rotulo: 'Férias', Icone: Palmtree },
       { para: '/movimento', rotulo: 'Movimento e previsão', Icone: TrendingUp },
-      { para: '/simulador', rotulo: 'Simulador de custos', Icone: Calculator },
+      { para: '/simulador', rotulo: 'Simulador de custos', Icone: Calculator, soGestao: true },
       { para: '/mensagens', rotulo: 'Mensagens', Icone: MessageCircle },
     ],
   },
@@ -76,7 +76,9 @@ export default function Layout() {
   const { pathname } = useLocation();
   const { nav, estilo } = useIndicador(pathname);
   const { naoLidas } = useChat();
-  const grupos = usuario?.perfil === 'ADMIN' ? [...GRUPOS, ADMINISTRACAO] : GRUPOS;
+  const { podeEditar, admin } = usePermissoes();
+  const grupos = (admin ? [...GRUPOS, ADMINISTRACAO] : GRUPOS)
+    .map((g) => ({ ...g, itens: g.itens.filter((i) => podeEditar || !i.soGestao) }));
 
   return (
     <div className="app">
