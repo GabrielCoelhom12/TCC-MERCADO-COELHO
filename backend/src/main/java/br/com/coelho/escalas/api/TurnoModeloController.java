@@ -1,72 +1,52 @@
 package br.com.coelho.escalas.api;
 
 import br.com.coelho.escalas.dominio.TurnoModelo;
-import br.com.coelho.escalas.repositorio.TurnoModeloRepository;
-import br.com.coelho.escalas.servico.NaoEncontradoException;
-import br.com.coelho.escalas.servico.RegraNegocioException;
+import br.com.coelho.escalas.servico.TurnoModeloService;
+import br.com.coelho.escalas.servico.TurnoModeloService.DadosTurnoModelo;
 import jakarta.validation.Valid;
-import jakarta.validation.constraints.Min;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
 import org.springframework.http.HttpStatus;
-import org.springframework.transaction.annotation.Transactional;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.ResponseStatus;
+import org.springframework.web.bind.annotation.RestController;
 
-import java.time.LocalTime;
 import java.util.List;
 
+/** Modelos de turno (ex.: Abertura 07:00–15:20). */
 @RestController
 @RequestMapping("/api/turnos-modelo")
 public class TurnoModeloController {
 
-    public record TurnoModeloRequest(@NotBlank String nome, String sigla, @NotNull LocalTime horaInicio,
-                                     @NotNull LocalTime horaFim, @Min(0) int intervaloMinutos,
-                                     TurnoModelo.Aplicacao aplicacao) {
-    }
+    private final TurnoModeloService modelos;
 
-    private final TurnoModeloRepository modelos;
-
-    public TurnoModeloController(TurnoModeloRepository modelos) {
+    public TurnoModeloController(TurnoModeloService modelos) {
         this.modelos = modelos;
     }
 
     @GetMapping
     public List<TurnoModelo> listar() {
-        return modelos.findAllByOrderByHoraInicioAsc();
+        return modelos.listar();
     }
 
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    @Transactional
-    public TurnoModelo criar(@Valid @RequestBody TurnoModeloRequest req) {
-        return modelos.save(aplicar(new TurnoModelo(), req));
+    public TurnoModelo criar(@Valid @RequestBody DadosTurnoModelo req) {
+        return modelos.criar(req);
     }
 
     @PutMapping("/{id}")
-    @Transactional
-    public TurnoModelo atualizar(@PathVariable Long id, @Valid @RequestBody TurnoModeloRequest req) {
-        return aplicar(modelos.findById(id).orElseThrow(() -> new NaoEncontradoException("Modelo de turno", id)), req);
+    public TurnoModelo atualizar(@PathVariable Long id, @Valid @RequestBody DadosTurnoModelo req) {
+        return modelos.atualizar(id, req);
     }
 
     @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void excluir(@PathVariable Long id) {
-        modelos.deleteById(id);
-    }
-
-    private TurnoModelo aplicar(TurnoModelo m, TurnoModeloRequest req) {
-        if (req.horaInicio().equals(req.horaFim())) {
-            throw new RegraNegocioException("Início e fim do turno não podem ser iguais.");
-        }
-        m.setNome(req.nome().trim());
-        m.setSigla(req.sigla() == null || req.sigla().isBlank() ? req.nome().substring(0, Math.min(3, req.nome().length())).toUpperCase() : req.sigla().trim());
-        m.setHoraInicio(req.horaInicio());
-        m.setHoraFim(req.horaFim());
-        m.setIntervaloMinutos(req.intervaloMinutos());
-        m.setAplicacao(req.aplicacao() == null ? TurnoModelo.Aplicacao.TODOS : req.aplicacao());
-        if (m.getHoras() <= 0) {
-            throw new RegraNegocioException("O intervalo não pode ser maior ou igual à duração do turno.");
-        }
-        return m;
+        modelos.excluir(id);
     }
 }

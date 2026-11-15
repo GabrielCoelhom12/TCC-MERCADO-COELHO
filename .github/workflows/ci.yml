@@ -54,7 +54,7 @@ jobs:
             backend/target/site/jacoco/jacoco.xml
 
   frontend:
-    name: Frontend (tipos + testes + cobertura ≥ 25%)
+    name: Frontend (tipos + lint + testes + cobertura ≥ 25%)
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -68,6 +68,7 @@ jobs:
           cache-dependency-path: frontend/package-lock.json
       - run: npm ci
       - run: npm run typecheck
+      - run: npm run lint
       - run: npm run test:coverage
       - uses: actions/upload-artifact@v4
         with:

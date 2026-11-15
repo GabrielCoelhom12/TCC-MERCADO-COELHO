@@ -115,6 +115,38 @@ class UsuarioIntegracaoTest extends IntegracaoTest {
     }
 
     @Test
+    void desativarAContaInvalidaOTokenJaEmitido() throws Exception {
+        long id = criar("carla", "GESTOR");
+        String tokenDoAdmin = token();
+        entrarComo("carla", "Senha@Forte1");
+        String tokenDaCarla = token();
+        get("/api/setores").andExpect(status().isOk());
+
+        usarToken(tokenDoAdmin);
+        put("/api/usuarios/" + id, Map.of("login", "carla", "nome", "Carla", "perfil", "GESTOR", "ativo", false))
+                .andExpect(status().isOk());
+
+        usarToken(tokenDaCarla);
+        get("/api/setores").andExpect(status().isUnauthorized());
+    }
+
+    @Test
+    void mudancaDePerfilValeParaOTokenJaEmitido() throws Exception {
+        long id = criar("davi", "GESTOR");
+        String tokenDoAdmin = token();
+        entrarComo("davi", "Senha@Forte1");
+        String tokenDoDavi = token();
+        get("/api/usuarios").andExpect(status().isForbidden());
+
+        usarToken(tokenDoAdmin);
+        put("/api/usuarios/" + id, Map.of("login", "davi", "nome", "Davi", "perfil", "ADMIN", "ativo", true))
+                .andExpect(status().isOk());
+
+        usarToken(tokenDoDavi);
+        get("/api/usuarios").andExpect(status().isOk());
+    }
+
+    @Test
     void naoPermiteTirarOUltimoAdministrador() throws Exception {
         long gestor = idDe("gestor");
         put("/api/usuarios/" + gestor, Map.of("login", "gestor", "nome", "Gerência", "perfil", "GESTOR", "ativo", true))

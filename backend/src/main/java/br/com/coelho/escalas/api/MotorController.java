@@ -1,15 +1,19 @@
 package br.com.coelho.escalas.api;
 
-import br.com.coelho.escalas.motor.*;
-import br.com.coelho.escalas.servico.ContextoService;
+import br.com.coelho.escalas.motor.CapacidadeDia;
+import br.com.coelho.escalas.motor.ResultadoValidacao;
+import br.com.coelho.escalas.motor.SimuladorCusto;
 import br.com.coelho.escalas.servico.EscalaService;
-import br.com.coelho.escalas.servico.RegraNegocioException;
+import br.com.coelho.escalas.servico.MotorService;
 import org.springframework.format.annotation.DateTimeFormat;
-import org.springframework.web.bind.annotation.*;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 
 import java.time.LocalDate;
-import java.time.temporal.ChronoUnit;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -21,15 +25,11 @@ public class MotorController {
     public record SimulacaoRequest(LocalDate data, Map<Long, Integer> proposta) {
     }
 
-    private final ContextoService contextos;
-    private final MotorFinanceiro motor;
-    private final SimuladorCusto simulador;
+    private final MotorService motor;
     private final EscalaService escalas;
 
-    public MotorController(ContextoService contextos, MotorFinanceiro motor, SimuladorCusto simulador, EscalaService escalas) {
-        this.contextos = contextos;
+    public MotorController(MotorService motor, EscalaService escalas) {
         this.motor = motor;
-        this.simulador = simulador;
         this.escalas = escalas;
     }
 
@@ -37,24 +37,12 @@ public class MotorController {
     @GetMapping("/capacidade")
     public List<CapacidadeDia> capacidade(@RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate inicio,
                                           @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fim) {
-        if (fim.isBefore(inicio) || ChronoUnit.DAYS.between(inicio, fim) > 92) {
-            throw new RegraNegocioException("Período inválido (máximo de 93 dias).");
-        }
-        ContextoCalculo ctx = contextos.carregar(inicio, fim);
-        List<CapacidadeDia> dias = new ArrayList<>();
-        for (LocalDate d = inicio; !d.isAfter(fim); d = d.plusDays(1)) {
-            dias.add(motor.capacidade(d, ctx));
-        }
-        return dias;
+        return motor.capacidade(inicio, fim);
     }
 
     @PostMapping("/simular")
     public SimuladorCusto.Simulacao simular(@RequestBody SimulacaoRequest req) {
-        if (req.data() == null) {
-            throw new RegraNegocioException("Informe a data da simulação.");
-        }
-        ContextoCalculo ctx = contextos.carregar(req.data(), req.data());
-        return simulador.simular(req.data(), req.proposta() == null ? Map.of() : req.proposta(), ctx);
+        return motor.simular(req.data(), req.proposta());
     }
 
     /** Custo escalado × teto e situação de cada dia, considerando todas as escalas do período. */

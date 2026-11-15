@@ -1,9 +1,12 @@
 package br.com.coelho.escalas.api;
 
 import br.com.coelho.escalas.motor.Violacao;
+import br.com.coelho.escalas.servico.MuitasTentativasException;
+import br.com.coelho.escalas.servico.NaoAutenticadoException;
 import br.com.coelho.escalas.servico.NaoEncontradoException;
 import br.com.coelho.escalas.servico.RegraNegocioException;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -15,6 +18,10 @@ import org.springframework.web.server.ResponseStatusException;
 import java.util.List;
 import java.util.stream.Collectors;
 
+/**
+ * Traduz as exceções em respostas JSON uniformes ({@code {"mensagem": ..., "violacoes": [...]}}), que o frontend exibe
+ * diretamente ao usuário.
+ */
 @RestControllerAdvice
 public class TratadorErros {
 
@@ -32,6 +39,18 @@ public class TratadorErros {
     @ExceptionHandler(IllegalArgumentException.class)
     ResponseEntity<Erro> argumento(IllegalArgumentException e) {
         return ResponseEntity.unprocessableEntity().body(new Erro(e.getMessage()));
+    }
+
+    @ExceptionHandler(NaoAutenticadoException.class)
+    ResponseEntity<Erro> naoAutenticado(NaoAutenticadoException e) {
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(new Erro(e.getMessage()));
+    }
+
+    @ExceptionHandler(MuitasTentativasException.class)
+    ResponseEntity<Erro> muitasTentativas(MuitasTentativasException e) {
+        return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
+                .header(HttpHeaders.RETRY_AFTER, String.valueOf(Math.max(1, e.getEspera().getSeconds())))
+                .body(new Erro(e.getMessage()));
     }
 
     @ExceptionHandler(NaoEncontradoException.class)

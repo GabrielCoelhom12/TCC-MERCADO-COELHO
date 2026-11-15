@@ -2,9 +2,17 @@ package br.com.coelho.escalas.api;
 
 import br.com.coelho.escalas.dominio.Escala;
 import br.com.coelho.escalas.motor.ResultadoValidacao;
+import br.com.coelho.escalas.motor.SugestorSubstituicao;
+import br.com.coelho.escalas.servico.ComparacaoAlgoritmosService;
+import br.com.coelho.escalas.servico.EscalaPdfService;
 import br.com.coelho.escalas.servico.EscalaService;
 import br.com.coelho.escalas.servico.EscalaService.*;
+import org.springframework.http.CacheControl;
+import org.springframework.http.ContentDisposition;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
@@ -15,9 +23,13 @@ import java.util.List;
 public class EscalaController {
 
     private final EscalaService servico;
+    private final EscalaPdfService pdfs;
+    private final ComparacaoAlgoritmosService comparacao;
 
-    public EscalaController(EscalaService servico) {
+    public EscalaController(EscalaService servico, EscalaPdfService pdfs, ComparacaoAlgoritmosService comparacao) {
         this.servico = servico;
+        this.pdfs = pdfs;
+        this.comparacao = comparacao;
     }
 
     @GetMapping
@@ -47,14 +59,49 @@ public class EscalaController {
         return servico.matriz(id);
     }
 
+    /** Escala em PDF com a logo: {@code imprimir=true} abre no navegador (inline); senão, baixa o arquivo. */
+    @GetMapping("/{id}/pdf")
+    public ResponseEntity<byte[]> pdf(@PathVariable Long id, @RequestParam(defaultValue = "false") boolean imprimir) {
+        EscalaPdfService.Arquivo arquivo = pdfs.gerar(id);
+        ContentDisposition disposicao = (imprimir ? ContentDisposition.inline() : ContentDisposition.attachment())
+                .filename(arquivo.nome()).build();
+        return ResponseEntity.ok()
+                .contentType(MediaType.APPLICATION_PDF)
+                .header(HttpHeaders.CONTENT_DISPOSITION, disposicao.toString())
+                .cacheControl(CacheControl.noStore())
+                .body(arquivo.conteudo());
+    }
+
     @PutMapping("/{id}/celula")
     public Matriz celula(@PathVariable Long id, @RequestBody CelulaRequest req) {
         return servico.definirCelula(id, req);
     }
 
+    @GetMapping("/{id}/turnos/{turnoId}/substitutos")
+    public SugestorSubstituicao.Sugestao substitutos(@PathVariable Long id, @PathVariable Long turnoId) {
+        return servico.substitutos(id, turnoId);
+    }
+
+    @PostMapping("/{id}/turnos/{turnoId}/substituir")
+    public Matriz substituir(@PathVariable Long id, @PathVariable Long turnoId, @RequestBody SubstituicaoRequest req) {
+        return servico.substituir(id, turnoId, req);
+    }
+
     @PostMapping("/{id}/gerar")
     public Geracao gerar(@PathVariable Long id) {
         return servico.gerar(id);
+    }
+
+    /** Gera com otimização (Timefold Solver), em vez do gerador guloso. */
+    @PostMapping("/{id}/otimizar")
+    public Geracao otimizar(@PathVariable Long id) {
+        return servico.otimizar(id);
+    }
+
+    /** Compara os dois algoritmos gerando do zero para o período da escala, sem gravar nada. */
+    @GetMapping("/{id}/comparacao")
+    public ComparacaoAlgoritmosService.Comparacao comparacao(@PathVariable Long id) {
+        return comparacao.comparar(id);
     }
 
     @PostMapping("/{id}/limpar")

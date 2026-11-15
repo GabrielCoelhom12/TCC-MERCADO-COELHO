@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
 import { Plus, Trash2 } from 'lucide-react';
 import { api } from '../api';
-import { Carregando, mensagemErro, useCarregar, useToast } from '../components/ui';
+import { usePermissoes } from '../auth';
+import { AvisoConsulta, Carregando, mensagemErro, useCarregar, useToast } from '../components/ui';
 import type { FaixaHoraria, Parametros } from '../types';
 
 type Campo = { chave: keyof Parametros; rotulo: string; ajuda: string; passo?: string };
@@ -30,6 +31,7 @@ export default function ParametrosPage() {
   useEffect(() => {
     if (dados) setForm({ ...dados });
   }, [dados]);
+  const { podeEditar } = usePermissoes();
 
   if (!form) return <Carregando erro={erro} />;
 
@@ -59,8 +61,12 @@ export default function ParametrosPage() {
           <p>Configure conforme a CLT e a convenção coletiva do sindicato dos comerciários.</p>
         </div>
         <div className="spacer" />
-        <button className="primario" onClick={salvar}>Salvar</button>
+        {podeEditar && <button className="primario" onClick={salvar}>Salvar</button>}
       </div>
+
+      {!podeEditar && <AvisoConsulta />}
+
+      <fieldset className="stack somente-leitura" disabled={!podeEditar}>
 
       <div className="card">
         <h2>Custos</h2>
@@ -106,6 +112,7 @@ export default function ParametrosPage() {
           Intervalo intrajornada (CLT art. 71) também é validado: jornadas acima de 6h exigem 1h de intervalo; entre 4h e 6h, 15 minutos.
         </p>
       </div>
+      </fieldset>
     </div>
   );
 }
@@ -117,6 +124,7 @@ function EditorFaixas() {
   const { dados, erro, recarregar } = useCarregar(() => api.get<FaixaHoraria[]>('/movimento/faixas'));
   const [linhas, setLinhas] = useState<LinhaFaixa[] | null>(null);
   const toast = useToast();
+  const { podeEditar } = usePermissoes();
 
   useEffect(() => {
     if (dados) setLinhas(dados.map((f) => ({ inicio: f.inicio.slice(0, 5), fim: f.fim.slice(0, 5) })));
@@ -150,20 +158,24 @@ function EditorFaixas() {
             <input type="time" value={l.inicio} aria-label={`Início da faixa ${i + 1}`} onChange={(e) => mudar(i, 'inicio', e.target.value)} />
             <span className="muted">até</span>
             <input type="time" value={l.fim} aria-label={`Fim da faixa ${i + 1}`} onChange={(e) => mudar(i, 'fim', e.target.value)} />
-            <button className="icone perigo" aria-label={`Remover faixa ${i + 1}`} disabled={linhas.length === 1}
-              onClick={() => setLinhas(linhas.filter((_, j) => j !== i))}>
-              <Trash2 size={15} aria-hidden />
-            </button>
+            {podeEditar && (
+              <button className="icone perigo" aria-label={`Remover faixa ${i + 1}`} disabled={linhas.length === 1}
+                onClick={() => setLinhas(linhas.filter((_, j) => j !== i))}>
+                <Trash2 size={15} aria-hidden />
+              </button>
+            )}
           </div>
         ))}
       </div>
-      <div className="row" style={{ marginTop: 12 }}>
-        <button onClick={() => setLinhas([...linhas, { inicio: linhas[linhas.length - 1]?.fim ?? '', fim: '' }])}>
-          <Plus size={15} aria-hidden /> Adicionar faixa
-        </button>
-        <span className="spacer" />
-        <button className="primario" disabled={linhas.some((l) => !l.inicio || !l.fim)} onClick={salvar}>Salvar faixas</button>
-      </div>
+      {podeEditar && (
+        <div className="row" style={{ marginTop: 12 }}>
+          <button onClick={() => setLinhas([...linhas, { inicio: linhas[linhas.length - 1]?.fim ?? '', fim: '' }])}>
+            <Plus size={15} aria-hidden /> Adicionar faixa
+          </button>
+          <span className="spacer" />
+          <button className="primario" disabled={linhas.some((l) => !l.inicio || !l.fim)} onClick={salvar}>Salvar faixas</button>
+        </div>
+      )}
     </div>
   );
 }

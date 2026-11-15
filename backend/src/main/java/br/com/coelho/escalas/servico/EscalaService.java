@@ -2,6 +2,7 @@ package br.com.coelho.escalas.servico;
 
 import br.com.coelho.escalas.dominio.*;
 import br.com.coelho.escalas.motor.*;
+import br.com.coelho.escalas.motor.otimizacao.OtimizadorEscala;
 import br.com.coelho.escalas.repositorio.*;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -11,6 +12,7 @@ import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
 import java.util.Comparator;
 import java.util.List;
@@ -23,6 +25,7 @@ public class EscalaService {
     /** Janela extra carregada antes/depois do período para regras de continuidade (domingos, interjornada...). */
     private static final int MARGEM_DIAS = 21;
     private static final int MAX_DIAS_ESCALA = 62;
+    private static final DateTimeFormatter DIA_MES = DateTimeFormatter.ofPattern("dd/MM");
 
     public record EscalaRequest(String nome, LocalDate dataInicio, LocalDate dataFim, String observacao) {
     }
@@ -35,11 +38,11 @@ public class EscalaService {
     }
 
     public record TurnoDTO(Long id, Long funcionarioId, LocalDate data, LocalTime horaInicio, LocalTime horaFim,
-                           int intervaloMinutos, String rotulo, BigDecimal horas, BigDecimal custo) {
+                           int intervaloMinutos, String rotulo, BigDecimal horas, @Confidencial BigDecimal custo) {
     }
 
     public record LinhaFuncionario(Long id, String nome, String cargo, Long setorId, String setorNome, String setorCor,
-                                   BigDecimal custoHora, Set<DayOfWeek> diasDisponiveis, boolean ativo) {
+                                   @Confidencial BigDecimal custoHora, Set<DayOfWeek> diasDisponiveis, boolean ativo) {
     }
 
     public record Matriz(Escala escala, List<LinhaFuncionario> funcionarios, List<TurnoDTO> turnos,
@@ -47,6 +50,9 @@ public class EscalaService {
     }
 
     public record Geracao(int turnosCriados, List<GeradorEscala.Deficit> deficits, Matriz matriz) {
+    }
+
+    public record SubstituicaoRequest(Long funcionarioId) {
     }
 
     private final EscalaRepository escalas;
@@ -57,10 +63,14 @@ public class EscalaService {
     private final MotorFinanceiro motor;
     private final ValidadorEscala validador;
     private final GeradorEscala gerador;
+    private final OtimizadorEscala otimizador;
+    private final SugestorSubstituicao sugestor;
+    private final LimiteOtimizacoes limiteOtimizacoes;
 
     public EscalaService(EscalaRepository escalas, TurnoRepository turnos, FuncionarioRepository funcionarios,
                          TurnoModeloRepository modelos, ContextoService contextos, MotorFinanceiro motor,
-                         ValidadorEscala validador, GeradorEscala gerador) {
+                         ValidadorEscala validador, GeradorEscala gerador, SugestorSubstituicao sugestor,
+                         OtimizadorEscala otimizador, LimiteOtimizacoes limiteOtimizacoes) {
         this.escalas = escalas;
         this.turnos = turnos;
         this.funcionarios = funcionarios;
@@ -69,6 +79,9 @@ public class EscalaService {
         this.motor = motor;
         this.validador = validador;
         this.gerador = gerador;
+        this.limiteOtimizacoes = limiteOtimizacoes;
+        this.otimizador = otimizador;
+        this.sugestor = sugestor;
     }
 
     // ------------------------------------------------------------------ CRUD
@@ -215,10 +228,69 @@ public class EscalaService {
         return null; // folga
     }
 
+    // ------------------------------------------------------------------ troca de colaborador
+
+    /** Semana do colaborador escalado no turno e colegas que podem cobri-lo, já validados pelas regras individuais. */
+    @Transactional(readOnly = true)
+    public SugestorSubstituicao.Sugestao substitutos(Long escalaId, Long turnoId) {
+        Turno turno = turnoDa(buscar(escalaId), turnoId);
+        LocalDate data = turno.getData();
+        return sugestor.sugerir(turno, turnos.findByDataBetween(data.minusDays(MARGEM_DIAS), data.plusDays(MARGEM_DIAS)),
+                contextos.carregar(data.minusDays(MARGEM_DIAS), data.plusDays(MARGEM_DIAS)));
+    }
+
+    /** Passa o turno (mesmo dia e horário) para outro colaborador, desde que ele esteja apto e o bloqueio financeiro permita. */
+    @Transactional
+    public Matriz substituir(Long escalaId, Long turnoId, SubstituicaoRequest req) {
+        Escala e = buscar(escalaId);
+        exigirEditavel(e);
+        Turno turno = turnoDa(e, turnoId);
+        Funcionario novo = funcionarios.findById(req.funcionarioId())
+                .orElseThrow(() -> new NaoEncontradoException("Colaborador", req.funcionarioId()));
+
+        SugestorSubstituicao.Candidato candidato = substitutos(escalaId, turnoId).candidatos().stream()
+                .filter(c -> c.funcionarioId().equals(novo.getId()))
+                .findFirst()
+                .orElseThrow(() -> new RegraNegocioException(novo.getNome() + " não pode cobrir este turno: já está escalado neste dia ou inativo."));
+        if (!candidato.apto()) {
+            throw new RegraNegocioException(novo.getNome() + " não pode cobrir este turno: " + String.join(" ", candidato.impedimentos()));
+        }
+
+        ContextoCalculo ctx = contextoDa(e);
+        DiaSnapshot antes = snapshot(turno.getData(), ctx);
+        turno.setFuncionario(novo);
+        turnos.saveAndFlush(turno);
+        aplicarBloqueioFinanceiro(turno.getData(), antes, ctx);
+        return matriz(escalaId);
+    }
+
+    private Turno turnoDa(Escala e, Long turnoId) {
+        return turnos.findById(turnoId)
+                .filter(t -> t.getEscala().getId().equals(e.getId()))
+                .orElseThrow(() -> new NaoEncontradoException("Turno", turnoId));
+    }
+
     // ------------------------------------------------------------------ geração, validação e aprovação
 
     @Transactional
     public Geracao gerar(Long id) {
+        return gerarCom(id, gerador::gerar);
+    }
+
+    /** Como {@link #gerar}, mas com o otimizador (Timefold), que escolhe quem ocupa cada vaga olhando a semana toda. */
+    @Transactional
+    public Geracao otimizar(Long id) {
+        return limiteOtimizacoes.executar(() -> gerarCom(id, otimizador::gerar));
+    }
+
+    /** Assinatura comum ao gerador guloso e ao otimizador. */
+    @FunctionalInterface
+    private interface Algoritmo {
+        GeradorEscala.ResultadoGeracao gerar(LocalDate inicio, LocalDate fim, List<Turno> vizinhos, List<TurnoModelo> modelos,
+                                             ContextoCalculo ctx);
+    }
+
+    private Geracao gerarCom(Long id, Algoritmo algoritmo) {
         Escala e = buscar(id);
         exigirEditavel(e);
         turnos.deleteByEscalaId(id);
@@ -226,7 +298,7 @@ public class EscalaService {
 
         ContextoCalculo ctx = contextoDa(e);
         List<Turno> vizinhos = turnos.findByDataBetween(e.getDataInicio().minusDays(MARGEM_DIAS), e.getDataFim().plusDays(MARGEM_DIAS));
-        GeradorEscala.ResultadoGeracao resultado = gerador.gerar(e.getDataInicio(), e.getDataFim(), vizinhos,
+        GeradorEscala.ResultadoGeracao resultado = algoritmo.gerar(e.getDataInicio(), e.getDataFim(), vizinhos,
                 modelos.findAllByOrderByHoraInicioAsc(), ctx);
         resultado.turnos().forEach(t -> t.setEscala(e));
         turnos.saveAll(resultado.turnos());
@@ -315,7 +387,6 @@ public class EscalaService {
     }
 
     private static String nomePadrao(LocalDate inicio, LocalDate fim) {
-        var fmt = java.time.format.DateTimeFormatter.ofPattern("dd/MM");
-        return "Escala " + fmt.format(inicio) + " a " + fmt.format(fim);
+        return "Escala " + DIA_MES.format(inicio) + " a " + DIA_MES.format(fim);
     }
 }
