@@ -13,7 +13,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
-/** Consultas diretas ao Motor de Cálculo e Otimização Financeira, com os dados atuais do banco. */
+/** Consultas diretas ao motor de cálculo do custo da escala, com os dados atuais do banco. */
 @Service
 public class MotorService {
 
