@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { api } from '../api';
-import { Carregando, Modal, mensagemErro, useCarregar, useToast } from '../components/ui';
+import { usePermissoes } from '../auth';
+import { AvisoConsulta, Carregando, Modal, mensagemErro, useCarregar, useToast } from '../components/ui';
 import { hora, horas } from '../format';
 import type { Aplicacao, TurnoModelo } from '../types';
 
@@ -16,6 +17,7 @@ export default function Turnos() {
   const { dados, erro, recarregar } = useCarregar(() => api.get<TurnoModelo[]>('/turnos-modelo'));
   const [form, setForm] = useState<Form | null>(null);
   const toast = useToast();
+  const { podeEditar } = usePermissoes();
 
   if (!dados) return <Carregando erro={erro} />;
 
@@ -45,8 +47,10 @@ export default function Turnos() {
           <p>Horários padrão usados na montagem das escalas.</p>
         </div>
         <div className="spacer" />
-        <button className="primario" onClick={() => setForm({ nome: '', sigla: '', horaInicio: '07:00', horaFim: '15:20', intervaloMinutos: 60, aplicacao: 'DIAS_UTEIS' })}>+ Novo modelo</button>
+        {podeEditar && <button className="primario" onClick={() => setForm({ nome: '', sigla: '', horaInicio: '07:00', horaFim: '15:20', intervaloMinutos: 60, aplicacao: 'DIAS_UTEIS' })}>+ Novo modelo</button>}
       </div>
+
+      {!podeEditar && <AvisoConsulta />}
       <div className="card tabela-wrap">
         <table>
           <thead><tr><th>Sigla</th><th>Nome</th><th>Horário</th><th className="num">Intervalo</th><th className="num">Horas trabalhadas</th><th>Aplicação</th><th></th></tr></thead>
@@ -60,8 +64,8 @@ export default function Turnos() {
                 <td className="num">{horas(t.horas)}</td>
                 <td>{APLICACAO[t.aplicacao]}</td>
                 <td className="num">
-                  <button onClick={() => setForm({ ...t, horaInicio: hora(t.horaInicio), horaFim: hora(t.horaFim) })}>Editar</button>{' '}
-                  <button className="perigo" onClick={() => excluir(t)}>Excluir</button>
+                  {podeEditar && <><button onClick={() => setForm({ ...t, horaInicio: hora(t.horaInicio), horaFim: hora(t.horaFim) })}>Editar</button>{' '}
+                    <button className="perigo" onClick={() => excluir(t)}>Excluir</button></>}
                 </td>
               </tr>
             ))}

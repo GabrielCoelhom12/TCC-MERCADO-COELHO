@@ -1,5 +1,6 @@
 package br.com.coelho.escalas.api;
 
+import br.com.coelho.escalas.seguranca.LimiteTentativas;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
@@ -21,10 +22,9 @@ import java.util.Map;
 
 /**
  * Base dos testes de integração: sobe a aplicação completa contra o PostgreSQL de teste (com o cenário
- * de demonstração carregado) e desfaz as alterações de cada teste ao final. O servidor roda numa porta real para que
- * os testes de WebSocket compartilhem o mesmo contexto (e o mesmo esquema de banco) dos demais.
+ * de demonstração carregado) e desfaz as alterações de cada teste ao final.
  */
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT)
+@SpringBootTest
 @AutoConfigureMockMvc
 @ActiveProfiles("test")
 @Transactional
@@ -38,8 +38,13 @@ abstract class IntegracaoTest {
 
     private String token;
 
+    @Autowired
+    private LimiteTentativas limiteTentativas;
+
     @BeforeEach
     void autenticar() throws Exception {
+        // As falhas de login ficam em memória e o contexto do Spring é compartilhado: cada teste começa do zero.
+        limiteTentativas.limpar();
         entrarComo("gestor", "senha-de-teste");
     }
 
@@ -80,7 +85,7 @@ abstract class IntegracaoTest {
         return mvc.perform(autenticado(req));
     }
 
-    /** Token JWT do usuário atual (para clientes que não passam pelo MockMvc, como o WebSocket). */
+    /** Token JWT do usuário atual (para trocar de sessão no meio do teste). */
     protected String token() {
         return token;
     }

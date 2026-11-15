@@ -22,5 +22,6 @@ SOFTWARE.
 
 ---
 
-The Supermercado Coelho logos in frontend/public (logo*.svg, logo*.png) are
-trademarks of their owner and are not covered by this license.
+The Supermercado Coelho logos in frontend/public (logo*.svg, logo*.png) and
+backend/src/main/resources/relatorio (logo-coelho.png) are trademarks of their
+owner and are not covered by this license.

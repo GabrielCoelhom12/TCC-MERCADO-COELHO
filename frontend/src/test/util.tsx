@@ -25,14 +25,14 @@ export function mockFetch(rotas: Record<string, Resposta | ((corpo: unknown) => 
   return fn;
 }
 
-export function logar() {
+export function logar(perfil: 'ADMIN' | 'GESTOR' | 'SUPERVISOR' = 'ADMIN') {
   localStorage.setItem('coelho.token', 'token-teste');
-  localStorage.setItem('coelho.usuario', JSON.stringify({ id: 1, nome: 'Gerência', login: 'gestor', perfil: 'ADMIN' }));
+  localStorage.setItem('coelho.usuario', JSON.stringify({ id: 1, nome: 'Gerência', login: 'gestor', perfil }));
 }
 
 export function renderizar(ui: ReactElement, rota = '/') {
   return render(
-    <MemoryRouter initialEntries={[rota]} future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+    <MemoryRouter initialEntries={[rota]}>
       <AuthProvider>
         <ToastProvider>{ui}</ToastProvider>
       </AuthProvider>

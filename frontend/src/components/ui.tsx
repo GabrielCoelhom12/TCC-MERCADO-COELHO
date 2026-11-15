@@ -51,6 +51,11 @@ export function Carregando({ erro }: { erro?: string | null }) {
   return erro ? <div className="aviso erro">{erro}</div> : <p className="muted">Carregando…</p>;
 }
 
+/** Faixa exibida nas telas de cadastro quando o perfil só pode consultar. */
+export function AvisoConsulta() {
+  return <div className="aviso info">Seu perfil permite consultar esta página; as alterações ficam com a gerência.</div>;
+}
+
 // ---------------------------------------------------------------- modal
 
 export function Modal({ titulo, aberto, onFechar, children, acoes }: {

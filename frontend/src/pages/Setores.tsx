@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { api } from '../api';
-import { Carregando, Modal, mensagemErro, useCarregar, useToast } from '../components/ui';
+import { usePermissoes } from '../auth';
+import { AvisoConsulta, Carregando, Modal, mensagemErro, useCarregar, useToast } from '../components/ui';
 import { TIPOS_DIA } from '../format';
 import type { Setor, TipoDia } from '../types';
 
@@ -11,6 +12,7 @@ export default function Setores() {
   const [linhas, setLinhas] = useState<Linha[]>([]);
   const [novo, setNovo] = useState<{ nome: string; cor: string } | null>(null);
   const toast = useToast();
+  const { podeEditar } = usePermissoes();
 
   useEffect(() => {
     if (dados) setLinhas(dados.map((s) => ({ ...s })));
@@ -65,11 +67,15 @@ export default function Setores() {
           <p>Número mínimo de colaboradores por setor em cada dia. Setores com capacidade de atendimento acompanham a previsão de movimento.</p>
         </div>
         <div className="spacer" />
-        <button onClick={() => setNovo({ nome: '', cor: '#F26A1B' })}>+ Novo setor</button>
-        <button className="primario" disabled={!pendentes} onClick={salvar}>Salvar alterações</button>
+        {podeEditar && <>
+          <button onClick={() => setNovo({ nome: '', cor: '#F26A1B' })}>+ Novo setor</button>
+          <button className="primario" disabled={!pendentes} onClick={salvar}>Salvar alterações</button>
+        </>}
       </div>
 
-      <div className="card tabela-wrap">
+      {!podeEditar && <AvisoConsulta />}
+
+      <fieldset className="card tabela-wrap somente-leitura" disabled={!podeEditar}>
         <table>
           <thead>
             <tr>
@@ -100,7 +106,7 @@ export default function Setores() {
                     onChange={(e) => alterar(s.id, { clientesPorColaboradorHora: e.target.value === '' ? null : Number(e.target.value) })} />
                 </td>
                 <td><input type="checkbox" checked={s.ativo} onChange={(e) => alterar(s.id, { ativo: e.target.checked })} /></td>
-                <td className="num"><button className="perigo" onClick={() => excluir(s)}>Excluir</button></td>
+                <td className="num">{podeEditar && <button className="perigo" onClick={() => excluir(s)}>Excluir</button>}</td>
               </tr>
             ))}
             <tr>
@@ -110,7 +116,7 @@ export default function Setores() {
             </tr>
           </tbody>
         </table>
-      </div>
+      </fieldset>
       <p className="ajuda">O perfil "Feriado" se aplica a qualquer feriado cadastrado, independentemente do dia da semana em que caia.
         Com "Clientes/h por pessoa" preenchido (ex.: 30 na frente de caixa), o mínimo vira um piso e o sistema calcula quantas pessoas
         cada faixa de horário precisa a partir da previsão de movimento.</p>

@@ -54,6 +54,7 @@ public class MovimentoService {
     private static final int MAX_FAIXAS = 12;
     private static final int MAX_DIAS_PREVISAO = 31;
     private static final int MAX_DIAS_ASSERTIVIDADE = 92;
+    private static final int MAX_DIAS_FECHAMENTOS = 400;
 
     private final FaixaHorariaRepository faixas;
     private final MovimentoDiarioRepository movimentos;
@@ -97,6 +98,9 @@ public class MovimentoService {
 
     @Transactional(readOnly = true)
     public List<Fechamento> fechamentos(LocalDate inicio, LocalDate fim) {
+        if (fim.isBefore(inicio) || ChronoUnit.DAYS.between(inicio, fim) >= MAX_DIAS_FECHAMENTOS) {
+            throw new RegraNegocioException("Período inválido (máximo de " + MAX_DIAS_FECHAMENTOS + " dias).");
+        }
         return movimentos.findByDataBetweenOrderByDataDesc(inicio, fim).stream().map(MovimentoService::dto).toList();
     }
 

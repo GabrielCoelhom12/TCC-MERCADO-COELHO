@@ -18,7 +18,8 @@ final class Imagens {
 
     static final String FORMATO_INVALIDO = "O arquivo precisa ser uma imagem PNG ou JPEG.";
     /** Evita "bombas de descompressão": imagens pequenas em bytes, mas gigantes em pixels. */
-    private static final int MAX_DIMENSAO = 8000;
+    // 4096 px cobre as fotos de 12 MP dos celulares; cada imagem desse tamanho ocupa ~64 MB ao ser decodificada.
+    private static final int MAX_DIMENSAO = 4096;
 
     private Imagens() {
     }
@@ -85,6 +86,11 @@ final class Imagens {
         } catch (IOException e) {
             throw new IllegalStateException("Falha ao gravar a imagem.", e);
         }
+    }
+
+    /** PNG ou JPEG pela assinatura do arquivo. */
+    static boolean ehImagem(byte[] b) {
+        return ehPng(b) || ehJpeg(b);
     }
 
     private static boolean ehPng(byte[] b) {
