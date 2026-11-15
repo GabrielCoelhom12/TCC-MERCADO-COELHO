@@ -5,7 +5,7 @@
 
 Sistema web que **gera, valida e acompanha as escalas de trabalho** de um supermercado. Ele monta a escala que cobre o
 movimento previsto da loja, respeita a CLT e mantém o custo da equipe dentro de um limite proporcional à receita de cada
-dia. Parceiro: **Supermercado Coelho** (Joinville/SC).
+dia. Parceiro: **Supermercado Coelho** (Indaial/SC).
 
 Trabalho de Conclusão de Curso (PAC VII / PAC VIII) de **Gabriel Coelho** — Engenharia de Software, Católica de Santa
 Catarina, 2026 — linha de projeto **Web Apps**. Stack: **Java 21 · Spring Boot 3.5 · PostgreSQL 17 · React 18 +
@@ -87,7 +87,7 @@ que o sistema já validou e registra férias, atestados e licenças com a substi
 
 **Cadastros e regras**
 - Setores com demanda mínima por tipo de dia e capacidade de atendimento; colaboradores com salário, encargos,
-  disponibilidade, ausências e foto; modelos de turno; feriados (importação dos nacionais e de Joinville);
+  disponibilidade, ausências e foto; modelos de turno; feriados (importação dos nacionais e do aniversário de Indaial);
   projeções de receita; parâmetros da CLT e da convenção coletiva.
 - **Simulador de custos:** compara um quadro montado "no olho" com o recomendado pelo motor e mostra a economia.
 
@@ -229,7 +229,7 @@ Lista completa e ambientes: [docs/deploy.md](docs/deploy.md).
 ### Dados de demonstração
 
 No primeiro início, o banco recebe um **cenário fictício**: 22 colaboradores em 4 setores, modelos de turno,
-projeções de receita, feriados nacionais e de Joinville, 12 semanas de fechamentos hipotéticos para a previsão ter o
+projeções de receita, feriados nacionais e de Indaial, 12 semanas de fechamentos hipotéticos para a previsão ter o
 que aprender e uma escala da próxima semana gerada pelo motor.
 
 ## Uso
@@ -258,12 +258,12 @@ cd frontend; npm run lint             # ESLint, sem avisos
 cd frontend; npm run test:coverage    # Vitest + cobertura ≥ 25%
 ```
 
-Resultado com todos os pull requests de novembro integrados (14/11/2026):
+Resultado com todos os pull requests de novembro integrados (15/11/2026):
 
 | | Testes | Cobertura de linhas | Mínimo exigido |
 |---|---|---|---|
-| Backend (JUnit 5, MockMvc, ArchUnit) | 317, 0 falhas (+1 experimento opcional) | 97,1% (JaCoCo) | 75% |
-| Frontend (Vitest, Testing Library) | 116, 0 falhas | 81,5% | 25% |
+| Backend (JUnit 5, MockMvc, ArchUnit) | 313, 0 falhas (+1 experimento opcional) | 97,1% (JaCoCo) | 75% |
+| Frontend (Vitest, Testing Library) | 117, 0 falhas | 81,6% | 25% |
 
 Os testes seguem os fluxos de negócio:
 - **Integração** (API completa contra o PostgreSQL): `CadastrosIntegracaoTest`, `EscalaIntegracaoTest`,

@@ -10,7 +10,7 @@ import java.util.TimeZone;
 @EnableScheduling
 public class EscalasApplication {
 
-    /** Fuso da loja (Joinville/SC). */
+    /** Fuso da loja (Indaial/SC). */
     static final String FUSO = "America/Sao_Paulo";
 
     public static void main(String[] args) {

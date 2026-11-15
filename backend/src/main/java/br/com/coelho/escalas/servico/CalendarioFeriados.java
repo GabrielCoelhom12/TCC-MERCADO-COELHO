@@ -8,7 +8,11 @@ import java.time.MonthDay;
 import java.util.ArrayList;
 import java.util.List;
 
-/** Feriados nacionais (fixos e móveis) e o municipal de Joinville/SC, sede do Supermercado Coelho. */
+/**
+ * Feriados nacionais (fixos e móveis) e o municipal de Indaial/SC, sede do Supermercado Coelho: o aniversário da
+ * cidade, em 21 de março. Corpus Christi não entra porque em Indaial é ponto facultativo e o comércio abre. Se um
+ * decreto municipal mudar a data de um ano, o gestor ajusta o feriado na tela de Feriados.
+ */
 public final class CalendarioFeriados {
 
     private CalendarioFeriados() {
@@ -17,7 +21,7 @@ public final class CalendarioFeriados {
     public static List<Feriado> doAno(int ano) {
         List<Feriado> lista = new ArrayList<>();
         fixo(lista, ano, 1, 1, "Confraternização Universal", Abrangencia.NACIONAL);
-        fixo(lista, ano, 3, 9, "Aniversário de Joinville", Abrangencia.MUNICIPAL);
+        fixo(lista, ano, 3, 21, "Aniversário de Indaial", Abrangencia.MUNICIPAL);
         fixo(lista, ano, 4, 21, "Tiradentes", Abrangencia.NACIONAL);
         fixo(lista, ano, 5, 1, "Dia do Trabalho", Abrangencia.NACIONAL);
         fixo(lista, ano, 9, 7, "Independência do Brasil", Abrangencia.NACIONAL);
@@ -28,7 +32,6 @@ public final class CalendarioFeriados {
         fixo(lista, ano, 12, 25, "Natal", Abrangencia.NACIONAL);
         LocalDate pascoa = pascoa(ano);
         lista.add(new Feriado(pascoa.minusDays(2), "Sexta-feira Santa", Abrangencia.NACIONAL));
-        lista.add(new Feriado(pascoa.plusDays(60), "Corpus Christi", Abrangencia.MUNICIPAL));
         lista.sort((a, b) -> a.getData().compareTo(b.getData()));
         return lista;
     }
