@@ -1,8 +1,12 @@
 import { Fragment, useEffect, useMemo, useState } from 'react';
+import { BarChart3, Sparkles, Zap } from 'lucide-react';
 import { Link, useParams } from 'react-router-dom';
 import { ApiError, api } from '../api';
-import { BadgeSituacao, Carregando, ListaViolacoes, Modal, mensagemErro, useCarregar, useToast } from '../components/ui';
-import { dataCurta, dataLonga, diaSemanaDe, hora, horas, isoDe, moeda, paraData, pct } from '../format';
+import { usePermissoes } from '../auth';
+import ComparacaoAlgoritmos from '../components/ComparacaoAlgoritmos';
+import ExportarEscala from '../components/ExportarEscala';
+import { AvisoConsulta, BadgeSituacao, Carregando, ListaViolacoes, Modal, mensagemErro, useCarregar, useToast } from '../components/ui';
+import { dataCurta, dataLonga, diaSemanaDe, hora, horas, isoDe, moeda, moedaConfidencial, paraData, pct } from '../format';
 import type { Escala, Geracao, LinhaFuncionario, Matriz, TurnoDTO, TurnoModelo, Violacao } from '../types';
 
 type MenuCelula = { x: number; y: number; funcionario: LinhaFuncionario; data: string } | null;
@@ -17,7 +21,9 @@ export default function MatrizEscala() {
   const [bloqueio, setBloqueio] = useState<Bloqueio>(null);
   const [filtro, setFiltro] = useState<Filtro>('TODAS');
   const [ocupado, setOcupado] = useState(false);
+  const [comparando, setComparando] = useState(false);
   const toast = useToast();
+  const { podeEditar } = usePermissoes();
 
   useEffect(() => {
     const fechar = () => setMenu(null);
@@ -63,7 +69,8 @@ export default function MatrizEscala() {
 
   if (!m) return <Carregando erro={erro} />;
 
-  const editavel = m.escala.status === 'RASCUNHO';
+  const rascunho = m.escala.status === 'RASCUNHO';
+  const editavel = rascunho && podeEditar;
   const v = m.validacao;
   const resumoDia = new Map(v.dias.map((d) => [d.data, d]));
 
@@ -84,12 +91,13 @@ export default function MatrizEscala() {
     if (confirmar && !window.confirm(confirmar)) return;
     setOcupado(true);
     try {
-      if (caminho === 'gerar') {
-        const g = await api.post<Geracao>(`/escalas/${id}/gerar`);
+      if (caminho === 'gerar' || caminho === 'otimizar') {
+        const g = await api.post<Geracao>(`/escalas/${id}/${caminho}`);
         setDados(g.matriz);
+        const como = caminho === 'otimizar' ? ' pela otimização (Timefold)' : '';
         toast(g.deficits.length ? 'erro' : 'ok', g.deficits.length
-          ? `${g.turnosCriados} turnos gerados; ${g.deficits.length} dia/setor sem colaboradores suficientes.`
-          : `${g.turnosCriados} turnos gerados, exatamente na demanda mínima.`);
+          ? `${g.turnosCriados} turnos gerados${como}; ${g.deficits.length} dia/setor sem colaboradores suficientes.`
+          : `${g.turnosCriados} turnos gerados${como}, cobrindo toda a demanda.`);
       } else if (caminho === 'limpar') {
         setDados(await api.post<Matriz>(`/escalas/${id}/limpar`));
       } else {
@@ -115,22 +123,49 @@ export default function MatrizEscala() {
           <h1>{m.escala.nome}</h1>
           <p>
             {dataLonga(m.escala.dataInicio)} a {dataLonga(m.escala.dataFim)} ·{' '}
-            {editavel ? <span className="badge laranja">Rascunho</span> : <span className="badge ok">Aprovada</span>}
+            {rascunho ? <span className="badge laranja">Rascunho</span> : <span className="badge ok">Aprovada</span>}
             {m.escala.geradaAutomaticamente && <> <span className="badge neutro" title="Criada pelo sistema a partir da previsão de movimento">Automática</span></>}
           </p>
         </div>
         <div className="spacer" />
-        {editavel ? (
+        <ExportarEscala escala={m.escala} />
+        {podeEditar && (rascunho ? (
           <div className="row">
-            <button disabled={ocupado} onClick={() => acao('gerar', 'Substituir todos os turnos desta escala por uma nova sugestão automática?')}>Gerar automaticamente</button>
             <button disabled={ocupado} onClick={() => acao('limpar', 'Remover todos os turnos desta escala?')}>Limpar</button>
             <button className="primario" disabled={ocupado || !v.aprovavel} onClick={() => acao('aprovar')}
               title={v.aprovavel ? 'Aprovar escala' : 'Corrija os erros para aprovar'}>Aprovar escala</button>
           </div>
         ) : (
           <button disabled={ocupado} onClick={() => acao('reabrir')}>Reabrir para edição</button>
-        )}
+        ))}
       </div>
+
+      {!podeEditar && <AvisoConsulta />}
+
+      {podeEditar && rascunho && (
+        <div className="card geracao">
+          <div className="geracao-texto">
+            <strong>Geração automática</strong>
+            <p className="small muted">
+              <b>Rápido</b>: preenche dia a dia, com quem tem menos horas. <b>Timefold</b>: otimiza a semana inteira de uma vez
+              (cobertura, custo e equilíbrio de horas) em alguns segundos.
+            </p>
+          </div>
+          <div className="row geracao-botoes">
+            <button disabled={ocupado} onClick={() => acao('gerar', 'Substituir todos os turnos desta escala por uma nova sugestão automática?')}>
+              <Zap size={16} aria-hidden />Gerar (rápido)
+            </button>
+            <button className="primario" disabled={ocupado}
+              onClick={() => acao('otimizar', 'Substituir todos os turnos desta escala pela escala otimizada (leva alguns segundos)?')}>
+              <Sparkles size={16} aria-hidden />{ocupado ? 'Otimizando…' : 'Otimizar com Timefold'}
+            </button>
+            <button disabled={ocupado} onClick={() => setComparando(true)}>
+              <BarChart3 size={16} aria-hidden />Comparar algoritmos
+            </button>
+          </div>
+        </div>
+      )}
+      {comparando && <ComparacaoAlgoritmos escalaId={m.escala.id} onFechar={() => setComparando(false)} />}
 
       <div className="grid-kpi">
         <div className="card kpi destaque">
@@ -193,7 +228,7 @@ export default function MatrizEscala() {
                   <tr key={f.id}>
                     <td className="col-nome">
                       <div style={{ fontWeight: 600 }}>{f.nome}{!f.ativo && <span className="badge neutro"> inativo</span>}</div>
-                      <div className="small muted">{f.cargo} · {moeda(f.custoHora)}/h</div>
+                      <div className="small muted">{f.cargo}{f.custoHora != null && ` · ${moeda(f.custoHora)}/h`}</div>
                     </td>
                     {dias.map((d) => (
                       <Celula key={d} f={f} data={d} cor={g.cor} editavel={editavel && !ocupado}
@@ -298,7 +333,7 @@ function Celula({ f, data, cor, turnos, violacoes, ausencia, editavel, onClick }
   const temAlerta = !temErro && violacoes.length > 0;
   const indisponivel = f.diasDisponiveis.length > 0 && !f.diasDisponiveis.includes(diaSemanaDe(data));
   const dica = [
-    ...turnos.map((t) => `${hora(t.horaInicio)}–${hora(t.horaFim)} (intervalo ${t.intervaloMinutos} min) · ${horas(t.horas)} · ${moeda(t.custo)}`),
+    ...turnos.map((t) => `${hora(t.horaInicio)}–${hora(t.horaFim)} (intervalo ${t.intervaloMinutos} min) · ${horas(t.horas)}${t.custo == null ? '' : ` · ${moedaConfidencial(t.custo)}`}`),
     ...violacoes.map((v) => `${v.severidade === 'ERRO' ? 'Erro' : 'Alerta'}: ${v.mensagem}`),
   ].join('\n');
 

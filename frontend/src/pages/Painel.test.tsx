@@ -2,7 +2,7 @@ import { fireEvent, screen, waitFor, within } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 import { isoDe } from '../format';
 import { mockFetch, renderizar } from '../test/util';
-import type { Escala, Matriz, ResultadoValidacao, ResumoDia, SugestaoSubstituicao } from '../types';
+import type { Ausencia, Escala, Matriz, ResultadoValidacao, ResumoDia, SugestaoSubstituicao } from '../types';
 import Painel from './Painel';
 
 const somar = (iso: string, dias: number) => {
@@ -53,11 +53,28 @@ const matriz: Matriz = {
   validacao: painel,
 };
 
-function montar(escalas: Escala[]) {
+const ferias = (id: number, funcionarioId: number, funcionarioNome: string, inicio: string, fim: string): Ausencia => ({
+  id, funcionarioId, funcionarioNome, inicio, fim, motivo: 'FERIAS', observacao: null,
+});
+
+const feriasCadastradas = [
+  ferias(5, 3, 'Carla Dias', segunda, somar(domingo, 10)),
+  ferias(6, 8, 'Davi Rocha', somar(domingo, 1), somar(domingo, 15)),
+  ferias(7, 9, 'Eva Prado', somar(segunda, -20), somar(segunda, -1)),
+];
+
+const afastamentosCadastrados: Ausencia[] = [
+  { ...ferias(8, 2, 'Bruno Lima', segunda, somar(segunda, 1)), motivo: 'ATESTADO' },
+  { ...ferias(9, 9, 'Eva Prado', somar(domingo, 3), somar(domingo, 5)), motivo: 'LUTO' },
+];
+
+function montar(escalas: Escala[], emFerias: Ausencia[] = feriasCadastradas, afastados: Ausencia[] = afastamentosCadastrados) {
   return mockFetch({
     'GET /api/escalas': { corpo: escalas },
     [`GET /api/motor/painel?inicio=${segunda}&fim=${domingo}`]: { corpo: painel },
     'GET /api/escalas/7/matriz': { corpo: matriz },
+    'GET /api/ferias': { corpo: emFerias },
+    'GET /api/afastamentos': { corpo: afastados },
   });
 }
 
@@ -147,6 +164,51 @@ describe('Painel', () => {
     expect(within(detalhe).queryByRole('button', { name: /Ana Souza/ })).not.toBeInTheDocument();
     // Os custos e alertas da semana são recalculados.
     expect(fetch.mock.calls.filter(([url]) => String(url).startsWith('/api/motor/painel'))).toHaveLength(2);
+  });
+
+  it('mostra quem está de férias na semana, com setor e data de volta', async () => {
+    montar([escala]);
+    renderizar(<Painel />);
+
+    const quadro = await screen.findByRole('region', { name: /De férias nesta semana/ });
+    const carla = await within(quadro).findByRole('listitem');
+    expect(carla).toHaveTextContent('Carla Dias');
+    expect(carla).toHaveTextContent('Padaria');
+    const volta = somar(domingo, 11);
+    expect(carla).toHaveTextContent(`volta em ${volta.slice(8, 10)}/${volta.slice(5, 7)}`);
+    expect(within(quadro).queryByText(/Davi Rocha|Eva Prado/)).not.toBeInTheDocument();
+    expect(within(quadro).getByRole('link', { name: 'Ver férias' })).toHaveAttribute('href', '/ferias');
+  });
+
+  it('avisa quando ninguém está de férias na semana', async () => {
+    montar([escala], []);
+    renderizar(<Painel />);
+
+    const quadro = await screen.findByRole('region', { name: /De férias nesta semana/ });
+    expect(await within(quadro).findByText('Ninguém de férias nesta semana.')).toBeInTheDocument();
+  });
+
+  it('mostra ao lado quem está afastado na semana, com o tipo do afastamento', async () => {
+    montar([escala]);
+    renderizar(<Painel />);
+
+    const quadro = await screen.findByRole('region', { name: /Afastados nesta semana/ });
+    const bruno = await within(quadro).findByRole('listitem');
+    expect(bruno).toHaveTextContent('Bruno Lima');
+    expect(bruno).toHaveTextContent('Atestado médico');
+    expect(bruno).toHaveTextContent('Açougue');
+    expect(within(quadro).queryByText(/Eva Prado/)).not.toBeInTheDocument();
+    expect(within(quadro).getByRole('link', { name: 'Ver afastamentos' })).toHaveAttribute('href', '/afastamentos');
+    // Férias e afastamentos ficam em quadros separados.
+    expect(within(screen.getByRole('region', { name: /De férias nesta semana/ })).queryByText('Bruno Lima')).not.toBeInTheDocument();
+  });
+
+  it('avisa quando ninguém está afastado na semana', async () => {
+    montar([escala], feriasCadastradas, []);
+    renderizar(<Painel />);
+
+    const quadro = await screen.findByRole('region', { name: /Afastados nesta semana/ });
+    expect(await within(quadro).findByText('Ninguém afastado nesta semana.')).toBeInTheDocument();
   });
 
   it('as setas do teclado trocam o dia', async () => {

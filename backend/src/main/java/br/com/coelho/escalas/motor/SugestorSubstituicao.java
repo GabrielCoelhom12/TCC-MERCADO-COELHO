@@ -1,5 +1,6 @@
 package br.com.coelho.escalas.motor;
 
+import br.com.coelho.escalas.dominio.Confidencial;
 import br.com.coelho.escalas.dominio.Funcionario;
 import br.com.coelho.escalas.dominio.Turno;
 import org.springframework.stereotype.Component;
@@ -28,11 +29,15 @@ public class SugestorSubstituicao {
     }
 
     public record Candidato(Long funcionarioId, String nome, String setorNome, String setorCor, boolean mesmoSetor,
-                            BigDecimal horasSemana, BigDecimal horasComTroca, BigDecimal custoTurno, boolean apto,
+                            BigDecimal horasSemana, BigDecimal horasComTroca, @Confidencial BigDecimal custoTurno, boolean apto,
                             List<String> impedimentos, List<String> alertas) {
     }
 
     public record Sugestao(Disponibilidade titular, List<Candidato> candidatos) {
+    }
+
+    /** Quem assume o turno; {@code substituto} nulo quando ninguém pode cobri-lo. */
+    public record Cobertura(Turno turno, Candidato substituto) {
     }
 
     private final ValidadorEscala validador;
@@ -69,6 +74,28 @@ public class SugestorSubstituicao {
                         .thenComparing(Candidato::nome))
                 .toList();
         return new Sugestao(resumo, candidatos);
+    }
+
+    /**
+     * Repassa vários turnos de um mesmo titular (ex.: ao sair de férias), em ordem de data. Cada escolha entra na
+     * simulação das seguintes, para não sobrecarregar a mesma pessoa nem ferir interjornada entre os dias cobertos.
+     * Os turnos recebidos não são alterados.
+     */
+    public List<Cobertura> planejarCobertura(List<Turno> aCobrir, List<Turno> janela, ContextoCalculo ctx) {
+        Map<Long, Funcionario> porId = new HashMap<>();
+        ctx.funcionarios().forEach(f -> porId.put(f.getId(), f));
+        List<Turno> simulada = new ArrayList<>(janela);
+        List<Cobertura> plano = new ArrayList<>();
+        for (Turno t : aCobrir.stream().sorted(Comparator.comparing(Turno::inicio)).toList()) {
+            Candidato escolhido = sugerir(t, simulada, ctx).candidatos().stream().filter(Candidato::apto).findFirst().orElse(null);
+            plano.add(new Cobertura(t, escolhido));
+            simulada.remove(t);
+            if (escolhido != null) {
+                simulada.add(new Turno(porId.get(escolhido.funcionarioId()), t.getData(), t.getHoraInicio(), t.getHoraFim(),
+                        t.getIntervaloMinutos(), t.getRotulo()));
+            }
+        }
+        return plano;
     }
 
     private Candidato avaliar(Funcionario f, Turno turno, List<Turno> seus, ContextoCalculo ctx) {

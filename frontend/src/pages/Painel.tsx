@@ -1,10 +1,11 @@
 import { useEffect, useRef, useState, type KeyboardEvent } from 'react';
 import { Link } from 'react-router-dom';
-import { ChevronLeft, ChevronRight, LayoutGrid } from 'lucide-react';
+import { ChevronLeft, ChevronRight, LayoutGrid, Palmtree, Stethoscope, type LucideIcon } from 'lucide-react';
 import { api } from '../api';
 import { BadgeSituacao, Carregando, ListaViolacoes, useCarregar } from '../components/ui';
 import { DIAS_SEMANA, MOTIVOS_AUSENCIA, dataCurta, diaSemanaDe, isoDe, moeda, numero, paraData, pct } from '../format';
-import type { Escala, Matriz, ResultadoValidacao, ResumoDia, TurnoDTO } from '../types';
+import type { Ausencia, Escala, Matriz, ResultadoValidacao, ResumoDia, TurnoDTO } from '../types';
+import ExportarEscala from '../components/ExportarEscala';
 import TrocaColaborador from './TrocaColaborador';
 
 const DIA_MS = 86400000;
@@ -52,6 +53,9 @@ export default function Painel() {
     [daSemana?.id],
   );
 
+  const { dados: ferias } = useCarregar(() => api.get<Ausencia[]>('/ferias'), []);
+  const { dados: afastamentos } = useCarregar(() => api.get<Ausencia[]>('/afastamentos'), []);
+
   const mover = (n: number) => setInicio((i) => (i ? somarDias(i, n) : i));
   const semanaAtual = inicio !== null && fim !== null && hoje >= inicio && hoje <= fim;
 
@@ -75,6 +79,7 @@ export default function Painel() {
         <>
           <Indicadores r={dados} />
 
+
           <section className="card semana" aria-labelledby="titulo-semana">
             <div className="row cabecalho-semana">
               <h2 id="titulo-semana">Dia a dia</h2>
@@ -89,6 +94,7 @@ export default function Painel() {
               <div className="spacer" />
               {daSemana && (
                 <>
+                  <ExportarEscala escala={daSemana} />
                   <button aria-expanded={gradeAberta} onClick={() => setGradeAberta((a) => !a)}>
                     <LayoutGrid size={16} aria-hidden />{gradeAberta ? 'Ocultar grade da semana' : 'Ver grade da semana'}
                   </button>
@@ -115,6 +121,20 @@ export default function Painel() {
               ? <GradeDaSemana escala={daSemana} matriz={matriz} dias={dias} hoje={hoje} />
               : <Carregando />)}
           </section>
+
+          {inicio && fim && (ferias || afastamentos) && (
+            <div className="quadros-ausencia">
+              {ferias && (
+                <QuadroAusencias id="titulo-ferias" titulo="De férias nesta semana" Icone={Palmtree} itens={ferias}
+                  inicio={inicio} fim={fim} matriz={matriz} link="/ferias" rotuloLink="Ver férias" vazio="Ninguém de férias nesta semana." />
+              )}
+              {afastamentos && (
+                <QuadroAusencias id="titulo-afastamentos" titulo="Afastados nesta semana" Icone={Stethoscope} itens={afastamentos}
+                  inicio={inicio} fim={fim} matriz={matriz} link="/afastamentos" rotuloLink="Ver afastamentos"
+                  vazio="Ninguém afastado nesta semana." comTipo />
+              )}
+            </div>
+          )}
         </>
       )}
     </div>
@@ -154,6 +174,53 @@ function Indicadores({ r }: { r: ResultadoValidacao }) {
         <div className="detalhe">{r.alertas === 1 ? '1 alerta' : `${r.alertas} alertas`} para revisar</div>
       </div>
     </div>
+  );
+}
+
+// ------------------------------------------------------------------ de férias na semana
+
+/** Um quadro de ausências da semana (férias ou afastamentos): quem está fora, desde quando e quando volta. */
+function QuadroAusencias({ id, titulo, Icone, itens, inicio, fim, matriz, link, rotuloLink, vazio, comTipo }: {
+  id: string; titulo: string; Icone: LucideIcon; itens: Ausencia[]; inicio: string; fim: string; matriz: Matriz | null;
+  link: string; rotuloLink: string; vazio: string; comTipo?: boolean;
+}) {
+  const daSemana = itens.filter((a) => a.inicio <= fim && a.fim >= inicio).sort((a, b) => a.fim.localeCompare(b.fim));
+  const pessoa = (funcionarioId: number) => matriz?.funcionarios.find((f) => f.id === funcionarioId);
+  return (
+    <section className="card de-ferias" aria-labelledby={id}>
+      <div className="row">
+        <Icone size={18} className="icone-ferias" aria-hidden />
+        <h2 id={id}>{titulo}</h2>
+        <span className="badge neutro">{daSemana.length}</span>
+        <div className="spacer" />
+        <Link to={link}>{rotuloLink}</Link>
+      </div>
+      {daSemana.length === 0 ? <p className="muted">{vazio}</p> : (
+        <ul className="lista-ferias">
+          {daSemana.map((a) => {
+            const p = pessoa(a.funcionarioId);
+            return (
+              <li key={a.id}>
+                <span className="membro">
+                  <strong>{a.funcionarioNome}</strong>
+                  {/* O tipo vai na linha do setor: os cartões dos dois quadros têm a mesma altura. */}
+                  {(p || comTipo) && (
+                    <span className="small muted">
+                      {p && <><span className="ponto-setor" style={{ background: p.setorCor }} aria-hidden />{p.setorNome}</>}
+                      {p && comTipo && ' · '}
+                      {comTipo && <strong className="tipo-ausencia">{rotuloMotivo(a.motivo)}</strong>}
+                    </span>
+                  )}
+                </span>
+                <span className="small periodo-ferias">
+                  {a.inicio > inicio && <>a partir de {dataCurta(a.inicio)} · </>}volta em {dataCurta(somarDias(a.fim, 1))}
+                </span>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+    </section>
   );
 }
 

@@ -93,7 +93,7 @@ public class ValidadorEscala {
             }
             Ausencia ausencia = ctx.ausencia(f, d);
             if (ausencia != null) {
-                out.add(erro(Regra.AUSENCIA, d, f, "Escalado durante ausência (" + ausencia.getMotivo().name().replace('_', ' ').toLowerCase()
+                out.add(erro(Regra.AUSENCIA, d, f, "Escalado durante ausência (" + ausencia.getMotivo().getRotulo()
                         + " de " + Formato.data(ausencia.getInicio()) + " a " + Formato.data(ausencia.getFim()) + ")."));
             }
             BigDecimal horas = t.horasTrabalhadas();

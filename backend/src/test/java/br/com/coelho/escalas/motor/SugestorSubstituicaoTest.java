@@ -128,6 +128,30 @@ class SugestorSubstituicaoTest {
     }
 
     @Test
+    void planoDeCoberturaRepassaCadaTurnoConsiderandoAsTrocasAnteriores() {
+        Turno quinta = turno(turnoDaAna.getFuncionario(), QUARTA.plusDays(1), "07:00", "15:20", 60);
+        janela.add(quinta);
+        c.funcionario("Bruno", caixa, "10");
+        c.funcionario("Carla", caixa, "10");
+
+        var plano = sugestor.planejarCobertura(List.of(quinta, turnoDaAna), janela, c.ctx());
+
+        // Em ordem de data; na quinta, Bruno já soma as horas da quarta, então Carla (0h) é a escolhida.
+        assertThat(plano).extracting(SugestorSubstituicao.Cobertura::turno).containsExactly(turnoDaAna, quinta);
+        assertThat(plano).extracting(p -> p.substituto().nome()).containsExactly("Bruno", "Carla");
+    }
+
+    @Test
+    void semNinguemAptoOTurnoFicaSemSubstituto() {
+        Funcionario bruno = c.funcionario("Bruno", caixa, "10");
+        bruno.setDiasDisponiveis(EnumSet.of(DayOfWeek.MONDAY));
+
+        var plano = sugestor.planejarCobertura(List.of(turnoDaAna), janela, c.ctx());
+
+        assertThat(plano).singleElement().extracting(SugestorSubstituicao.Cobertura::substituto).isNull();
+    }
+
+    @Test
     void ordenaAptosDoMesmoSetorEComMenosHorasPrimeiro() {
         Funcionario bruno = c.funcionario("Bruno", caixa, "10");
         janela.add(turno(bruno, SEGUNDA, "07:00", "15:20", 60));

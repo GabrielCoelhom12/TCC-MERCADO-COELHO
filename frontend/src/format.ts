@@ -4,6 +4,8 @@ const moedaFmt = new Intl.NumberFormat('pt-BR', { style: 'currency', currency: '
 const numFmt = new Intl.NumberFormat('pt-BR', { maximumFractionDigits: 2 });
 
 export const moeda = (v: number | null | undefined) => moedaFmt.format(v ?? 0);
+/** Valor de remuneração individual: chega nulo para quem não pode vê-lo (perfil SUPERVISOR). */
+export const moedaConfidencial = (v: number | null | undefined) => (v == null ? '—' : moeda(v));
 export const numero = (v: number | null | undefined) => numFmt.format(v ?? 0);
 
 export const pct = (parte: number, total: number) =>
@@ -48,7 +50,13 @@ export const TIPOS_DIA: { tipo: TipoDia; rotulo: string }[] = [
 
 export const MOTIVOS_AUSENCIA: { valor: MotivoAusencia; rotulo: string }[] = [
   { valor: 'FERIAS', rotulo: 'Férias' },
-  { valor: 'ATESTADO', rotulo: 'Atestado' },
+  { valor: 'ATESTADO', rotulo: 'Atestado médico' },
+  { valor: 'LICENCA_MATERNIDADE', rotulo: 'Licença-maternidade' },
+  { valor: 'LICENCA_PATERNIDADE', rotulo: 'Licença-paternidade' },
+  { valor: 'AFASTAMENTO_INSS', rotulo: 'Afastamento pelo INSS' },
+  { valor: 'ACIDENTE_TRABALHO', rotulo: 'Acidente de trabalho' },
+  { valor: 'LUTO', rotulo: 'Licença por luto' },
+  { valor: 'CASAMENTO', rotulo: 'Licença-casamento' },
   { valor: 'FOLGA_ACORDADA', rotulo: 'Folga acordada' },
   { valor: 'OUTRO', rotulo: 'Outro' },
 ];

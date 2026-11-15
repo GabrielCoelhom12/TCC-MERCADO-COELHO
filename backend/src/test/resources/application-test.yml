@@ -20,6 +20,8 @@ app:
     senha: senha-de-teste
   seed:
     habilitado: true
+  otimizacao:
+    segundos: 2
   escala:
     geracao-automatica:
       # Nos testes a geração é chamada explicitamente (sem agendamento nem execução ao iniciar).
