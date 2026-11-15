@@ -51,7 +51,7 @@ public class FeriadoController {
         feriados.excluir(id);
     }
 
-    /** Importa os feriados nacionais e municipais (Joinville) do ano, ignorando datas já cadastradas. */
+    /** Importa os feriados nacionais e municipais (Indaial) do ano, ignorando datas já cadastradas. */
     @PostMapping("/importar/{ano}")
     public Map<String, Integer> importar(@PathVariable int ano) {
         return Map.of("importados", feriados.importar(ano));

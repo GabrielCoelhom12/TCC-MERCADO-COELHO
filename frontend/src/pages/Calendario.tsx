@@ -99,7 +99,7 @@ export default function Calendario() {
             <button onClick={() => executar(async () => {
               const r = await api.post<{ importados: number }>(`/feriados/importar/${ano}`);
               toast('ok', `${r.importados} feriado(s) importado(s).`);
-            })}>Importar nacionais + Joinville</button>
+            })}>Importar nacionais + Indaial</button>
           </>}
         </div>
         <div className="tabela-wrap">
