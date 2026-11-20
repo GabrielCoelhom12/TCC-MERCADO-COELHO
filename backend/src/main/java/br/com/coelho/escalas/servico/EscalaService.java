@@ -55,6 +55,17 @@ public class EscalaService {
     public record SubstituicaoRequest(Long funcionarioId) {
     }
 
+    /** Troca registrada: quem saiu, quem entrou, quando e por quem. */
+    public record TrocaDTO(Long id, LocalDate data, LocalTime horaInicio, LocalTime horaFim, Long titularId, String titularNome,
+                           Long substitutoId, String substitutoNome, boolean urgencia, LocalDateTime registradaEm,
+                           String registradaPor) {
+        static TrocaDTO de(TrocaTurno t) {
+            return new TrocaDTO(t.getId(), t.getData(), t.getHoraInicio(), t.getHoraFim(), t.getTitular().getId(),
+                    t.getTitular().getNome(), t.getSubstituto().getId(), t.getSubstituto().getNome(), t.isUrgencia(),
+                    t.getRegistradaEm(), t.getRegistradaPor());
+        }
+    }
+
     private final EscalaRepository escalas;
     private final TurnoRepository turnos;
     private final FuncionarioRepository funcionarios;
@@ -66,11 +77,12 @@ public class EscalaService {
     private final OtimizadorEscala otimizador;
     private final SugestorSubstituicao sugestor;
     private final LimiteOtimizacoes limiteOtimizacoes;
+    private final TrocaTurnoRepository trocas;
 
     public EscalaService(EscalaRepository escalas, TurnoRepository turnos, FuncionarioRepository funcionarios,
                          TurnoModeloRepository modelos, ContextoService contextos, MotorFinanceiro motor,
                          ValidadorEscala validador, GeradorEscala gerador, SugestorSubstituicao sugestor,
-                         OtimizadorEscala otimizador, LimiteOtimizacoes limiteOtimizacoes) {
+                         OtimizadorEscala otimizador, LimiteOtimizacoes limiteOtimizacoes, TrocaTurnoRepository trocas) {
         this.escalas = escalas;
         this.turnos = turnos;
         this.funcionarios = funcionarios;
@@ -82,6 +94,7 @@ public class EscalaService {
         this.limiteOtimizacoes = limiteOtimizacoes;
         this.otimizador = otimizador;
         this.sugestor = sugestor;
+        this.trocas = trocas;
     }
 
     // ------------------------------------------------------------------ CRUD
@@ -243,10 +256,14 @@ public class EscalaService {
      * Passa o turno (mesmo dia e horário) para outro colaborador, desde que ele esteja apto pelas regras da CLT.
      *
      * <p>Em escala aprovada, é a troca de urgência (alguém avisou que não vem): vale na hora, sem reabrir a escala, só
-     * para hoje em diante, e fica registrada na observação da escala. O limite financeiro do dia não bloqueia a troca
-     * de urgência (a loja não pode ficar sem ninguém); se ele for ultrapassado, aparece como alerta na validação.
+     * para hoje em diante. Toda troca fica registrada em {@link TrocaTurno} (quem saiu, quem entrou, quem trocou e
+     * quando).
      *
-     * @param usuario login de quem fez a troca, anotado na escala aprovada
+     * <p>O limite financeiro segue o modo escolhido em Parâmetros, também na urgência: no modo BLOQUEAR, a troca que
+     * aumenta o custo e leva o dia acima do teto é recusada (um substituto que custa o mesmo ou menos passa sempre); no
+     * modo ALERTAR, ela entra e o estouro aparece na validação.
+     *
+     * @param usuario login de quem fez a troca
      */
     @Transactional
     public Matriz substituir(Long escalaId, Long turnoId, SubstituicaoRequest req, String usuario) {
@@ -272,13 +289,16 @@ public class EscalaService {
         DiaSnapshot antes = snapshot(turno.getData(), ctx);
         turno.setFuncionario(novo);
         turnos.saveAndFlush(turno);
-        if (urgencia) {
-            e.anotar("Troca de urgência em " + DIA_MES.format(turno.getData()) + ": " + titular.getNome() + " → "
-                    + novo.getNome() + " (por " + usuario + ").");
-        } else {
-            aplicarBloqueioFinanceiro(turno.getData(), antes, ctx);
-        }
+        aplicarBloqueioFinanceiro(turno.getData(), antes, ctx);
+        trocas.save(new TrocaTurno(turno, titular, novo, urgencia, usuario));
         return matriz(escalaId);
+    }
+
+    /** Trocas feitas na escala, da mais recente para a mais antiga. */
+    @Transactional(readOnly = true)
+    public List<TrocaDTO> trocas(Long escalaId) {
+        buscar(escalaId);
+        return trocas.findByEscala_IdOrderByRegistradaEmDescIdDesc(escalaId).stream().map(TrocaDTO::de).toList();
     }
 
     private Turno turnoDa(Escala e, Long turnoId) {

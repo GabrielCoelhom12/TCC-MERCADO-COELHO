@@ -173,7 +173,8 @@ Como gerente, quero trocar quem está escalado por outro colaborador direto do p
 - *Quando* clico em um colaborador da equipe do dia, *então* vejo quantas horas ele já tem na semana e em quais dias trabalha.
 - *Quando* peço a troca, *então* vejo só os colegas que podem cobrir o turno (mesmo setor primeiro, com menos horas na semana) e o motivo de quem não pode.
 - *Dado* um colega que fechou a loja na véspera, *então* ele não aparece como opção para abrir no dia seguinte (interjornada de 11h).
-- *Dado* uma escala aprovada e um colaborador que avisou que não vem, *quando* troco o turno de hoje ou de um dia futuro, *então* a troca vale na hora, sem reabrir a escala, e fica registrada na observação dela (data, quem saiu, quem entrou e quem trocou). As regras da CLT continuam valendo; o limite de custo do dia vira só um alerta.
+- *Dado* uma escala aprovada e um colaborador que avisou que não vem, *quando* troco o turno de hoje ou de um dia futuro, *então* a troca vale na hora, sem reabrir a escala. As regras da CLT continuam valendo, e o limite de custo do dia segue o modo escolhido em Parâmetros: no modo "Bloquear", a troca por alguém mais caro que leve o dia acima do teto é recusada; no modo "Apenas alertar", ela entra e o estouro aparece na validação.
+- *Quando* troco um colaborador (em rascunho ou em escala aprovada), *então* a troca fica registrada no histórico da escala, com dia, horário, quem saiu, quem entrou, quem trocou, quando e se foi de urgência (`GET /api/escalas/{id}/trocas`), e não na observação, que continua livre para o gestor.
 - *Dado* uma escala aprovada, *quando* o turno é de um dia que já passou, *então* a troca é recusada.
 
 **US13 — Programar as férias da equipe** (RF29)

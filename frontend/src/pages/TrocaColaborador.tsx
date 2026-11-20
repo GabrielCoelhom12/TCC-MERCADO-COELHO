@@ -21,7 +21,7 @@ function semanaDe(iso: string) {
 /**
  * Mini pop-up do colaborador escalado: a semana dele (horas e dias) e a troca por um colega que o sistema já validou
  * (disponibilidade, ausências, interjornada, jornada...). Em escala aprovada é a troca de urgência: vale na hora, só
- * para hoje em diante, e fica registrada na observação da escala.
+ * para hoje em diante. Toda troca fica registrada no histórico (GET /api/escalas/{id}/trocas).
  */
 export default function TrocaColaborador({ escala, turno, onFechar, onTrocado }: {
   escala: Escala;
@@ -69,7 +69,7 @@ export default function TrocaColaborador({ escala, turno, onFechar, onTrocado }:
             <div className="aviso info">
               {passou
                 ? 'Este turno já passou e não pode mais ser trocado.'
-                : 'Escala aprovada: a troca vale na hora e fica registrada na observação da escala.'}
+                : 'Escala aprovada: a troca vale na hora e fica registrada no histórico de trocas da escala.'}
             </div>
           )}
           {editavel && !trocando && (

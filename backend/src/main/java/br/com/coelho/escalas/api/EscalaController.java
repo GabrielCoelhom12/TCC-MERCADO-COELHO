@@ -88,6 +88,12 @@ public class EscalaController {
         return servico.substituir(id, turnoId, req, auth.getName());
     }
 
+    /** Histórico de trocas de colaborador da escala (quem saiu, quem entrou, quem trocou e quando). */
+    @GetMapping("/{id}/trocas")
+    public List<EscalaService.TrocaDTO> trocas(@PathVariable Long id) {
+        return servico.trocas(id);
+    }
+
     @PostMapping("/{id}/gerar")
     public Geracao gerar(@PathVariable Long id) {
         return servico.gerar(id);
