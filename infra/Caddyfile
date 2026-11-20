@@ -3,8 +3,12 @@
 {$APP_HOST} {
 	encode zstd gzip
 
-	# Grafana (com login) no mesmo domínio; o Prometheus não é exposto.
+	# Grafana (com login) no mesmo domínio, mas só para os IPs de GRAFANA_IPS (no /etc/escalas/env, separados por
+	# espaço, ex.: "200.150.10.20 177.10.0.0/24"). Sem a variável, só redes privadas: fechado para a internet.
+	# O Prometheus não é exposto.
 	handle /grafana* {
+		@foraDaLista not remote_ip {$GRAFANA_IPS:private_ranges}
+		respond @foraDaLista "Acesso restrito." 403
 		reverse_proxy grafana:3000
 	}
 
@@ -14,7 +18,7 @@
 	}
 
 	header {
-		Strict-Transport-Security "max-age=31536000"
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
 		X-Content-Type-Options "nosniff"
 		Referrer-Policy "strict-origin-when-cross-origin"
 		X-Frame-Options "DENY"

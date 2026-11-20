@@ -6,6 +6,17 @@ services:
     environment:
       GF_SERVER_ROOT_URL: https://${APP_HOST:?Defina APP_HOST}/grafana/
       GF_SERVER_SERVE_FROM_SUB_PATH: "true"
+      # Só o admin entra: sem cadastro, sem acesso anônimo, cookies só por HTTPS.
+      GF_USERS_ALLOW_SIGN_UP: "false"
+      GF_AUTH_ANONYMOUS_ENABLED: "false"
+      GF_SECURITY_COOKIE_SECURE: "true"
+      GF_SECURITY_DISABLE_GRAVATAR: "true"
+      GF_ANALYTICS_REPORTING_ENABLED: "false"
+
+  app:
+    environment:
+      # Produção nunca carrega o cenário de demonstração, a menos que APP_SEED=true esteja no /etc/escalas/env.
+      APP_SEED: ${APP_SEED:-false}
 
   caddy:
     image: caddy:2.10-alpine
@@ -14,6 +25,8 @@ services:
       - app
     environment:
       APP_HOST: ${APP_HOST}
+      # IPs que podem abrir o /grafana (ver infra/Caddyfile); sem a variável, só redes privadas (ninguém de fora).
+      GRAFANA_IPS: ${GRAFANA_IPS:-private_ranges}
     ports:
       - "80:80"
       - "443:443"

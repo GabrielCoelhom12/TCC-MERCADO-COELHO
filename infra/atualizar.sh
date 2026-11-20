@@ -18,4 +18,15 @@ $COMPOSE pull --quiet
 $COMPOSE up -d --remove-orphans
 docker image prune -f > /dev/null
 
+# Backup diário do banco às 03h de Brasília (06h UTC, o relógio da VM), ver infra/backup.sh. A conta do Storage vem
+# do pipeline (variável BACKUP_CONTA do ambiente producao); só letras minúsculas e números são aceitos.
+if [ -n "${BACKUP_CONTA:-}" ]; then
+  case "$BACKUP_CONTA" in *[!a-z0-9]*) echo "BACKUP_CONTA inválida" >&2; exit 1 ;; esac
+  umask 077
+  printf 'BACKUP_CONTA=%s\n' "$BACKUP_CONTA" > /etc/escalas/backup.conf
+fi
+printf '%s\n' "# Backup diário do banco (instalado pelo infra/atualizar.sh)" \
+  "0 6 * * * root sh /opt/escalas/infra/backup.sh >> /var/log/escalas-backup.log 2>&1" > /etc/cron.d/escalas-backup
+chmod 644 /etc/cron.d/escalas-backup
+
 echo "Versão $IMAGEM_TAG publicada."

@@ -146,10 +146,33 @@ jobs:
       - run: terraform fmt -check -recursive
       - run: terraform init -backend=false -input=false
       - run: terraform validate
+      - name: Caddyfile válido (proxy de produção)
+        working-directory: .
+        run: >-
+          docker run --rm -e APP_HOST=localhost -v "$PWD/infra/Caddyfile:/etc/caddy/Caddyfile:ro"
+          caddy:2.10-alpine caddy validate --config /etc/caddy/Caddyfile --adapter caddyfile
+
+  backup:
+    name: Backup e teste de restauração
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Sobe o PostgreSQL do compose com dados de exemplo
+        run: |
+          printf 'DB_PASSWORD=ci\nAPP_JWT_SECRET=ci\nGRAFANA_SENHA=ci\n' > /tmp/escalas.env
+          docker compose --env-file /tmp/escalas.env -f docker-compose.yml up -d --wait db
+          docker compose --env-file /tmp/escalas.env -f docker-compose.yml exec -T db \
+            psql -U escalas -d escalas_coelho -c "create table exemplo (id int); insert into exemplo values (1), (2), (3);"
+      - name: Backup (infra/backup.sh, sem envio ao Storage)
+        run: ESCALAS_DIR="$PWD" ESCALAS_ENV=/tmp/escalas.env BACKUP_DIR=/tmp/backups sh infra/backup.sh
+      - name: Teste de restauração (infra/testar-restauracao.sh)
+        run: |
+          BACKUP_DIR=/tmp/backups sh infra/testar-restauracao.sh | tee /tmp/restauracao.txt
+          grep -q "exemplo: 3" /tmp/restauracao.txt
 
   deploy:
     name: Deploy em produção (Azure)
-    needs: [imagem, analise-estatica, infra]
+    needs: [imagem, analise-estatica, infra, backup]
     # Push na main publica o commit; o disparo manual com "commit" preenchido volta para uma versão anterior.
     if: >-
       vars.AZURE_VM != '' &&
@@ -174,10 +197,12 @@ jobs:
       - name: Atualiza a VM (infra/atualizar.sh via run-command, sem SSH)
         env:
           COMMIT: ${{ inputs.commit || github.sha }}
+          BACKUP_CONTA: ${{ vars.BACKUP_CONTA }}
         run: |
           case "$COMMIT" in *[!0-9a-f]*) echo "::error::commit inválido"; exit 1;; esac
+          case "$BACKUP_CONTA" in *[!a-z0-9]*) echo "::error::BACKUP_CONTA inválida"; exit 1;; esac
           # Atualiza o checkout antes, para executar o atualizar.sh da própria versão publicada.
-          script="cd /opt/escalas && git fetch --quiet origin && git checkout --quiet --force $COMMIT && sh infra/atualizar.sh $COMMIT"
+          script="cd /opt/escalas && git fetch --quiet origin && git checkout --quiet --force $COMMIT && BACKUP_CONTA=$BACKUP_CONTA sh infra/atualizar.sh $COMMIT"
           saida=$(az vm run-command invoke \
             --resource-group "${{ vars.AZURE_RESOURCE_GROUP }}" --name "${{ vars.AZURE_VM }}" \
             --command-id RunShellScript --scripts "$script" \

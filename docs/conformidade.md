@@ -68,10 +68,11 @@ esconde os botões que o perfil não pode usar. Testado em `SegurancaIntegracaoT
 | Injeção | Acesso a dados só por Spring Data JPA (consultas parametrizadas); validação de entrada com Bean Validation. |
 | XSS | O React escapa todo conteúdo renderizado; não há `dangerouslySetInnerHTML`. Imagens enviadas são regravadas. **Content-Security-Policy** só permite scripts, estilos, fontes e conexões da própria origem e proíbe enquadramento. |
 | CSRF | Não se aplica: a autenticação é por cabeçalho `Authorization` (sem cookie de sessão), por isso o CSRF do Spring fica desligado. |
-| Falhas de identificação e autenticação | **Limite de tentativas** (`LimiteTentativas`): 5 senhas erradas bloqueiam o login por 15 min (HTTP 429), e 30 falhas do mesmo IP bloqueiam esse IP. A resposta tem o mesmo texto e o mesmo tempo para login inexistente e senha errada. Trocar a senha encerra as sessões. |
-| Configuração insegura | Métricas e health check só na porta interna 8081; contêiner sem privilégios; cabeçalhos `X-Frame-Options`, `X-Content-Type-Options`, `Referrer-Policy` e `Permissions-Policy`; em desenvolvimento as portas ficam só em `127.0.0.1`. |
+| Falhas de identificação e autenticação | **Limite de tentativas** (`LimiteTentativas`): 5 senhas erradas bloqueiam aquele login vindo daquele IP por 15 min (HTTP 429); 30 falhas do mesmo IP bloqueiam o IP; 50 falhas na mesma conta, somando todos os IPs, bloqueiam a conta (ataque distribuído). Assim, errar a senha de um lugar não tranca a conta para os outros. A resposta tem o mesmo texto e o mesmo tempo para login inexistente e senha errada. Trocar a senha encerra as sessões. |
+| Configuração insegura | Métricas e health check só na porta interna 8081; contêiner sem privilégios; Grafana acessível só de IPs autorizados; esquema do banco versionado (Flyway) e conferido ao iniciar, sem alteração automática de tabelas; cabeçalhos `X-Frame-Options`, `X-Content-Type-Options`, `Referrer-Policy` e `Permissions-Policy`; em desenvolvimento as portas ficam só em `127.0.0.1`. |
 | Negação de serviço | Limites de entrada: períodos máximos nas consultas por data, até 500 pessoas por setor no simulador, imagens de até 5 MB e 4096 px, login e senha com tamanho máximo. |
-| Componentes vulneráveis | Análise estática e de segurança no SonarCloud a cada push; dependências mantidas sem alertas no `npm audit` e na última versão de correção do Spring Boot. |
+| Componentes vulneráveis | Análise estática e de segurança no SonarCloud a cada push; **Dependabot** abre PRs semanais com as atualizações de Maven, npm, GitHub Actions e imagens Docker. |
+| Disponibilidade e integridade dos dados | Backup diário do banco, com cópia fora da VM (Azure Storage em outra região, 30 dias) e teste de restauração automático no pipeline; a VM não é recriada por mudança de configuração (o que apagaria o banco). |
 
 ## Acessibilidade (WCAG 2.1)
 

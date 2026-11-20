@@ -8,19 +8,26 @@ import java.time.Instant;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.stream.Stream;
 
 /**
- * Proteção contra força bruta no login (OWASP ASVS V2.2): falhas são contadas por login e por IP numa janela de
- * {@link #JANELA}; ao atingir o limite, novas tentativas são recusadas até o fim do bloqueio, mesmo com a senha certa.
- *
- * <p>O contador por login protege uma conta contra tentativas vindas de vários IPs; o por IP impede que um mesmo
- * cliente percorra muitos logins. Fica em memória: suficiente para uma instância da aplicação.
+ * Proteção contra força bruta no login (OWASP ASVS V2.2): falhas são contadas numa janela de {@link #JANELA}; ao
+ * atingir um limite, novas tentativas são recusadas até o fim do bloqueio, mesmo com a senha certa. Há três contadores:
+ * <ul>
+ *   <li><b>login + IP</b> ({@value #MAX_FALHAS_POR_LOGIN_E_IP} falhas): o caso comum, alguém tentando senhas de uma
+ *       conta. Bloqueia só aquele login vindo daquele IP: quem errou a senha não tranca a conta para todo mundo;</li>
+ *   <li><b>IP</b> ({@value #MAX_FALHAS_POR_IP} falhas): um mesmo cliente percorrendo muitos logins;</li>
+ *   <li><b>login</b>, somando todos os IPs ({@value #MAX_FALHAS_POR_LOGIN} falhas): ataque distribuído contra uma
+ *       conta. O limite é alto de propósito: para trancar o gestor de má-fé, seria preciso usar dezenas de IPs.</li>
+ * </ul>
+ * Fica em memória: suficiente para uma instância da aplicação.
  */
 @Component
 public class LimiteTentativas {
 
-    public static final int MAX_FALHAS_POR_LOGIN = 5;
+    public static final int MAX_FALHAS_POR_LOGIN_E_IP = 5;
     public static final int MAX_FALHAS_POR_IP = 30;
+    public static final int MAX_FALHAS_POR_LOGIN = 50;
     public static final Duration JANELA = Duration.ofMinutes(15);
     /** Acima disso, entradas vencidas são descartadas para a memória não crescer sem limite. */
     private static final int LIMPEZA_ACIMA_DE = 10_000;
@@ -39,10 +46,10 @@ public class LimiteTentativas {
         this.relogio = relogio;
     }
 
-    /** Tempo restante de bloqueio para este login ou este IP (o maior dos dois), se houver. */
+    /** Tempo restante de bloqueio para este login, este IP ou este login neste IP (o maior), se houver. */
     public Optional<Duration> bloqueio(String login, String ip) {
         Instant agora = relogio.instant();
-        return java.util.stream.Stream.of(chaveLogin(login), chaveIp(ip))
+        return Stream.of(chaveLoginEIp(login, ip), chaveIp(ip), chaveLogin(login))
                 .map(registros::get)
                 .filter(r -> r != null && r.bloqueadoAte() != null && agora.isBefore(r.bloqueadoAte()))
                 .map(r -> Duration.between(agora, r.bloqueadoAte()))
@@ -51,16 +58,20 @@ public class LimiteTentativas {
 
     public void registrarFalha(String login, String ip) {
         Instant agora = relogio.instant();
-        contar(chaveLogin(login), MAX_FALHAS_POR_LOGIN, agora);
+        contar(chaveLoginEIp(login, ip), MAX_FALHAS_POR_LOGIN_E_IP, agora);
         contar(chaveIp(ip), MAX_FALHAS_POR_IP, agora);
+        contar(chaveLogin(login), MAX_FALHAS_POR_LOGIN, agora);
         if (registros.size() > LIMPEZA_ACIMA_DE) {
             registros.entrySet().removeIf(e -> vencido(e.getValue(), agora));
         }
     }
 
-    /** O login certo zera as falhas da conta (as do IP continuam valendo até a janela vencer). */
-    public void registrarSucesso(String login) {
-        registros.remove(chaveLogin(login));
+    /**
+     * O login certo zera as falhas dessa conta nesse IP. As do IP e as da conta somadas de todos os IPs continuam
+     * valendo até a janela vencer: acertar a senha uma vez não apaga um ataque em andamento.
+     */
+    public void registrarSucesso(String login, String ip) {
+        registros.remove(chaveLoginEIp(login, ip));
     }
 
     /** Esquece todas as falhas (usado entre testes). */
@@ -89,5 +100,9 @@ public class LimiteTentativas {
 
     private static String chaveIp(String ip) {
         return "ip:" + (ip == null ? "" : ip);
+    }
+
+    private static String chaveLoginEIp(String login, String ip) {
+        return "login-ip:" + (login == null ? "" : login) + "|" + (ip == null ? "" : ip);
     }
 }

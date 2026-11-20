@@ -22,6 +22,8 @@ terraform {
 provider "azurerm" {
   features {}
   subscription_id = var.subscription_id
+  # A conta de backup não aceita chaves de acesso: o Terraform também usa o Entra ID para gerenciá-la.
+  storage_use_azuread = true
 }
 
 provider "azuread" {}
@@ -120,6 +122,11 @@ resource "azurerm_linux_virtual_machine" "app" {
   admin_username        = "escalas"
   network_interface_ids = [azurerm_network_interface.app.id]
 
+  # Identidade gerenciada: a VM grava os backups no Storage (backup.tf) sem chave nem senha.
+  identity {
+    type = "SystemAssigned"
+  }
+
   admin_ssh_key {
     username   = "escalas"
     public_key = tls_private_key.nao_usada.public_key_openssh
@@ -148,4 +155,10 @@ resource "azurerm_linux_virtual_machine" "app" {
     grafana_senha = var.grafana_senha
     app_seed      = var.app_seed
   }))
+
+  lifecycle {
+    # O custom_data (cloud-init) só vale na criação da VM, e mudá-lo depois faria o Terraform RECRIAR a VM, apagando o
+    # banco que vive no disco dela. Mudanças de configuração numa VM existente vão pelo /etc/escalas/env (docs/deploy.md).
+    ignore_changes = [custom_data]
+  }
 }

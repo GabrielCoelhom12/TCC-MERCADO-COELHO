@@ -58,7 +58,13 @@ variable "grafana_senha" {
 }
 
 variable "app_seed" {
-  description = "true = carrega o cenário de demonstração quando o banco está vazio."
+  description = "true = carrega o cenário de demonstração (colaboradores fictícios) quando o banco está vazio; só para apresentação."
   type        = bool
-  default     = true
+  default     = false
+}
+
+variable "backup_retencao_dias" {
+  description = "Por quantos dias os backups diários do banco ficam guardados no Storage."
+  type        = number
+  default     = 30
 }

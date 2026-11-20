@@ -28,3 +28,8 @@ output "IP_PUBLICO" {
   description = "Para apontar um domínio próprio (registro A)."
   value       = azurerm_public_ip.app.ip_address
 }
+
+output "BACKUP_CONTA" {
+  description = "Conta de armazenamento dos backups (cadastrar como variável do ambiente producao no GitHub)."
+  value       = azurerm_storage_account.backup.name
+}

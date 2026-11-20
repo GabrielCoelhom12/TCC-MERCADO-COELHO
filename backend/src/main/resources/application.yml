@@ -11,9 +11,14 @@ spring:
     url: ${DB_URL:jdbc:postgresql://localhost:5432/escalas_coelho}
     username: ${DB_USER:postgres}
     password: ${DB_PASSWORD:postgres}
+  # O esquema é das migrações do Flyway (db/migration); o Hibernate só confere se as entidades batem com ele.
+  flyway:
+    # Banco que já existia antes do Flyway (produção): marca a V1 como aplicada sem executá-la.
+    baseline-on-migrate: true
+    baseline-version: 1
   jpa:
     hibernate:
-      ddl-auto: update
+      ddl-auto: validate
     open-in-view: false
     properties:
       hibernate:

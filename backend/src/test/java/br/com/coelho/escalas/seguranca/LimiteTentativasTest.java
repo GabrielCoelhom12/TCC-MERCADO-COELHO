@@ -45,18 +45,38 @@ class LimiteTentativasTest {
     }
 
     @Test
-    void bloqueiaOLoginNaQuintaFalhaPorQuinzeMinutos() {
+    void bloqueiaOLoginNaqueleIpNaQuintaFalhaPorQuinzeMinutos() {
         falhar("ana", "10.0.0.1", 4);
         assertThat(limite.bloqueio("ana", "10.0.0.1")).isEmpty();
 
         falhar("ana", "10.0.0.1", 1);
-        assertThat(limite.bloqueio("ana", "10.0.0.2")).contains(Duration.ofMinutes(15)); // vale de qualquer IP
-        assertThat(limite.bloqueio("bia", "10.0.0.2")).isEmpty();
+        assertThat(limite.bloqueio("ana", "10.0.0.1")).contains(Duration.ofMinutes(15));
+        assertThat(limite.bloqueio("bia", "10.0.0.1")).isEmpty();
 
         relogio.avancar(Duration.ofMinutes(10));
         assertThat(limite.bloqueio("ana", "10.0.0.1")).contains(Duration.ofMinutes(5));
         relogio.avancar(Duration.ofMinutes(5));
         assertThat(limite.bloqueio("ana", "10.0.0.1")).isEmpty();
+    }
+
+    /** Quem erra a senha (ou um atacante) de um IP não tranca a conta para quem está em outro lugar. */
+    @Test
+    void falhasDeUmIpNaoTrancamAContaEmOutroIp() {
+        falhar("gestor", "203.0.113.7", 10);
+
+        assertThat(limite.bloqueio("gestor", "203.0.113.7")).isPresent();
+        assertThat(limite.bloqueio("gestor", "10.0.0.2")).isEmpty();
+    }
+
+    /** Ataque distribuído: muitas falhas na mesma conta, cada uma de um IP, bloqueiam a conta. */
+    @Test
+    void muitasFalhasNaContaVindasDeVariosIpsBloqueiamAConta() {
+        for (int i = 0; i < LimiteTentativas.MAX_FALHAS_POR_LOGIN; i++) {
+            limite.registrarFalha("gestor", "198.51.100." + i);
+        }
+
+        assertThat(limite.bloqueio("gestor", "10.0.0.2")).isPresent();
+        assertThat(limite.bloqueio("ana", "10.0.0.2")).isEmpty();
     }
 
     @Test
@@ -70,7 +90,7 @@ class LimiteTentativasTest {
     @Test
     void sucessoZeraAsFalhasDoLogin() {
         falhar("ana", "10.0.0.1", 4);
-        limite.registrarSucesso("ana");
+        limite.registrarSucesso("ana", "10.0.0.1");
         falhar("ana", "10.0.0.1", 4);
         assertThat(limite.bloqueio("ana", "10.0.0.1")).isEmpty();
     }

@@ -50,7 +50,7 @@ public class AutenticacaoService {
             limite.registrarFalha(chave, ip);
             throw new NaoAutenticadoException("Usuário ou senha inválidos.");
         }
-        limite.registrarSucesso(chave);
+        limite.registrarSucesso(chave, ip);
         Usuario usuario = encontrado.get();
         if (!usuario.isAtivo()) {
             throw new NaoAutenticadoException("Usuário desativado. Procure um administrador.");

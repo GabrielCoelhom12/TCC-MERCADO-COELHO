@@ -4,9 +4,14 @@ spring:
     url: ${TEST_DB_URL:jdbc:postgresql://localhost:5432/escalas_coelho_test}
     username: ${TEST_DB_USER:postgres}
     password: ${TEST_DB_PASSWORD:postgres}
+  # Mesmo caminho da produção: o esquema vem das migrações do Flyway (o banco de teste é limpo a cada execução,
+  # ver LimpezaDoBancoDeTeste) e o Hibernate só confere.
+  flyway:
+    clean-disabled: false
+    baseline-on-migrate: false
   jpa:
     hibernate:
-      ddl-auto: create-drop
+      ddl-auto: validate
 
 management:
   server:

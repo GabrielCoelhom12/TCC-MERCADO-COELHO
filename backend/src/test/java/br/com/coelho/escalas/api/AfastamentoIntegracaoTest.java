@@ -1,6 +1,6 @@
 package br.com.coelho.escalas.api;
 
-import br.com.coelho.escalas.config.AjusteEsquema;
+import br.com.coelho.escalas.dominio.Ausencia;
 import com.fasterxml.jackson.databind.JsonNode;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -23,9 +23,6 @@ class AfastamentoIntegracaoTest extends IntegracaoTest {
 
     @Autowired
     private JdbcTemplate jdbc;
-
-    @Autowired
-    private AjusteEsquema ajusteEsquema;
 
     @Test
     void atestadoRepassaOsTurnosDoPeriodo() throws Exception {
@@ -146,16 +143,19 @@ class AfastamentoIntegracaoTest extends IntegracaoTest {
         assertThat(turnosDe(corpo(get("/api/escalas/" + escala + "/matriz")), funcionario, dia)).isZero();
     }
 
-    /** Bancos criados antes dos novos tipos têm uma restrição que só aceita os quatro tipos antigos. */
+    /**
+     * A restrição do banco (migrações do Flyway) aceita todos os tipos do enum. Ao criar um tipo novo, é preciso uma
+     * migração que recrie a restrição ausencia_motivo_check; sem ela, este teste falha.
+     */
     @Test
-    void bancoComARestricaoAntigaPassaAAceitarOsNovosTipos() throws Exception {
-        jdbc.execute("alter table ausencia drop constraint if exists ausencia_motivo_check");
-        jdbc.execute("alter table ausencia add constraint ausencia_motivo_check check (motivo in ('FERIAS','ATESTADO','FOLGA_ACORDADA','OUTRO'))");
-
-        ajusteEsquema.run(null);
-
-        post("/api/afastamentos", afastamento(primeiroFuncionario(), "LICENCA_PATERNIDADE", SEGUNDA, "2031-03-07"))
-                .andExpect(status().isCreated());
+    void oBancoAceitaTodosOsTiposDeAfastamento() {
+        long funcionario = jdbc.queryForObject("select min(id) from funcionario", Long.class);
+        for (Ausencia.Motivo motivo : Ausencia.Motivo.values()) {
+            jdbc.update("insert into ausencia (funcionario_id, inicio, fim, motivo) values (?, date '2031-03-03', date '2031-03-03', ?)",
+                    funcionario, motivo.name());
+        }
+        assertThat(jdbc.queryForObject("select count(*) from ausencia where inicio = date '2031-03-03'", Integer.class))
+                .isGreaterThanOrEqualTo(Ausencia.Motivo.values().length);
     }
 
     // ------------------------------------------------------------------ auxiliares

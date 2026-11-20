@@ -1,0 +1,41 @@
+# Atualizações de dependências (e correções de segurança) por pull request, toda segunda-feira. As atualizações
+# menores e de correção vêm agrupadas numa PR por ecossistema; as de versão maior vêm separadas, para revisar com
+# calma. Cada PR passa pelo mesmo pipeline (testes, cobertura, SonarCloud) antes do merge.
+version: 2
+updates:
+  - package-ecosystem: maven
+    directory: /backend
+    schedule: { interval: weekly, day: monday, time: "06:00", timezone: America/Sao_Paulo }
+    open-pull-requests-limit: 5
+    commit-message: { prefix: "chore(backend)" }
+    groups:
+      backend-menores:
+        update-types: [minor, patch]
+
+  - package-ecosystem: npm
+    directory: /frontend
+    schedule: { interval: weekly, day: monday, time: "06:00", timezone: America/Sao_Paulo }
+    open-pull-requests-limit: 5
+    commit-message: { prefix: "chore(frontend)" }
+    groups:
+      frontend-menores:
+        update-types: [minor, patch]
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule: { interval: weekly, day: monday, time: "06:00", timezone: America/Sao_Paulo }
+    commit-message: { prefix: "ci" }
+    groups:
+      actions:
+        patterns: ["*"]
+
+  # Imagens base do Dockerfile (Node, Maven, JRE) e dos serviços do docker-compose (PostgreSQL, Caddy, Grafana...).
+  - package-ecosystem: docker
+    directory: /
+    schedule: { interval: weekly, day: monday, time: "06:00", timezone: America/Sao_Paulo }
+    commit-message: { prefix: "chore(docker)" }
+
+  - package-ecosystem: docker-compose
+    directory: /
+    schedule: { interval: weekly, day: monday, time: "06:00", timezone: America/Sao_Paulo }
+    commit-message: { prefix: "chore(docker)" }
