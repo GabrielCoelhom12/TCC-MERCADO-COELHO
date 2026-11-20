@@ -195,13 +195,108 @@ class EscalaIntegracaoTest extends IntegracaoTest {
         post(substituir, Map.of("funcionarioId", 999999L)).andExpect(status().isNotFound());
         get("/api/escalas/" + id + "/turnos/999999/substitutos").andExpect(status().isNotFound());
         get("/api/escalas/999999/turnos/" + turnoId + "/substitutos").andExpect(status().isNotFound());
+    }
 
-        // Escala aprovada não aceita troca até ser reaberta.
+    /** Urgência: alguém avisa que não vem e a gerente troca na hora, sem reabrir a escala já aprovada. */
+    @Test
+    void trocaDeUrgenciaEmEscalaAprovadaFicaRegistradaNoHistorico() throws Exception {
+        long id = criar("Troca de urgência");
+        modoFinanceiro("ALERTAR");
+        JsonNode turno = corpo(post("/api/escalas/" + id + "/gerar", Map.of()).andExpect(status().isOk())).at("/matriz/turnos/0");
+        long turnoId = turno.get("id").asLong();
+        JsonNode sugestao = corpo(get("/api/escalas/" + id + "/turnos/" + turnoId + "/substitutos"));
+        JsonNode candidato = sugestao.at("/candidatos/0");
+        long titular = sugestao.at("/titular/funcionarioId").asLong();
+        post("/api/escalas/" + id + "/aprovar", Map.of()).andExpect(status().isOk());
+        get("/api/escalas/" + id + "/trocas").andExpect(status().isOk()).andExpect(jsonPath("$", empty()));
+
+        JsonNode depois = corpo(post("/api/escalas/" + id + "/turnos/" + turnoId + "/substituir",
+                Map.of("funcionarioId", candidato.get("funcionarioId").asLong())).andExpect(status().isOk()));
+
+        assertThat(turnoPorId(depois, turnoId).get("funcionarioId").asLong()).isEqualTo(candidato.get("funcionarioId").asLong());
+        assertThat(depois.at("/escala/status").asText()).isEqualTo("APROVADA");
+        assertThat(depois.at("/escala/observacao").isNull()).as("a observação continua livre para o gestor").isTrue();
+
+        JsonNode troca = corpo(get("/api/escalas/" + id + "/trocas").andExpect(status().isOk())).get(0);
+        assertThat(troca.get("data").asText()).isEqualTo(turno.get("data").asText());
+        assertThat(troca.get("horaInicio").asText()).isEqualTo(turno.get("horaInicio").asText());
+        assertThat(troca.get("titularId").asLong()).isEqualTo(titular);
+        assertThat(troca.get("substitutoId").asLong()).isEqualTo(candidato.get("funcionarioId").asLong());
+        assertThat(troca.get("substitutoNome").asText()).isEqualTo(candidato.get("nome").asText());
+        assertThat(troca.get("urgencia").asBoolean()).isTrue();
+        assertThat(troca.get("registradaPor").asText()).isEqualTo("gestor");
+        assertThat(troca.get("registradaEm").isNull()).isFalse();
+    }
+
+    @Test
+    void trocaEmRascunhoTambemFicaNoHistoricoSemSerUrgencia() throws Exception {
+        long id = criar("Troca em rascunho");
+        modoFinanceiro("ALERTAR");
+        long turnoId = corpo(post("/api/escalas/" + id + "/gerar", Map.of()).andExpect(status().isOk())).at("/matriz/turnos/0/id").asLong();
+        long candidato = corpo(get("/api/escalas/" + id + "/turnos/" + turnoId + "/substitutos")).at("/candidatos/0/funcionarioId").asLong();
+
+        post("/api/escalas/" + id + "/turnos/" + turnoId + "/substituir", Map.of("funcionarioId", candidato)).andExpect(status().isOk());
+
+        get("/api/escalas/" + id + "/trocas")
+                .andExpect(jsonPath("$", hasSize(1)))
+                .andExpect(jsonPath("$[0].urgencia").value(false));
+        get("/api/escalas/999999/trocas").andExpect(status().isNotFound());
+    }
+
+    /** O limite de custo segue o modo de Parâmetros também na urgência: no modo BLOQUEAR, o orçamento não estoura. */
+    @Test
+    void trocaDeUrgenciaRespeitaOBloqueioFinanceiro() throws Exception {
+        long id = criar("Urgência com bloqueio");
+        modoFinanceiro("ALERTAR");
+        JsonNode matriz = corpo(post("/api/escalas/" + id + "/gerar", Map.of()).andExpect(status().isOk())).get("matriz");
+
+        // O gerador põe exatamente o mínimo no domingo; um operador a mais deixa o dia acima do mínimo, onde vale o teto.
+        long extra = funcionarioSemTurnoNo(matriz, DOMINGO);
+        matriz = corpo(put("/api/escalas/" + id + "/celula", celula(extra, DOMINGO, idDoModelo(matriz, "DOM")))
+                .andExpect(status().isOk()));
+        post("/api/escalas/" + id + "/aprovar", Map.of()).andExpect(status().isOk());
+        modoFinanceiro("BLOQUEAR");
+        put("/api/projecoes/padrao", Map.of("DOMINGO", 1)).andExpect(status().isOk()); // teto do domingo quase zero
+
+        // Troca de um turno do domingo por alguém mais caro que o titular: aumenta o custo de um dia acima do teto.
+        JsonNode turno = null;
+        JsonNode maisCaro = null;
+        for (JsonNode t : matriz.get("turnos")) {
+            if (!t.get("data").asText().equals(DOMINGO) || maisCaro != null) {
+                continue;
+            }
+            for (JsonNode c : corpo(get("/api/escalas/" + id + "/turnos/" + t.get("id").asLong() + "/substitutos")).get("candidatos")) {
+                if (c.get("apto").asBoolean() && c.get("custoTurno").decimalValue().compareTo(t.get("custo").decimalValue()) > 0) {
+                    turno = t;
+                    maisCaro = c;
+                    break;
+                }
+            }
+        }
+        assertThat(maisCaro).as("cenário de teste: um substituto mais caro apto no domingo").isNotNull();
+        long turnoId = turno.get("id").asLong();
+
+        post("/api/escalas/" + id + "/turnos/" + turnoId + "/substituir", Map.of("funcionarioId", maisCaro.get("funcionarioId").asLong()))
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(jsonPath("$.mensagem", containsString("Alocação bloqueada")));
+
+        // A troca recusada não entra no histórico. (A volta do turno ao titular é o rollback da requisição, que este
+        // teste não enxerga: ele roda inteiro numa transação só.)
+        get("/api/escalas/" + id + "/trocas").andExpect(jsonPath("$", empty()));
+    }
+
+    @Test
+    void naoTrocaTurnoDeDiaQueJaPassouEmEscalaAprovada() throws Exception {
+        long id = corpo(post("/api/escalas", periodo("2020-03-02", "2020-03-08")).andExpect(status().isCreated())).get("id").asLong();
+        modoFinanceiro("ALERTAR");
+        JsonNode turno = corpo(post("/api/escalas/" + id + "/gerar", Map.of()).andExpect(status().isOk())).at("/matriz/turnos/0");
+        long turnoId = turno.get("id").asLong();
         long candidato = corpo(get("/api/escalas/" + id + "/turnos/" + turnoId + "/substitutos")).at("/candidatos/0/funcionarioId").asLong();
         post("/api/escalas/" + id + "/aprovar", Map.of()).andExpect(status().isOk());
-        post(substituir, Map.of("funcionarioId", candidato))
+
+        post("/api/escalas/" + id + "/turnos/" + turnoId + "/substituir", Map.of("funcionarioId", candidato))
                 .andExpect(status().isUnprocessableEntity())
-                .andExpect(jsonPath("$.mensagem", containsString("Reabra")));
+                .andExpect(jsonPath("$.mensagem", containsString("já passou")));
     }
 
     @Test
