@@ -235,7 +235,9 @@ tbody tr:hover td { background: var(--fundo); }
 .modal { background: #fff; border: 1px solid var(--borda); border-radius: 10px; width: min(560px, 100%); max-height: 90vh; overflow: auto; padding: 22px; box-shadow: 0 12px 40px rgba(0, 0, 0, 0.12); }
 .modal h2 { margin-bottom: 14px; }
 .modal .acoes { display: flex; justify-content: flex-end; gap: 8px; margin-top: 18px; }
-.modal .confirmacao-texto { margin: 0; line-height: 1.5; }
+.modal .confirmacao-texto { line-height: 1.5; }
+.modal .confirmacao-texto p { margin: 0 0 10px; }
+.modal .confirmacao-texto p:last-child { margin-bottom: 0; }
 button.primario.perigoso { background: var(--erro); border-color: var(--erro); color: #fff; }
 button.primario.perigoso:hover:not(:disabled) { background: #a51f25; border-color: #a51f25; box-shadow: 0 4px 14px rgba(192, 38, 45, 0.3); }
 

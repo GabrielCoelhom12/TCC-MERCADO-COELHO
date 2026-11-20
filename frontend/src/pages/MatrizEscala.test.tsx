@@ -38,6 +38,8 @@ describe('MatrizEscala', () => {
 
     fireEvent.click(await screen.findByRole('button', { name: /Otimizar com Timefold/ }));
     const dialogo = await screen.findByRole('dialog', { name: 'Otimizar com Timefold' });
+    expect(dialogo).toHaveTextContent('mais inteligente');
+    expect(dialogo).toHaveTextContent('um pouco mais cara');
     expect(fetch.mock.calls.some(([url]) => url === '/api/escalas/7/otimizar')).toBe(false);
     fireEvent.click(within(dialogo).getByRole('button', { name: 'Otimizar' }));
 

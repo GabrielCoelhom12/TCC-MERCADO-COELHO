@@ -24,9 +24,24 @@ const GERAR: OpcoesConfirmacao = {
   mensagem: 'Os turnos atuais desta escala serão substituídos por uma nova sugestão automática.',
   confirmar: 'Gerar',
 };
+/** Números do experimento guloso × Timefold (docs/experimento-otimizacao.md). */
 const OTIMIZAR: OpcoesConfirmacao = {
   titulo: 'Otimizar com Timefold',
-  mensagem: 'Os turnos atuais desta escala serão substituídos pela escala otimizada. A otimização leva alguns segundos.',
+  mensagem: (
+    <>
+      <p>
+        O <strong>Timefold</strong> monta uma escala <strong>mais inteligente</strong>: olha a semana inteira de uma vez,
+        preenche vagas que o gerador rápido deixaria vazias e distribui as horas de forma mais equilibrada entre a equipe,
+        sem ferir nenhuma regra da CLT.
+      </p>
+      <p>
+        Por cobrir mais vagas, a escala pode sair <strong>um pouco mais cara</strong> (nos testes do projeto, cerca de 1%
+        a mais por semana). Para gastar o mínimo, use o <strong>Gerar (rápido)</strong>; para comparar os dois antes de
+        decidir, use <strong>Comparar algoritmos</strong>.
+      </p>
+      <p className="muted">Os turnos atuais desta escala serão substituídos. A otimização leva alguns segundos.</p>
+    </>
+  ),
   confirmar: 'Otimizar',
 };
 

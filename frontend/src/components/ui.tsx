@@ -123,7 +123,7 @@ export function ConfirmacaoProvider({ children }: { children: ReactNode }) {
             {pedido?.confirmar ?? 'Confirmar'}
           </button>
         </>}>
-        <p className="confirmacao-texto">{pedido?.mensagem}</p>
+        <div className="confirmacao-texto">{pedido?.mensagem}</div>
       </Modal>
     </ConfirmacaoCtx.Provider>
   );
