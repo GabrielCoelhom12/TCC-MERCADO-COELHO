@@ -21,30 +21,36 @@ class CalendarioSazonalTest {
     }
 
     @Test
-    void natalConcentraOMovimentoDe20a24DeDezembro() {
+    void natalSeparaAVesperaEAAntevesperaDoRestoDaSemana() {
         assertThat(em("2026-12-19")).isNull();
         assertThat(em("2026-12-20")).isEqualTo(DataComemorativa.SEMANA_DO_NATAL);
-        assertThat(em("2026-12-24")).isEqualTo(DataComemorativa.SEMANA_DO_NATAL);
+        assertThat(em("2026-12-22")).isEqualTo(DataComemorativa.SEMANA_DO_NATAL);
+        assertThat(em("2026-12-23")).isEqualTo(DataComemorativa.ANTEVESPERA_DE_NATAL);
+        assertThat(em("2026-12-24")).isEqualTo(DataComemorativa.VESPERA_DE_NATAL);
         assertThat(em("2026-12-25")).as("o próprio feriado é tratado como feriado").isNull();
     }
 
     @Test
     void anoNovoEDiasDepoisDasFestas() {
-        assertThat(em("2026-12-29")).isEqualTo(DataComemorativa.VESPERAS_DE_ANO_NOVO);
-        assertThat(em("2026-12-31")).isEqualTo(DataComemorativa.VESPERAS_DE_ANO_NOVO);
+        assertThat(em("2026-12-27")).isNull();
+        assertThat(em("2026-12-29")).as("sem padrão consistente").isNull();
+        assertThat(em("2026-12-30")).isEqualTo(DataComemorativa.ANTEVESPERA_DE_ANO_NOVO);
+        assertThat(em("2026-12-31")).isEqualTo(DataComemorativa.VESPERA_DE_ANO_NOVO);
         assertThat(em("2026-12-26")).isEqualTo(DataComemorativa.POS_FESTAS);
         assertThat(em("2027-01-02")).isEqualTo(DataComemorativa.POS_FESTAS);
     }
 
     @Test
     void datasMoveisSeguemAPascoa() {
-        // Páscoa 2026: 05/04 → Quinta-feira Santa 02/04 e Sábado de Aleluia 04/04; Carnaval na terça 17/02.
-        assertThat(em("2026-04-02")).isEqualTo(DataComemorativa.SEMANA_SANTA);
-        assertThat(em("2026-04-04")).isEqualTo(DataComemorativa.SEMANA_SANTA);
+        // Páscoa 2026: 05/04 → Quinta-feira Santa 02/04; Carnaval na terça 17/02.
+        assertThat(em("2026-04-02")).isEqualTo(DataComemorativa.QUINTA_FEIRA_SANTA);
         assertThat(em("2026-04-03")).as("Sexta-feira Santa é feriado").isNull();
+        assertThat(em("2026-04-04")).as("sábado de Aleluia sem efeito consistente").isNull();
+        assertThat(em("2026-02-12")).isNull();
         assertThat(em("2026-02-13")).isEqualTo(DataComemorativa.PRE_CARNAVAL);
         assertThat(em("2026-02-14")).isEqualTo(DataComemorativa.PRE_CARNAVAL);
-        assertThat(em("2026-02-12")).isNull();
+        assertThat(em("2026-02-16")).isEqualTo(DataComemorativa.SEGUNDA_DE_CARNAVAL);
+        assertThat(em("2026-02-17")).as("terça de Carnaval sem efeito consistente").isNull();
     }
 
     @Test
@@ -71,9 +77,13 @@ class CalendarioSazonalTest {
     }
 
     @Test
-    void hipoteseInicialSegueATendenciaDoEstudoDeSazonalidade() {
-        assertThat(DataComemorativa.SEMANA_DO_NATAL.hipoteseInicial()).isEqualTo(1.30);
-        assertThat(DataComemorativa.DIA_DAS_MAES.hipoteseInicial()).isEqualTo(1.15);
+    void cadaDataTemAPropriaHipoteseInicial() {
+        assertThat(DataComemorativa.VESPERA_DE_NATAL.hipoteseInicial())
+                .isGreaterThan(DataComemorativa.ANTEVESPERA_DE_NATAL.hipoteseInicial());
+        assertThat(DataComemorativa.ANTEVESPERA_DE_NATAL.hipoteseInicial())
+                .isGreaterThan(DataComemorativa.SEMANA_DO_NATAL.hipoteseInicial());
+        assertThat(DataComemorativa.VESPERA_DE_NATAL.hipoteseInicial()).isEqualTo(2.50);
+        assertThat(DataComemorativa.DIA_DAS_MAES.hipoteseInicial()).isEqualTo(1.20);
         assertThat(DataComemorativa.BLACK_FRIDAY.hipoteseInicial())
                 .as("impacto variável: só ajusta depois de medido no histórico").isEqualTo(1.0);
     }

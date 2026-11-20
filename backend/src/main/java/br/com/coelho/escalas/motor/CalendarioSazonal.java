@@ -13,24 +13,15 @@ import java.util.Optional;
  * <p>O dia do próprio feriado (Natal, Sexta-feira Santa…) não entra aqui: ele já é tratado como feriado pela
  * previsão. Aqui ficam os dias <b>em torno</b> das datas, quando o movimento costuma se concentrar.</p>
  *
- * <p>A {@linkplain Tendencia tendência} de cada data é só a hipótese inicial usada enquanto a loja não tem histórico
- * daquela data; depois, vale o efeito medido nos fechamentos da própria loja.</p>
+ * <p>A hipótese inicial de cada data é usada enquanto a loja não tem histórico daquela data; depois, ela é combinada
+ * com o efeito medido nos fechamentos da própria loja. Os valores foram calibrados com o histórico real de vendas da
+ * loja parceira (efeito de cada data sobre os mesmos dias da semana em volta), arredondados para baixo. Os dados da
+ * loja são confidenciais e não fazem parte do repositório. Ver docs/experimento-previsao.md.</p>
  */
 public final class CalendarioSazonal {
 
-    /** Hipótese inicial de variação das vendas, antes de existir histórico da data. */
-    public enum Tendencia {
-        MUITO_ALTA(1.30),
-        ALTA(1.15),
-        /** Impacto incerto (depende de campanha, região, clima): só ajusta depois de medido no histórico. */
-        VARIAVEL(1.0);
-
-        private final double fator;
-
-        Tendencia(double fator) {
-            this.fator = fator;
-        }
-    }
+    /** Hipótese neutra: impacto incerto (depende de campanha, região, clima); só ajusta depois de medido. */
+    public static final double VARIAVEL = 1.0;
 
     /** Peso padrão da hipótese inicial: ela "vale" 2 ocorrências na média com o histórico da loja. */
     public static final int PESO_HIPOTESE_PADRAO = 2;
@@ -41,33 +32,51 @@ public final class CalendarioSazonal {
      */
     public static final int PESO_HIPOTESE_POUCAS_OCORRENCIAS = 4;
 
+    /**
+     * Cada data tem a própria hipótese. Datas com comportamento muito diferente ficam separadas, para que uma não dilua
+     * a outra: a véspera de Natal vende bem mais que os dias 20 a 22.
+     */
     public enum DataComemorativa {
-        SEMANA_DO_NATAL("Semana do Natal", Tendencia.MUITO_ALTA),
-        VESPERAS_DE_ANO_NOVO("Vésperas de Ano-Novo", Tendencia.ALTA),
+        /** 20 a 22/12: aumento moderado. */
+        SEMANA_DO_NATAL("Semana do Natal", 1.10),
+        /** 23/12. */
+        ANTEVESPERA_DE_NATAL("Antevéspera de Natal", 1.60),
+        /** 24/12: o dia de maior movimento do ano. */
+        VESPERA_DE_NATAL("Véspera de Natal", 2.50),
+        /** 30/12. */
+        ANTEVESPERA_DE_ANO_NOVO("Antevéspera de Ano-Novo", 1.65),
+        /** 31/12. */
+        VESPERA_DE_ANO_NOVO("Véspera de Ano-Novo", 2.20),
         /**
-         * Só os dias seguintes ao Natal e ao Ano-Novo (26/12 e 02/01), de propósito: são os dias de "ressaca" depois
-         * de um feriado, com troca de presentes e reposição de estoque doméstico. 27 e 28/12 já são dias comuns, e 29
-         * a 31/12 entram nas {@linkplain #VESPERAS_DE_ANO_NOVO vésperas de Ano-Novo}.
+         * Os dias seguintes ao Natal e ao Ano-Novo (26/12 e 02/01): "ressaca" depois do feriado, com troca de presentes
+         * e reposição de estoque doméstico. Impacto incerto; muitas lojas nem abrem em 26/12.
          */
-        POS_FESTAS("Depois das festas de fim de ano", Tendencia.VARIAVEL),
-        SEMANA_SANTA("Semana Santa", Tendencia.ALTA),
-        PRE_CARNAVAL("Pré-Carnaval", Tendencia.ALTA),
-        DIA_DAS_MAES("Dia das Mães", Tendencia.ALTA, PESO_HIPOTESE_POUCAS_OCORRENCIAS),
-        DIA_DOS_PAIS("Dia dos Pais", Tendencia.ALTA, PESO_HIPOTESE_POUCAS_OCORRENCIAS),
-        DIA_DOS_NAMORADOS("Dia dos Namorados", Tendencia.VARIAVEL),
-        BLACK_FRIDAY("Black Friday", Tendencia.VARIAVEL);
+        POS_FESTAS("Depois das festas de fim de ano", VARIAVEL),
+        /** Quinta-feira Santa. O sábado de Aleluia não mostrou efeito consistente e não entra. */
+        QUINTA_FEIRA_SANTA("Quinta-feira Santa", 1.25),
+        /** Sexta e sábado antes do Carnaval: sem efeito consistente; só ajusta depois de medido. */
+        PRE_CARNAVAL("Pré-Carnaval", VARIAVEL),
+        /** Segunda-feira de Carnaval (ponto facultativo). A terça não mostrou efeito consistente. */
+        SEGUNDA_DE_CARNAVAL("Segunda-feira de Carnaval", 1.20),
+        /** Sábado e domingo. */
+        DIA_DAS_MAES("Dia das Mães", 1.20, PESO_HIPOTESE_POUCAS_OCORRENCIAS),
+        /** Sábado e domingo. */
+        DIA_DOS_PAIS("Dia dos Pais", 1.25, PESO_HIPOTESE_POUCAS_OCORRENCIAS),
+        DIA_DOS_NAMORADOS("Dia dos Namorados", VARIAVEL),
+        /** No supermercado, a Black Friday não mostrou aumento consistente de movimento. */
+        BLACK_FRIDAY("Black Friday", VARIAVEL);
 
         private final String nome;
-        private final Tendencia tendencia;
+        private final double hipotese;
         private final int pesoHipotese;
 
-        DataComemorativa(String nome, Tendencia tendencia) {
-            this(nome, tendencia, PESO_HIPOTESE_PADRAO);
+        DataComemorativa(String nome, double hipotese) {
+            this(nome, hipotese, PESO_HIPOTESE_PADRAO);
         }
 
-        DataComemorativa(String nome, Tendencia tendencia, int pesoHipotese) {
+        DataComemorativa(String nome, double hipotese, int pesoHipotese) {
             this.nome = nome;
-            this.tendencia = tendencia;
+            this.hipotese = hipotese;
             this.pesoHipotese = pesoHipotese;
         }
 
@@ -80,13 +89,9 @@ public final class CalendarioSazonal {
             return nome;
         }
 
-        public Tendencia tendencia() {
-            return tendencia;
-        }
-
         /** Fator usado enquanto não há ocorrências desta data no histórico (1,0 = nenhum ajuste). */
         public double hipoteseInicial() {
-            return tendencia.fator;
+            return hipotese;
         }
     }
 
@@ -99,23 +104,45 @@ public final class CalendarioSazonal {
         int dia = d.getDayOfMonth();
         Month mes = d.getMonth();
 
-        if (mes == Month.DECEMBER && dia >= 20 && dia <= 24) {
-            return Optional.of(DataComemorativa.SEMANA_DO_NATAL);
+        if (mes == Month.DECEMBER) {
+            switch (dia) {
+                case 20, 21, 22 -> {
+                    return Optional.of(DataComemorativa.SEMANA_DO_NATAL);
+                }
+                case 23 -> {
+                    return Optional.of(DataComemorativa.ANTEVESPERA_DE_NATAL);
+                }
+                case 24 -> {
+                    return Optional.of(DataComemorativa.VESPERA_DE_NATAL);
+                }
+                case 26 -> {
+                    return Optional.of(DataComemorativa.POS_FESTAS);
+                }
+                case 30 -> {
+                    return Optional.of(DataComemorativa.ANTEVESPERA_DE_ANO_NOVO);
+                }
+                case 31 -> {
+                    return Optional.of(DataComemorativa.VESPERA_DE_ANO_NOVO);
+                }
+                default -> {
+                    // 25/12 é feriado; 27 a 29/12 não mostraram padrão na loja parceira.
+                }
+            }
         }
-        if (mes == Month.DECEMBER && dia >= 29) {
-            return Optional.of(DataComemorativa.VESPERAS_DE_ANO_NOVO);
-        }
-        if ((mes == Month.DECEMBER && dia == 26) || (mes == Month.JANUARY && dia == 2)) {
+        if (mes == Month.JANUARY && dia == 2) {
             return Optional.of(DataComemorativa.POS_FESTAS);
         }
 
         LocalDate pascoa = pascoa(ano);
-        if (d.equals(pascoa.minusDays(3)) || d.equals(pascoa.minusDays(1))) {
-            return Optional.of(DataComemorativa.SEMANA_SANTA);
+        if (d.equals(pascoa.minusDays(3))) {
+            return Optional.of(DataComemorativa.QUINTA_FEIRA_SANTA);
         }
         LocalDate tercaDeCarnaval = pascoa.minusDays(47);
         if (d.equals(tercaDeCarnaval.minusDays(4)) || d.equals(tercaDeCarnaval.minusDays(3))) {
             return Optional.of(DataComemorativa.PRE_CARNAVAL);
+        }
+        if (d.equals(tercaDeCarnaval.minusDays(1))) {
+            return Optional.of(DataComemorativa.SEGUNDA_DE_CARNAVAL);
         }
 
         if (domingoOuSabadoAnterior(d, segundoDomingo(ano, Month.MAY))) {
