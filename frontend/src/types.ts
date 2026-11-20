@@ -417,3 +417,13 @@ export interface ComparacaoAlgoritmos {
   guloso: MetricasAlgoritmo;
   otimizado: MetricasAlgoritmo;
 }
+
+/** Resultado do envio do relatório de vendas do PDV. */
+export interface ResultadoImportacao {
+  criados: number;
+  atualizados: number;
+  ignorados: number;
+  primeiroDia: string;
+  ultimoDia: string;
+  avisos: string[];
+}
