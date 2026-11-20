@@ -138,7 +138,8 @@ Os comandos abaixo rodam na VM pelo Portal do Azure (*VM → Run command → Run
 
 ### Backup e restauração
 
-O banco é copiado **todo dia às 03h** (`infra/backup.sh`, agendado pelo `infra/atualizar.sh` a cada deploy): um
+O banco é copiado **todo dia às 03h** (`infra/backup.sh`, agendado pelo `infra/atualizar.sh` a cada deploy) e
+**antes de cada deploy** (se a nova versão ou uma migração der problema, o estado anterior está salvo): um
 `pg_dump` compactado fica 7 dias na VM e uma cópia vai para o Azure Blob Storage (`BACKUP_CONTA`), onde fica 30 dias,
 em outra região (GRS) e com 7 dias de lixeira. A VM grava com a própria identidade gerenciada: não há chave nem senha
 do Storage em lugar nenhum.
