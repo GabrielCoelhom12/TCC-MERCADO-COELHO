@@ -12,7 +12,8 @@
 | `PORT` / `MANAGEMENT_PORT` | — | Porta HTTP (8080) e porta de métricas/health (8081). |
 | `APP_OTIMIZACAO_SEGUNDOS` | — | Tempo máximo de cada otimização com o Timefold (padrão `5`). |
 | `APP_OTIMIZACAO_SIMULTANEAS` | — | Quantas otimizações podem rodar ao mesmo tempo (padrão `2`); as demais recebem HTTP 429. |
-| `APP_GERACAO_AUTOMATICA` | — | `false` desliga o agendamento do rascunho semanal (a opção também pode ser desligada em Parâmetros). Roda todo dia às 6h e ao iniciar. |
+| `APP_GERACAO_AUTOMATICA` | — | `false` desliga o agendamento do rascunho semanal (a opção também pode ser desligada em Parâmetros). Roda todo domingo às 8h (começo do turno) e ao iniciar, criando a escala da semana seguinte. |
+| `APP_GERACAO_CRON` | — | Quando o rascunho é criado, em formato cron do Spring (`segundo minuto hora dia mês dia-da-semana`). Padrão `0 0 8 * * SUN`. |
 
 ## Ambientes
 

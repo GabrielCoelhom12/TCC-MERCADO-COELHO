@@ -40,8 +40,11 @@ public class GeracaoAutomaticaService {
         this.escalaService = escalaService;
     }
 
-    /** Todo dia (por padrão às 6h) e ao iniciar a aplicação. */
-    @Scheduled(cron = "${app.escala.geracao-automatica.cron:0 0 6 * * *}")
+    /**
+     * Toda semana (por padrão domingo às 8h, no começo do turno, para a gestora avaliar a escala da semana seguinte) e
+     * ao iniciar a aplicação, para cobrir um domingo em que o servidor estava fora do ar.
+     */
+    @Scheduled(cron = "${app.escala.geracao-automatica.cron:0 0 8 * * SUN}")
     @EventListener(ApplicationReadyEvent.class)
     public void verificar() {
         if (habilitada) {

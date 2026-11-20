@@ -4,8 +4,12 @@ import br.com.coelho.escalas.servico.GeracaoAutomaticaService;
 import com.fasterxml.jackson.databind.JsonNode;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.scheduling.support.CronExpression;
 
+import java.time.DayOfWeek;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -21,6 +25,9 @@ class GeracaoAutomaticaIntegracaoTest extends IntegracaoTest {
     @Autowired
     private GeracaoAutomaticaService geracao;
 
+    @Value("${app.escala.geracao-automatica.cron}")
+    private String agendamento;
+
     @Test
     void criaORascunhoDaProximaSemanaJaGerado() throws Exception {
         assertThat(geracao.executar(HOJE)).hasSize(1);
@@ -31,6 +38,27 @@ class GeracaoAutomaticaIntegracaoTest extends IntegracaoTest {
         assertThat(escala.get("status").asText()).isEqualTo("RASCUNHO");
         assertThat(escala.get("geradaAutomaticamente").asBoolean()).isTrue();
         assertThat(corpo(get("/api/escalas/" + escala.get("id").asLong() + "/matriz")).get("turnos").size()).isPositive();
+    }
+
+    /** Escalas são semanais: o rascunho sai no domingo, no começo do turno, para a gestora avaliar antes da segunda. */
+    @Test
+    void agendamentoPadraoEDomingoAsOitoHoras() {
+        CronExpression cron = CronExpression.parse(agendamento);
+        LocalDateTime quarta = LocalDateTime.of(2031, 1, 1, 10, 0);
+
+        LocalDateTime primeira = cron.next(quarta);
+        assertThat(primeira).isEqualTo(LocalDateTime.of(2031, 1, 5, 8, 0));
+        assertThat(primeira.getDayOfWeek()).isEqualTo(DayOfWeek.SUNDAY);
+        assertThat(cron.next(primeira)).as("uma vez por semana").isEqualTo(LocalDateTime.of(2031, 1, 12, 8, 0));
+    }
+
+    @Test
+    void noDomingoCriaAEscalaDaSemanaSeguinte() throws Exception {
+        assertThat(geracao.executar(LocalDate.of(2031, 1, 5))).hasSize(1); // domingo
+
+        JsonNode escala = escalaQueComecaEm("2031-01-06");
+        assertThat(escala).as("de segunda 06/01 a domingo 12/01").isNotNull();
+        assertThat(escala.get("dataFim").asText()).isEqualTo("2031-01-12");
     }
 
     @Test

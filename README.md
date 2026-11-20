@@ -56,7 +56,8 @@ que o sistema já validou e registra férias, atestados e licenças com a substi
 - Matriz colaborador × dia com revalidação imediata a cada célula, aprovação e reabertura.
 - **Dois geradores:** "Gerar (rápido)", o guloso, e **"Otimizar com Timefold"**, que busca a melhor escala da
   semana inteira; o botão **"Comparar algoritmos"** mostra os dois lado a lado sem alterar a escala.
-- Rascunho das próximas semanas criado sozinho todo dia às 6h (antecedência de 1 a 4 semanas, configurável).
+- Rascunho da semana seguinte criado sozinho todo domingo às 8h, no começo do turno, para a gestora avaliar
+  (antecedência de 1 a 4 semanas, configurável).
 - Modo financeiro **BLOQUEAR** (recusa a alocação que estoura o limite) ou **ALERTAR**.
 - **Imprimir ou baixar em PDF** (Painel, matriz e lista de escalas): A4 deitado com a logo do supermercado, colaboradores
   por setor, turnos, folgas, férias e ausências, feriados, total de pessoas por dia, legenda e assinatura da gerência.

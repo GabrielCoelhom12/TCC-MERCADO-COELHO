@@ -62,8 +62,10 @@ app:
   escala:
     geracao-automatica:
       # Cria sozinho o rascunho das próximas semanas (liga/desliga e antecedência ficam em Parâmetros).
+      # Padrão: todo domingo às 8h, no começo do turno, a escala da semana seguinte fica pronta para a gestora avaliar.
+      # Formato cron do Spring: segundo minuto hora dia mês dia-da-semana (fuso America/Sao_Paulo).
       habilitada: ${APP_GERACAO_AUTOMATICA:true}
-      cron: "0 0 6 * * *"
+      cron: "${APP_GERACAO_CRON:0 0 8 * * SUN}"
   seed:
     # Popula o banco com o cenário hipotético do Supermercado Coelho na primeira execução.
     habilitado: ${APP_SEED:true}
