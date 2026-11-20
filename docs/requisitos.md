@@ -52,6 +52,7 @@ O sistema tem três fluxos de negócio completos, cada um coberto por testes de 
 | RF31 | Imprimir ou baixar a escala em PDF (A4 deitado) com a logo do supermercado: colaboradores por setor, turnos com a sigla, folgas, férias e ausências (sem o motivo de atestados e licenças), feriados destacados, total de pessoas por dia, legenda dos turnos e espaço para a assinatura da gerência, sem custos nem salários. |
 | RF32 | Anexar documentos a um afastamento (atestado, declaração, certidão) em PDF, JPG ou PNG de até 5 MB, no máximo 10 por afastamento, verificados pelo conteúdo; fotos são regravadas em JPEG. Qualquer perfil envia; só a gerência abre ou remove. Registra quem enviou e quando, e apaga os documentos junto com o afastamento. |
 | RF33 | Gerar a escala com otimização (Timefold Solver), escolhendo quem ocupa cada vaga olhando a semana inteira: regras da CLT como restrições obrigatórias, cobertura das vagas em seguida e, por último, menor custo e horas equilibradas; e comparar, sem alterar a escala, o gerador guloso e o otimizado (vagas descobertas, custo, erros, alertas, equilíbrio de horas e tempo). |
+| RF34 | Habilidades: além do setor principal, cadastrar os outros setores em que o colaborador sabe trabalhar. O gerador guloso e o Timefold podem escalá-lo nesses setores quando falta gente, sempre preferindo o setor principal; cada turno registra o setor que cobre (contado na demanda, mostrado na matriz e no PDF), a troca de colaborador só aceita quem sabe trabalhar no setor do turno, e o gestor escolhe o setor ao editar a célula. |
 
 ## Requisitos não funcionais
 
@@ -206,3 +207,9 @@ Como supervisor ou gerente, quero anexar a foto ou o PDF do atestado ao registra
 Como gerente, quero que o sistema procure a melhor escala da semana, e não só uma escala válida, e me mostre a diferença.
 - *Quando* clico em "Otimizar com Timefold", *então* em alguns segundos a matriz é preenchida sem ferir nenhuma regra da CLT.
 - *Quando* clico em "Comparar algoritmos", *então* vejo lado a lado o gerador rápido e o otimizado (vagas sem ninguém, custo, alertas, equilíbrio de horas e tempo), sem que a escala mude.
+
+**US18 — Colaborador que sabe trabalhar em mais de um setor** (RF34)
+Como gerente, quero cadastrar que um colaborador também sabe trabalhar em outros setores, para cobrir um setor desfalcado sem contratar.
+- *Dado* um repositor que também sabe trabalhar no caixa, *quando* falta gente no caixa e sobra na reposição, *então* o gerador e o Timefold o escalam no caixa, e a matriz mostra o turno "↪ Frente de Caixa".
+- *Dado* que a reposição também precisa dele, *então* ele fica na reposição: ninguém é tirado do próprio setor enquanto ele precisa da pessoa.
+- *Dado* um colaborador sem a habilidade do setor, *então* ele não é escalado nem sugerido para cobrir aquele setor.

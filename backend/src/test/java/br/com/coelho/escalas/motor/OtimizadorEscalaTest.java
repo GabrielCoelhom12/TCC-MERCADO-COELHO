@@ -123,4 +123,38 @@ class OtimizadorEscalaTest {
         assertThat(otimizado.turnos().size()).isGreaterThanOrEqualTo(guloso.turnos().size());
         assertThat(erros(otimizado.turnos())).isEmpty();
     }
+
+    // ------------------------------------------------------------------ habilidades
+
+    /** Vaga do caixa sem ninguém do caixa: o Timefold usa quem tem a habilidade, e o turno fica no caixa. */
+    @Test
+    void usaQuemTemAHabilidadeParaPreencherOutroSetor() {
+        Setor reposicao = c.setor("Reposição", 1);
+        c.funcionario("Operador", caixa, "10");
+        Funcionario versatil = c.funcionario("Repositor versátil", reposicao, "10");
+        versatil.getHabilidades().add(caixa);
+        c.funcionario("Repositor", reposicao, "10");
+
+        var r = otimizador.gerar(SEGUNDA, SEGUNDA, List.of(), c.modelos, c.ctx());
+
+        assertThat(r.deficits()).isEmpty();
+        assertThat(r.turnos()).filteredOn(t -> t.getFuncionario() == versatil)
+                .singleElement().satisfies(t -> assertThat(t.setorEfetivo()).isSameAs(caixa));
+    }
+
+    /** Com gente sobrando no próprio setor, ninguém é deslocado (a troca de setor tem um custo soft). */
+    @Test
+    void prefereOSetorPrincipalQuandoNaoFaltaGente() {
+        Setor reposicao = c.setor("Reposição", 1);
+        c.funcionario("Operador 1", caixa, "10");
+        c.funcionario("Operador 2", caixa, "10");
+        Funcionario versatil = c.funcionario("Repositor versátil", reposicao, "10");
+        versatil.getHabilidades().add(caixa);
+        c.funcionario("Repositor", reposicao, "10");
+
+        var r = otimizador.gerar(SEGUNDA, SEGUNDA, List.of(), c.modelos, c.ctx());
+
+        assertThat(r.deficits()).isEmpty();
+        assertThat(r.turnos()).hasSize(3).allMatch(t -> t.setorEfetivo() == t.getFuncionario().getSetor());
+    }
 }

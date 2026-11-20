@@ -91,6 +91,7 @@ public class CoberturaService {
                 turnos.delete(t);
                 daEscala.add(dia + " ausente (" + motivo.getRotulo() + "), turno retirado sem substituto");
             } else {
+                t.setSetor(t.setorEfetivo()); // o substituto cobre o setor do titular, mesmo sendo de outro
                 t.setFuncionario(funcionarios.findById(c.substituto().funcionarioId())
                         .orElseThrow(() -> new NaoEncontradoException("Colaborador", c.substituto().funcionarioId())));
                 daEscala.add(dia + " → " + c.substituto().nome() + " (" + motivo.getRotulo() + ")");

@@ -156,7 +156,7 @@ class SugestorSubstituicaoTest {
         Funcionario bruno = c.funcionario("Bruno", caixa, "10");
         janela.add(turno(bruno, SEGUNDA, "07:00", "15:20", 60));
         c.funcionario("Carla", caixa, "10");
-        c.funcionario("Davi", acougue, "10");
+        c.funcionario("Davi", acougue, "10").getHabilidades().add(caixa); // do açougue, mas sabe trabalhar no caixa
         Funcionario eva = c.funcionario("Eva", caixa, "10");
         eva.setDiasDisponiveis(EnumSet.of(DayOfWeek.MONDAY));
 
@@ -164,5 +164,26 @@ class SugestorSubstituicaoTest {
 
         assertThat(s.candidatos()).extracting(Candidato::nome).containsExactly("Carla", "Bruno", "Davi", "Eva");
         assertThat(candidato(s, "Davi").mesmoSetor()).isFalse();
+    }
+
+    @Test
+    void quemNaoTemAHabilidadeDoSetorNaoPodeCobrir() {
+        c.funcionario("Davi", acougue, "10");
+
+        Candidato davi = candidato(sugerir(), "Davi");
+
+        assertThat(davi.apto()).isFalse();
+        assertThat(davi.impedimentos()).singleElement().asString().contains("Não trabalha em Caixa");
+    }
+
+    @Test
+    void oSubstitutoCobreOSetorDoTurnoMesmoSendoDeOutro() {
+        Funcionario davi = c.funcionario("Davi", acougue, "10");
+        davi.getHabilidades().add(caixa);
+
+        var plano = sugestor.planejarCobertura(List.of(turnoDaAna), janela, c.ctx());
+
+        assertThat(plano).singleElement().extracting(SugestorSubstituicao.Cobertura::substituto)
+                .extracting(Candidato::nome).isEqualTo("Davi");
     }
 }

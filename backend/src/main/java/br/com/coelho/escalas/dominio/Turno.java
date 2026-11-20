@@ -30,6 +30,13 @@ public class Turno {
     @ManyToOne(optional = false, fetch = FetchType.EAGER)
     private Funcionario funcionario;
 
+    /**
+     * Setor que o turno cobre. Nulo nos turnos antigos, que valem para o setor principal do colaborador (ver
+     * {@link #setorEfetivo()}); diferente do principal quando a pessoa cobre outro setor pelas habilidades.
+     */
+    @ManyToOne(fetch = FetchType.EAGER)
+    private Setor setor;
+
     @Column(nullable = false)
     private LocalDate data;
 
@@ -57,6 +64,24 @@ public class Turno {
     public static Turno de(TurnoModelo modelo, Funcionario funcionario, LocalDate data) {
         return new Turno(funcionario, data, modelo.getHoraInicio(), modelo.getHoraFim(),
                 modelo.getIntervaloMinutos(), modelo.getSigla());
+    }
+
+    /** Turno do modelo no setor informado (o principal do colaborador ou um das habilidades). */
+    public static Turno de(TurnoModelo modelo, Funcionario funcionario, LocalDate data, Setor setor) {
+        Turno t = de(modelo, funcionario, data);
+        t.setSetor(setor);
+        return t;
+    }
+
+    /** O setor coberto: o informado no turno ou, se não houver, o principal do colaborador. */
+    public Setor setorEfetivo() {
+        return setor != null ? setor : funcionario == null ? null : funcionario.getSetor();
+    }
+
+    /** Se o turno cobre o setor (comparando pelo id). */
+    public boolean doSetor(Long setorId) {
+        Setor s = setorEfetivo();
+        return s != null && s.getId() != null && s.getId().equals(setorId);
     }
 
     public LocalDateTime inicio() {

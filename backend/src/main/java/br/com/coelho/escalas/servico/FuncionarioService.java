@@ -38,7 +38,9 @@ public class FuncionarioService {
             @Min(1) @Max(300) Integer cargaHorariaMensal,
             @DecimalMin("0") @DecimalMax("200") BigDecimal percentualEncargos,
             Boolean ativo,
-            Set<DayOfWeek> diasDisponiveis) {
+            Set<DayOfWeek> diasDisponiveis,
+            /** Outros setores em que o colaborador sabe trabalhar (o principal é ignorado se vier na lista). */
+            Set<Long> habilidades) {
     }
 
     public record DadosAusencia(@NotNull LocalDate inicio, @NotNull LocalDate fim, Ausencia.Motivo motivo, String observacao) {
@@ -158,6 +160,14 @@ public class FuncionarioService {
                 ? EnumSet.allOf(DayOfWeek.class) : EnumSet.copyOf(dados.diasDisponiveis());
         f.getDiasDisponiveis().clear();
         f.getDiasDisponiveis().addAll(dias);
+        f.getHabilidades().clear();
+        if (dados.habilidades() != null) {
+            for (Long id : dados.habilidades()) {
+                if (!id.equals(f.getSetor().getId())) {
+                    f.getHabilidades().add(setores.findById(id).orElseThrow(() -> new NaoEncontradoException("Setor", id)));
+                }
+            }
+        }
         return f;
     }
 }

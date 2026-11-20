@@ -16,6 +16,8 @@ public interface TurnoRepository extends JpaRepository<Turno, Long> {
 
     boolean existsByFuncionario_Id(Long funcionarioId);
 
+    boolean existsBySetor_Id(Long setorId);
+
     /**
      * Remove os turnos um a um, pelo contexto de persistência (e não com um "delete" em lote direto no banco), para que
      * nenhuma entidade já carregada na transação continue apontando para um turno que deixou de existir.
