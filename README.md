@@ -82,7 +82,8 @@ que o sistema já validou e registra férias, atestados e licenças com a substi
   Fotos são regravadas (sem a localização do celular) e os documentos são apagados junto com o afastamento.
 
 **Movimento e previsão**
-- Lançamento do fechamento diário (clientes e vendas por faixa de horário) e previsão explicada dos próximos dias.
+- Lançamento do fechamento diário (clientes e vendas por faixa de horário) ou **envio do relatório de vendas do PDV**
+  (um dia ou meses de histórico de uma vez), e previsão explicada dos próximos dias.
 - Selo de assertividade: erro médio e viés da previsão nos últimos fechamentos.
 
 **Cadastros e regras**
