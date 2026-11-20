@@ -1,6 +1,6 @@
-import { fireEvent, screen } from '@testing-library/react';
+import { fireEvent, screen, within } from '@testing-library/react';
 import { Route, Routes } from 'react-router-dom';
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import { mockFetch, renderizar } from '../test/util';
 import type { Escala, Geracao, Matriz, ResumoDia, TurnoModelo } from '../types';
 import MatrizEscala from './MatrizEscala';
@@ -29,7 +29,6 @@ const matriz: Matriz = {
 
 describe('MatrizEscala', () => {
   it('otimiza a escala com o Timefold e mostra o resultado', async () => {
-    vi.spyOn(window, 'confirm').mockReturnValue(true);
     const otimizada: Geracao = { turnosCriados: 1, deficits: [], matriz };
     const fetch = mockFetch({
       'GET /api/escalas/7/matriz': { corpo: matriz },
@@ -38,6 +37,9 @@ describe('MatrizEscala', () => {
     renderizar(<Routes><Route path="/escalas/:id" element={<MatrizEscala />} /></Routes>, '/escalas/7');
 
     fireEvent.click(await screen.findByRole('button', { name: /Otimizar com Timefold/ }));
+    const dialogo = await screen.findByRole('dialog', { name: 'Otimizar com Timefold' });
+    expect(fetch.mock.calls.some(([url]) => url === '/api/escalas/7/otimizar')).toBe(false);
+    fireEvent.click(within(dialogo).getByRole('button', { name: 'Otimizar' }));
 
     expect(await screen.findByText('1 turnos gerados pela otimização (Timefold), cobrindo toda a demanda.')).toBeInTheDocument();
     expect(fetch.mock.calls.some(([url, init]) => url === '/api/escalas/7/otimizar' && init?.method === 'POST')).toBe(true);

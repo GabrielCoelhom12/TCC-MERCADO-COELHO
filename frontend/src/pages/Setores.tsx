@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { api } from '../api';
 import { usePermissoes } from '../auth';
-import { AvisoConsulta, Carregando, Modal, mensagemErro, useCarregar, useToast } from '../components/ui';
+import { AvisoConsulta, Carregando, Modal, mensagemErro, useCarregar, useConfirmar, useToast } from '../components/ui';
 import { TIPOS_DIA } from '../format';
 import type { Setor, TipoDia } from '../types';
 
@@ -12,6 +12,7 @@ export default function Setores() {
   const [linhas, setLinhas] = useState<Linha[]>([]);
   const [novo, setNovo] = useState<{ nome: string; cor: string } | null>(null);
   const toast = useToast();
+  const confirmar = useConfirmar();
   const { podeEditar } = usePermissoes();
 
   useEffect(() => {
@@ -47,7 +48,7 @@ export default function Setores() {
   };
 
   const excluir = async (s: Setor) => {
-    if (!window.confirm(`Excluir o setor ${s.nome}?`)) return;
+    if (!(await confirmar({ titulo: 'Excluir setor', mensagem: `Excluir o setor ${s.nome}?`, confirmar: 'Excluir', perigoso: true }))) return;
     try {
       await api.del(`/setores/${s.id}`);
       recarregar();

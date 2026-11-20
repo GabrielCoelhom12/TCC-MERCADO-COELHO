@@ -5,7 +5,7 @@ import '@fontsource-variable/albert-sans';
 import '@fontsource-variable/newsreader';
 import App from './App';
 import { AuthProvider } from './auth';
-import { ToastProvider } from './components/ui';
+import { ConfirmacaoProvider, ToastProvider } from './components/ui';
 import './styles.css';
 
 createRoot(document.getElementById('root')!).render(
@@ -13,7 +13,9 @@ createRoot(document.getElementById('root')!).render(
     <BrowserRouter>
       <AuthProvider>
         <ToastProvider>
-          <App />
+          <ConfirmacaoProvider>
+            <App />
+          </ConfirmacaoProvider>
         </ToastProvider>
       </AuthProvider>
     </BrowserRouter>
