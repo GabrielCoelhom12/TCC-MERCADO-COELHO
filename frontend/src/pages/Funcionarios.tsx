@@ -3,7 +3,7 @@ import { api } from '../api';
 import { usePermissoes } from '../auth';
 import Avatar from '../components/Avatar';
 import SeletorFoto, { aplicarFoto, fotoInicial, type EstadoFoto } from '../components/SeletorFoto';
-import { AvisoConsulta, Carregando, Modal, mensagemErro, useCarregar, useToast } from '../components/ui';
+import { AvisoConsulta, Carregando, Modal, mensagemErro, useCarregar, useConfirmar, useToast } from '../components/ui';
 import { DIAS_SEMANA, MOTIVOS_AUSENCIA, dataLonga, moeda, moedaConfidencial } from '../format';
 import type { Ausencia, DiaSemana, Funcionario, MotivoAusencia, Setor } from '../types';
 
@@ -28,6 +28,7 @@ export default function Funcionarios() {
   const [ausenciasDe, setAusenciasDe] = useState<Funcionario | null>(null);
   const [filtroSetor, setFiltroSetor] = useState<number | 0>(0);
   const toast = useToast();
+  const confirmar = useConfirmar();
   const { podeEditar } = usePermissoes();
 
   if (!dados) return <Carregando erro={erro} />;
@@ -63,7 +64,7 @@ export default function Funcionarios() {
   };
 
   const excluir = async (f: Funcionario) => {
-    if (!window.confirm(`Excluir ${f.nome}? Se já houver escalas com este colaborador, ele será apenas desativado.`)) return;
+    if (!(await confirmar({ titulo: 'Excluir colaborador', mensagem: `Excluir ${f.nome}? Se já houver escalas com este colaborador, ele será apenas desativado.`, confirmar: 'Excluir', perigoso: true }))) return;
     try {
       const r = await api.del<{ resultado: string }>(`/funcionarios/${f.id}`);
       toast('ok', r.resultado === 'desativado' ? 'Colaborador desativado (possui histórico de escalas).' : 'Colaborador excluído.');

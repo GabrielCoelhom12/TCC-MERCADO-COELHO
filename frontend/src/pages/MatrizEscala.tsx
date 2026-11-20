@@ -5,13 +5,45 @@ import { ApiError, api } from '../api';
 import { usePermissoes } from '../auth';
 import ComparacaoAlgoritmos from '../components/ComparacaoAlgoritmos';
 import ExportarEscala from '../components/ExportarEscala';
-import { AvisoConsulta, BadgeSituacao, Carregando, ListaViolacoes, Modal, mensagemErro, useCarregar, useToast } from '../components/ui';
+import { AvisoConsulta, BadgeSituacao, Carregando, ListaViolacoes, Modal, mensagemErro, type OpcoesConfirmacao, useCarregar, useConfirmar, useToast } from '../components/ui';
 import { dataCurta, dataLonga, diaSemanaDe, hora, horas, isoDe, moeda, moedaConfidencial, paraData, pct } from '../format';
 import type { Escala, Geracao, LinhaFuncionario, Matriz, TurnoDTO, TurnoModelo, Violacao } from '../types';
 
 type MenuCelula = { x: number; y: number; funcionario: LinhaFuncionario; data: string } | null;
 type Bloqueio = { mensagem: string; violacoes: Violacao[] } | null;
 type Filtro = 'TODAS' | 'ERRO' | 'ALERTA';
+
+const LIMPAR: OpcoesConfirmacao = {
+  titulo: 'Limpar escala',
+  mensagem: 'Remover todos os turnos desta escala?',
+  confirmar: 'Limpar',
+  perigoso: true,
+};
+const GERAR: OpcoesConfirmacao = {
+  titulo: 'Gerar nova sugestão',
+  mensagem: 'Os turnos atuais desta escala serão substituídos por uma nova sugestão automática.',
+  confirmar: 'Gerar',
+};
+/** Números do experimento guloso × Timefold (docs/experimento-otimizacao.md). */
+const OTIMIZAR: OpcoesConfirmacao = {
+  titulo: 'Otimizar com Timefold',
+  mensagem: (
+    <>
+      <p>
+        O <strong>Timefold</strong> monta uma escala <strong>mais inteligente</strong>: olha a semana inteira de uma vez,
+        preenche vagas que o gerador rápido deixaria vazias e distribui as horas de forma mais equilibrada entre a equipe,
+        sem ferir nenhuma regra da CLT.
+      </p>
+      <p>
+        Por cobrir mais vagas, a escala pode sair <strong>um pouco mais cara</strong> (nos testes do projeto, cerca de 1%
+        a mais por semana). Para gastar o mínimo, use o <strong>Gerar (rápido)</strong>; para comparar os dois antes de
+        decidir, use <strong>Comparar algoritmos</strong>.
+      </p>
+      <p className="muted">Os turnos atuais desta escala serão substituídos. A otimização leva alguns segundos.</p>
+    </>
+  ),
+  confirmar: 'Otimizar',
+};
 
 export default function MatrizEscala() {
   const { id } = useParams();
@@ -23,6 +55,7 @@ export default function MatrizEscala() {
   const [ocupado, setOcupado] = useState(false);
   const [comparando, setComparando] = useState(false);
   const toast = useToast();
+  const confirmar = useConfirmar();
   const { podeEditar } = usePermissoes();
 
   useEffect(() => {
@@ -87,8 +120,8 @@ export default function MatrizEscala() {
     }
   };
 
-  const acao = async (caminho: string, confirmar?: string) => {
-    if (confirmar && !window.confirm(confirmar)) return;
+  const acao = async (caminho: string, pergunta?: OpcoesConfirmacao) => {
+    if (pergunta && !(await confirmar(pergunta))) return;
     setOcupado(true);
     try {
       if (caminho === 'gerar' || caminho === 'otimizar') {
@@ -131,7 +164,7 @@ export default function MatrizEscala() {
         <ExportarEscala escala={m.escala} />
         {podeEditar && (rascunho ? (
           <div className="row">
-            <button disabled={ocupado} onClick={() => acao('limpar', 'Remover todos os turnos desta escala?')}>Limpar</button>
+            <button disabled={ocupado} onClick={() => acao('limpar', LIMPAR)}>Limpar</button>
             <button className="primario" disabled={ocupado || !v.aprovavel} onClick={() => acao('aprovar')}
               title={v.aprovavel ? 'Aprovar escala' : 'Corrija os erros para aprovar'}>Aprovar escala</button>
           </div>
@@ -152,11 +185,11 @@ export default function MatrizEscala() {
             </p>
           </div>
           <div className="row geracao-botoes">
-            <button disabled={ocupado} onClick={() => acao('gerar', 'Substituir todos os turnos desta escala por uma nova sugestão automática?')}>
+            <button disabled={ocupado} onClick={() => acao('gerar', GERAR)}>
               <Zap size={16} aria-hidden />Gerar (rápido)
             </button>
             <button className="primario" disabled={ocupado}
-              onClick={() => acao('otimizar', 'Substituir todos os turnos desta escala pela escala otimizada (leva alguns segundos)?')}>
+              onClick={() => acao('otimizar', OTIMIZAR)}>
               <Sparkles size={16} aria-hidden />{ocupado ? 'Otimizando…' : 'Otimizar com Timefold'}
             </button>
             <button disabled={ocupado} onClick={() => setComparando(true)}>

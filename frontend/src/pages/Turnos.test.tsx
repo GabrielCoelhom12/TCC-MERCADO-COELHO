@@ -52,7 +52,6 @@ describe('Turnos', () => {
   });
 
   it('exclui após confirmação', async () => {
-    vi.spyOn(window, 'confirm').mockReturnValue(true);
     const fetch = mockFetch({
       'GET /api/turnos-modelo': { corpo: [abertura] },
       'DELETE /api/turnos-modelo/1': { status: 204 },
@@ -60,8 +59,24 @@ describe('Turnos', () => {
     renderizar(<Turnos />);
 
     fireEvent.click(await screen.findByText('Excluir'));
+    fireEvent.click(within(await screen.findByRole('dialog', { name: 'Excluir modelo de turno' })).getByRole('button', { name: 'Excluir' }));
     await waitFor(() =>
       expect(fetch).toHaveBeenCalledWith('/api/turnos-modelo/1', expect.objectContaining({ method: 'DELETE' })),
     );
+  });
+
+  it('não exclui quando a confirmação é cancelada', async () => {
+    const confirmDoNavegador = vi.spyOn(window, 'confirm');
+    const fetch = mockFetch({ 'GET /api/turnos-modelo': { corpo: [abertura] } });
+    renderizar(<Turnos />);
+
+    fireEvent.click(await screen.findByText('Excluir'));
+    const dialogo = await screen.findByRole('dialog', { name: 'Excluir modelo de turno' });
+    expect(dialogo).toHaveTextContent('Turnos já lançados não são afetados.');
+    fireEvent.click(within(dialogo).getByRole('button', { name: 'Cancelar' }));
+
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+    expect(fetch.mock.calls.some(([, init]) => init?.method === 'DELETE')).toBe(false);
+    expect(confirmDoNavegador).not.toHaveBeenCalled();
   });
 });
