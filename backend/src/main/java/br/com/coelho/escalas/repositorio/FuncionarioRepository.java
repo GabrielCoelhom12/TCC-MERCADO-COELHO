@@ -9,4 +9,6 @@ public interface FuncionarioRepository extends JpaRepository<Funcionario, Long> 
     List<Funcionario> findAllByOrderBySetorNomeAscNomeAsc();
 
     boolean existsBySetorId(Long setorId);
+
+    boolean existsByHabilidades_Id(Long setorId);
 }

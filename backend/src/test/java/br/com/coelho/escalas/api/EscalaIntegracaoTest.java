@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import org.junit.jupiter.api.Test;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -202,6 +203,40 @@ class EscalaIntegracaoTest extends IntegracaoTest {
         post(substituir, Map.of("funcionarioId", candidato))
                 .andExpect(status().isUnprocessableEntity())
                 .andExpect(jsonPath("$.mensagem", containsString("Reabra")));
+    }
+
+    @Test
+    void celulaEmOutroSetorExigeAHabilidade() throws Exception {
+        JsonNode setores = corpo(get("/api/setores"));
+        long principal = setores.get(0).get("id").asLong();
+        long habilidade = setores.get(1).get("id").asLong();
+        long semHabilidade = setores.get(2).get("id").asLong();
+        long versatil = corpo(post("/api/funcionarios", Map.of("nome", "Versátil", "setorId", principal, "salarioMensal", 2000,
+                "habilidades", List.of(habilidade))).andExpect(status().isCreated())).get("id").asLong();
+        long id = criar("Habilidades");
+        long modelo = idDoModelo(corpo(get("/api/escalas/" + id + "/matriz")), "ABE");
+
+        Map<String, Object> outroSetor = celula(versatil, SEGUNDA, modelo);
+        outroSetor.put("setorId", habilidade);
+        JsonNode matriz = corpo(put("/api/escalas/" + id + "/celula", outroSetor).andExpect(status().isOk()));
+
+        assertThat(matriz.at("/turnos/0/setorId").asLong()).as("o turno cobre o setor da habilidade").isEqualTo(habilidade);
+        JsonNode linha = null;
+        for (JsonNode f : matriz.get("funcionarios")) {
+            if (f.get("id").asLong() == versatil) {
+                linha = f;
+            }
+        }
+        assertThat(linha.get("habilidades").toString()).isEqualTo("[" + habilidade + "]");
+
+        outroSetor.put("setorId", semHabilidade);
+        put("/api/escalas/" + id + "/celula", outroSetor)
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(jsonPath("$.mensagem", containsString("não trabalha neste setor")));
+
+        // Sem setor informado, vale o principal.
+        corpo(put("/api/escalas/" + id + "/celula", celula(versatil, SEGUNDA, modelo)).andExpect(status().isOk()));
+        assertThat(corpo(get("/api/escalas/" + id + "/matriz")).at("/turnos/0/setorId").asLong()).isEqualTo(principal);
     }
 
     @Test

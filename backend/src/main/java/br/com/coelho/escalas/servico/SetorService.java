@@ -4,6 +4,7 @@ import br.com.coelho.escalas.dominio.Setor;
 import br.com.coelho.escalas.dominio.TipoDia;
 import br.com.coelho.escalas.repositorio.FuncionarioRepository;
 import br.com.coelho.escalas.repositorio.SetorRepository;
+import br.com.coelho.escalas.repositorio.TurnoRepository;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
@@ -27,10 +28,12 @@ public class SetorService {
 
     private final SetorRepository setores;
     private final FuncionarioRepository funcionarios;
+    private final TurnoRepository turnos;
 
-    public SetorService(SetorRepository setores, FuncionarioRepository funcionarios) {
+    public SetorService(SetorRepository setores, FuncionarioRepository funcionarios, TurnoRepository turnos) {
         this.setores = setores;
         this.funcionarios = funcionarios;
+        this.turnos = turnos;
     }
 
     @Transactional(readOnly = true)
@@ -52,6 +55,9 @@ public class SetorService {
     public void excluir(Long id) {
         if (funcionarios.existsBySetorId(id)) {
             throw new RegraNegocioException("O setor possui colaboradores. Transfira-os ou desative o setor.");
+        }
+        if (funcionarios.existsByHabilidades_Id(id) || turnos.existsBySetor_Id(id)) {
+            throw new RegraNegocioException("O setor aparece nas habilidades de colaboradores ou em escalas. Desative o setor.");
         }
         setores.deleteById(id);
     }

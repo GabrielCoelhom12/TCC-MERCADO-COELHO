@@ -244,4 +244,39 @@ class CadastrosIntegracaoTest extends IntegracaoTest {
         assertThat(lista.size()).isPositive();
         return lista.get(0).get("id").asLong();
     }
+
+    // ------------------------------------------------------------------ habilidades
+
+    @Test
+    void colaboradorGuardaAsHabilidadesEmOutrosSetores() throws Exception {
+        JsonNode setores = corpo(get("/api/setores"));
+        long principal = setores.get(0).get("id").asLong();
+        long outro = setores.get(1).get("id").asLong();
+
+        JsonNode f = corpo(post("/api/funcionarios", Map.of("nome", "Versátil", "setorId", principal, "salarioMensal", 2000,
+                "habilidades", List.of(outro, principal))) // o principal é ignorado na lista
+                .andExpect(status().isCreated()));
+
+        assertThat(f.get("habilidades")).hasSize(1);
+        assertThat(f.at("/habilidades/0/id").asLong()).isEqualTo(outro);
+
+        // Editar sem habilidades remove todas.
+        put("/api/funcionarios/" + f.get("id").asLong(), Map.of("nome", "Versátil", "setorId", principal, "salarioMensal", 2000))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.habilidades", hasSize(0)));
+        post("/api/funcionarios", Map.of("nome", "X", "setorId", principal, "salarioMensal", 2000, "habilidades", List.of(999999)))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void setorQueApareceNasHabilidadesNaoPodeSerExcluido() throws Exception {
+        long vazio = corpo(post("/api/setores", Map.of("nome", "Hortifrúti")).andExpect(status().isCreated())).get("id").asLong();
+        long principal = primeiroId("/api/setores");
+        post("/api/funcionarios", Map.of("nome", "Versátil", "setorId", principal, "salarioMensal", 2000, "habilidades", List.of(vazio)))
+                .andExpect(status().isCreated());
+
+        delete("/api/setores/" + vazio)
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(jsonPath("$.mensagem", containsString("habilidades")));
+    }
 }

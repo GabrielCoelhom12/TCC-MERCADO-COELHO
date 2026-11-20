@@ -29,6 +29,9 @@ import java.util.stream.Collectors;
  */
 public class RestricoesEscala implements ConstraintProvider {
 
+    /** Peso de escalar alguém fora do setor principal, na mesma escala do custo (equivale a R$ 30 por turno). */
+    static final int PENALIDADE_FORA_DO_SETOR = 30;
+
     @Override
     public Constraint[] defineConstraints(ConstraintFactory f) {
         return new Constraint[]{
@@ -36,7 +39,7 @@ public class RestricoesEscala implements ConstraintProvider {
                 interjornada(f), interjornadaComEscalasVizinhas(f),
                 jornadaSemanal(f), diasSeguidos(f), domingosSeguidos(f),
                 vagaSemNinguem(f),
-                custo(f), equilibrioDeHoras(f),
+                custo(f), equilibrioDeHoras(f), foraDoSetorPrincipal(f),
         };
     }
 
@@ -114,6 +117,17 @@ public class RestricoesEscala implements ConstraintProvider {
         return f.forEach(Vaga.class)
                 .penalize(HardMediumSoftScore.ONE_SOFT, Vaga::custoEmReais)
                 .asConstraint("Custo da escala");
+    }
+
+    /**
+     * Escalar alguém fora do setor principal (pela habilidade) custa um pouco: o Timefold só desloca a pessoa quando
+     * isso preenche uma vaga que ficaria vazia (medium) ou quando a economia compensa.
+     */
+    Constraint foraDoSetorPrincipal(ConstraintFactory f) {
+        return f.forEach(Vaga.class)
+                .filter(Vaga::foraDoSetorPrincipal)
+                .penalize(HardMediumSoftScore.ONE_SOFT, v -> PENALIDADE_FORA_DO_SETOR)
+                .asConstraint("Fora do setor principal");
     }
 
     Constraint equilibrioDeHoras(ConstraintFactory f) {

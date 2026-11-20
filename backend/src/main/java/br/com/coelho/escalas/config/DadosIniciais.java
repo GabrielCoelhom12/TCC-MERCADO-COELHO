@@ -109,20 +109,20 @@ public class DadosIniciais implements CommandLineRunner {
         func("Eduardo Pereira", "C005", "Operador de caixa", caixa, "1950");
         func("Fernanda Rocha", "C006", "Operadora de caixa", caixa, "1950");
         Funcionario gabriela = func("Gabriela Alves", "C007", "Operadora de caixa", caixa, "1950");
-        func("Heitor Gomes", "C008", "Operador de caixa", caixa, "1950");
+        Funcionario heitor = func("Heitor Gomes", "C008", "Operador de caixa", caixa, "1950");
         func("Igor Nascimento", "R001", "Encarregado de reposição", reposicao, "2400");
-        func("Juliana Costa", "R002", "Repositora", reposicao, "1850");
+        Funcionario juliana = func("Juliana Costa", "R002", "Repositora", reposicao, "1850");
         func("Kleber Ribeiro", "R003", "Repositor", reposicao, "1850");
         func("Larissa Mendes", "R004", "Repositora", reposicao, "1850");
         func("Marcos Vieira", "R005", "Repositor", reposicao, "1850");
         func("Natália Barbosa", "R006", "Repositora", reposicao, "1850");
         func("Otávio Carvalho", "A001", "Açougueiro", acougue, "2800");
         func("Paulo Teixeira", "A002", "Açougueiro", acougue, "2800");
-        func("Rafael Moreira", "A003", "Auxiliar de açougue", acougue, "2100");
+        Funcionario rafael = func("Rafael Moreira", "A003", "Auxiliar de açougue", acougue, "2100");
         func("Sérgio Duarte", "A004", "Auxiliar de açougue", acougue, "2100");
         func("Tatiane Freitas", "P001", "Padeira", padaria, "2600");
         func("Vinícius Araújo", "P002", "Padeiro", padaria, "2600");
-        func("Wanessa Cardoso", "P003", "Auxiliar de padaria", padaria, "1900");
+        Funcionario wanessa = func("Wanessa Cardoso", "P003", "Auxiliar de padaria", padaria, "1900");
         func("Yasmin Correia", "P004", "Auxiliar de padaria", padaria, "1900");
 
         // Disponibilidade individual: estudantes sem disponibilidade em alguns dias.
@@ -130,6 +130,13 @@ public class DadosIniciais implements CommandLineRunner {
         daniela.setDiasDisponiveis(EnumSet.complementOf(EnumSet.of(DayOfWeek.SUNDAY)));
         funcionarios.save(gabriela);
         funcionarios.save(daniela);
+
+        // Habilidades: quem também sabe trabalhar em outro setor (o gerador e o Timefold usam quando falta gente).
+        heitor.getHabilidades().add(reposicao);
+        juliana.getHabilidades().add(caixa);
+        rafael.getHabilidades().add(reposicao);
+        wanessa.getHabilidades().add(caixa);
+        funcionarios.saveAll(List.of(heitor, juliana, rafael, wanessa));
 
         modelos.save(new TurnoModelo("Abertura", "ABE", LocalTime.of(7, 0), LocalTime.of(15, 20), 60, TurnoModelo.Aplicacao.DIAS_UTEIS));
         modelos.save(new TurnoModelo("Fechamento", "FEC", LocalTime.of(13, 40), LocalTime.of(22, 0), 60, TurnoModelo.Aplicacao.DIAS_UTEIS));

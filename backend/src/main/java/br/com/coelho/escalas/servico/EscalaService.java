@@ -32,17 +32,19 @@ public class EscalaService {
 
     /**
      * Define o conteúdo de uma célula (colaborador × dia). Sem modelo e sem horários = folga.
+     * {@code setorId}: setor que o turno cobre; vazio = o setor principal do colaborador.
      */
     public record CelulaRequest(Long funcionarioId, LocalDate data, Long turnoModeloId,
-                                LocalTime horaInicio, LocalTime horaFim, Integer intervaloMinutos) {
+                                LocalTime horaInicio, LocalTime horaFim, Integer intervaloMinutos, Long setorId) {
     }
 
     public record TurnoDTO(Long id, Long funcionarioId, LocalDate data, LocalTime horaInicio, LocalTime horaFim,
-                           int intervaloMinutos, String rotulo, BigDecimal horas, @Confidencial BigDecimal custo) {
+                           int intervaloMinutos, String rotulo, BigDecimal horas, @Confidencial BigDecimal custo, Long setorId) {
     }
 
     public record LinhaFuncionario(Long id, String nome, String cargo, Long setorId, String setorNome, String setorCor,
-                                   @Confidencial BigDecimal custoHora, Set<DayOfWeek> diasDisponiveis, boolean ativo) {
+                                   @Confidencial BigDecimal custoHora, Set<DayOfWeek> diasDisponiveis, boolean ativo,
+                                   List<Long> habilidades) {
     }
 
     public record Matriz(Escala escala, List<LinhaFuncionario> funcionarios, List<TurnoDTO> turnos,
@@ -141,14 +143,15 @@ public class EscalaService {
         List<LinhaFuncionario> linhas = funcionarios.findAllByOrderBySetorNomeAscNomeAsc().stream()
                 .filter(f -> f.isAtivo() || janela.stream().anyMatch(t -> t.getFuncionario().getId().equals(f.getId())))
                 .map(f -> new LinhaFuncionario(f.getId(), f.getNome(), f.getCargo(), f.getSetor().getId(), f.getSetor().getNome(),
-                        f.getSetor().getCor(), f.getCustoHora(), f.getDiasDisponiveis(), f.isAtivo()))
+                        f.getSetor().getCor(), f.getCustoHora(), f.getDiasDisponiveis(), f.isAtivo(),
+                        f.getHabilidades().stream().map(Setor::getId).sorted().toList()))
                 .toList();
 
         List<TurnoDTO> dtos = janela.stream()
                 .filter(t -> e.contem(t.getData()))
                 .sorted(Comparator.comparing(Turno::getData).thenComparing(Turno::getHoraInicio))
                 .map(t -> new TurnoDTO(t.getId(), t.getFuncionario().getId(), t.getData(), t.getHoraInicio(), t.getHoraFim(),
-                        t.getIntervaloMinutos(), t.getRotulo(), t.horasTrabalhadas(), motor.custoTurno(t, ctx)))
+                        t.getIntervaloMinutos(), t.getRotulo(), t.horasTrabalhadas(), motor.custoTurno(t, ctx), t.setorEfetivo().getId()))
                 .toList();
 
         return new Matriz(e, linhas, dtos, ctx.ausencias(), modelos.findAllByOrderByHoraInicioAsc(), validacao);
@@ -172,6 +175,7 @@ public class EscalaService {
 
         Turno novo = montarTurno(req, f);
         if (novo != null) {
+            novo.setSetor(setorDaCelula(req, f));
             novo.setEscala(e);
             turnos.saveAndFlush(novo);
             aplicarBloqueioFinanceiro(req.data(), antes, ctx);
@@ -210,6 +214,15 @@ public class EscalaService {
         List<Turno> doDia = turnos.findByDataBetween(data, data);
         int ops = (int) doDia.stream().map(t -> t.getFuncionario().getId()).distinct().count();
         return new DiaSnapshot(ops, motor.custoEscala(data, doDia, ctx));
+    }
+
+    /** O setor pedido para a célula, que precisa ser o principal ou uma habilidade do colaborador. */
+    private static Setor setorDaCelula(CelulaRequest req, Funcionario f) {
+        if (req.setorId() == null || req.setorId().equals(f.getSetor().getId())) {
+            return f.getSetor();
+        }
+        return f.getHabilidades().stream().filter(s -> s.getId().equals(req.setorId())).findFirst()
+                .orElseThrow(() -> new RegraNegocioException(f.getNome() + " não trabalha neste setor. Cadastre a habilidade em Colaboradores."));
     }
 
     private Turno montarTurno(CelulaRequest req, Funcionario f) {
@@ -258,6 +271,7 @@ public class EscalaService {
 
         ContextoCalculo ctx = contextoDa(e);
         DiaSnapshot antes = snapshot(turno.getData(), ctx);
+        turno.setSetor(turno.setorEfetivo()); // quem entra cobre o setor de quem saiu
         turno.setFuncionario(novo);
         turnos.saveAndFlush(turno);
         aplicarBloqueioFinanceiro(turno.getData(), antes, ctx);

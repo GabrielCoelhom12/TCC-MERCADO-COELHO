@@ -2,6 +2,7 @@ package br.com.coelho.escalas.motor;
 
 import br.com.coelho.escalas.dominio.Confidencial;
 import br.com.coelho.escalas.dominio.Funcionario;
+import br.com.coelho.escalas.dominio.Setor;
 import br.com.coelho.escalas.dominio.Turno;
 import org.springframework.stereotype.Component;
 
@@ -91,8 +92,10 @@ public class SugestorSubstituicao {
             plano.add(new Cobertura(t, escolhido));
             simulada.remove(t);
             if (escolhido != null) {
-                simulada.add(new Turno(porId.get(escolhido.funcionarioId()), t.getData(), t.getHoraInicio(), t.getHoraFim(),
-                        t.getIntervaloMinutos(), t.getRotulo()));
+                Turno coberto = new Turno(porId.get(escolhido.funcionarioId()), t.getData(), t.getHoraInicio(), t.getHoraFim(),
+                        t.getIntervaloMinutos(), t.getRotulo());
+                coberto.setSetor(t.setorEfetivo());
+                simulada.add(coberto);
             }
         }
         return plano;
@@ -101,6 +104,8 @@ public class SugestorSubstituicao {
     private Candidato avaliar(Funcionario f, Turno turno, List<Turno> seus, ContextoCalculo ctx) {
         LocalDate data = turno.getData();
         Turno simulado = new Turno(f, data, turno.getHoraInicio(), turno.getHoraFim(), turno.getIntervaloMinutos(), turno.getRotulo());
+        Setor setorDoTurno = turno.setorEfetivo();
+        simulado.setSetor(setorDoTurno);
         List<Turno> comTroca = new ArrayList<>(seus);
         comTroca.add(simulado);
 
@@ -110,10 +115,14 @@ public class SugestorSubstituicao {
         List<Violacao> novas = validador.validarColaborador(comTroca, de, ate, ctx).stream()
                 .filter(v -> !antes.contains(v)).toList();
 
-        List<String> impedimentos = novas.stream().filter(Violacao::erro).map(Violacao::mensagem).toList();
+        List<String> impedimentos = new ArrayList<>();
+        if (!f.atuaEm(setorDoTurno.getId())) {
+            impedimentos.add("Não trabalha em " + setorDoTurno.getNome() + " (cadastre a habilidade em Colaboradores).");
+        }
+        novas.stream().filter(Violacao::erro).map(Violacao::mensagem).forEach(impedimentos::add);
         List<String> alertas = novas.stream().filter(v -> !v.erro()).map(Violacao::mensagem).toList();
         return new Candidato(f.getId(), f.getNome(), f.getSetor().getNome(), f.getSetor().getCor(),
-                f.getSetor().getId().equals(turno.getFuncionario().getSetor().getId()),
+                f.getSetor().getId().equals(setorDoTurno.getId()),
                 horasNaSemana(seus, data), horasNaSemana(comTroca, data), motor.custoTurno(simulado, ctx),
                 impedimentos.isEmpty(), impedimentos, alertas);
     }

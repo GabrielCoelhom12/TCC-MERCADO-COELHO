@@ -36,6 +36,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -223,6 +224,8 @@ public class EscalaPdfService {
                 .collect(Collectors.groupingBy(LinhaFuncionario::setorNome, TreeMap::new, Collectors.toList()));
         Map<String, List<TurnoDTO>> turnos = m.turnos().stream()
                 .collect(Collectors.groupingBy(tu -> tu.funcionarioId() + "|" + tu.data()));
+        Map<Long, String> nomesSetor = new HashMap<>();
+        m.funcionarios().forEach(f -> nomesSetor.put(f.setorId(), f.setorNome()));
         int linha = 0;
         for (Map.Entry<String, List<LinhaFuncionario>> setor : porSetor.entrySet()) {
             t.addCell(celulaSetor(setor.getKey(), setor.getValue().getFirst().setorCor(), semana.size() + 1));
@@ -231,7 +234,7 @@ public class EscalaPdfService {
                 t.addCell(celulaNome(f, fundo));
                 for (LocalDate d : semana) {
                     t.addCell(celulaDia(turnos.getOrDefault(f.id() + "|" + d, List.of()), ausencia(m.ausencias(), f.id(), d),
-                            m.escala().contem(d), fundo));
+                            m.escala().contem(d), fundo, f.setorId(), nomesSetor));
                 }
             }
         }
@@ -250,7 +253,8 @@ public class EscalaPdfService {
         return t;
     }
 
-    private static PdfPCell celulaDia(List<TurnoDTO> turnos, Ausencia ausencia, boolean naEscala, Color fundo) {
+    private static PdfPCell celulaDia(List<TurnoDTO> turnos, Ausencia ausencia, boolean naEscala, Color fundo, Long setorPrincipal,
+                                      Map<Long, String> nomesSetor) {
         if (!naEscala) {
             return celula(new Phrase("—", FOLGA), Element.ALIGN_CENTER, fundo);
         }
@@ -262,6 +266,10 @@ public class EscalaPdfService {
                 if (tu.rotulo() != null && !tu.rotulo().isBlank()) {
                     // Sigla na mesma linha do horário: uma semana inteira da loja cabe numa folha A4.
                     p.add(new Chunk(" " + tu.rotulo(), PEQUENO));
+                }
+                if (tu.setorId() != null && !tu.setorId().equals(setorPrincipal)) {
+                    // Coberto por habilidade: a pessoa trabalha em outro setor neste dia.
+                    p.add(new Chunk("\n" + nomesSetor.getOrDefault(tu.setorId(), "outro setor"), PEQUENO));
                 }
             }
             return celula(p, Element.ALIGN_CENTER, fundo);

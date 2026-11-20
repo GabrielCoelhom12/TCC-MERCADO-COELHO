@@ -87,7 +87,8 @@ que o sistema já validou e registra férias, atestados e licenças com a substi
 
 **Cadastros e regras**
 - Setores com demanda mínima por tipo de dia e capacidade de atendimento; colaboradores com salário, encargos,
-  disponibilidade, ausências e foto; modelos de turno; feriados (importação dos nacionais e de Joinville);
+  disponibilidade, ausências, foto e **habilidades** (outros setores em que sabem trabalhar, usados pelo gerador e pelo
+  Timefold para cobrir um setor desfalcado); modelos de turno; feriados (importação dos nacionais e de Joinville);
   projeções de receita; parâmetros da CLT e da convenção coletiva.
 - **Simulador de custos:** compara um quadro montado "no olho" com o recomendado pelo motor e mostra a economia.
 

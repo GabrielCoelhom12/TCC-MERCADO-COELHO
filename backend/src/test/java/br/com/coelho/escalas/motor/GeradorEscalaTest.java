@@ -82,4 +82,61 @@ class GeradorEscalaTest {
         var resultado = gerador.gerar(SEGUNDA, SEGUNDA, List.of(), modelos, c.ctx());
         assertThat(resultado.turnos()).singleElement().extracting(t -> t.getFuncionario().getNome()).isEqualTo("Barato");
     }
+
+    // ------------------------------------------------------------------ habilidades
+
+    /** Falta gente no caixa e sobra na reposição: quem sabe trabalhar no caixa cobre, e o turno fica no caixa. */
+    @Test
+    void quemTemAHabilidadeCobreOutroSetorQuandoFaltaGente() {
+        Cenario c = new Cenario();
+        Setor caixa = c.setor("Caixa", 2);
+        Setor reposicao = c.setor("Reposição", 1);
+        Funcionario operador = c.funcionario("Operador", caixa, "10");
+        Funcionario versatil = c.funcionario("Repositor versátil", reposicao, "10");
+        versatil.getHabilidades().add(caixa);
+        Funcionario repositor = c.funcionario("Repositor", reposicao, "10");
+
+        var resultado = gerador.gerar(SEGUNDA, SEGUNDA, List.of(), modelos, c.ctx());
+
+        assertThat(resultado.deficits()).isEmpty();
+        assertThat(resultado.turnos()).hasSize(3);
+        Turno doVersatil = resultado.turnos().stream().filter(t -> t.getFuncionario() == versatil).findFirst().orElseThrow();
+        assertThat(doVersatil.setorEfetivo()).as("cobre o caixa, não a reposição").isSameAs(caixa);
+        assertThat(resultado.turnos()).filteredOn(t -> t.getFuncionario() == repositor)
+                .singleElement().satisfies(t -> assertThat(t.setorEfetivo()).isSameAs(reposicao));
+        assertThat(resultado.turnos()).filteredOn(t -> t.getFuncionario() == operador)
+                .singleElement().satisfies(t -> assertThat(t.setorEfetivo()).isSameAs(caixa));
+        var validacao = validador.validar(SEGUNDA, SEGUNDA, resultado.turnos(), c.ctx());
+        assertThat(validacao.violacoes()).noneMatch(v -> v.regra() == Violacao.Regra.SETOR_ABAIXO_MINIMO);
+    }
+
+    /** Ninguém é tirado do próprio setor enquanto ele ainda precisa da pessoa. */
+    @Test
+    void naoDesfalcaOProprioSetorParaCobrirOutro() {
+        Cenario c = new Cenario();
+        Setor caixa = c.setor("Caixa", 1);
+        Setor reposicao = c.setor("Reposição", 1);
+        Funcionario versatil = c.funcionario("Repositor versátil", reposicao, "10");
+        versatil.getHabilidades().add(caixa);
+
+        var resultado = gerador.gerar(SEGUNDA, SEGUNDA, List.of(), modelos, c.ctx());
+
+        assertThat(resultado.turnos()).singleElement().satisfies(t -> assertThat(t.setorEfetivo()).isSameAs(reposicao));
+        assertThat(resultado.deficits()).singleElement().satisfies(d -> assertThat(d.setor()).isEqualTo("Caixa"));
+    }
+
+    /** Sem a habilidade, ninguém é escalado em outro setor (o déficit aparece). */
+    @Test
+    void semHabilidadeNaoCobreOutroSetor() {
+        Cenario c = new Cenario();
+        Setor caixa = c.setor("Caixa", 1);
+        Setor reposicao = c.setor("Reposição", 1);
+        c.funcionario("R1", reposicao, "10");
+        c.funcionario("R2", reposicao, "10");
+
+        var resultado = gerador.gerar(SEGUNDA, SEGUNDA, List.of(), modelos, c.ctx());
+
+        assertThat(resultado.turnos()).hasSize(1).allMatch(t -> t.setorEfetivo() == reposicao);
+        assertThat(resultado.deficits()).singleElement().satisfies(d -> assertThat(d.setor()).isEqualTo("Caixa"));
+    }
 }

@@ -61,6 +61,11 @@ public class Vaga {
         return candidatos;
     }
 
+    /** Se a pessoa escolhida veio de outro setor, pela habilidade (e não pelo setor principal). */
+    boolean foraDoSetorPrincipal() {
+        return funcionario != null && !funcionario.getSetor().getId().equals(setorId);
+    }
+
     /** Custo do turno com a pessoa escolhida, em reais (base da pontuação soft). */
     int custoEmReais() {
         return funcionario.getCustoHora().multiply(BigDecimal.valueOf(minutos)).multiply(fator)

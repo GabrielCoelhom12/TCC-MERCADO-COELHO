@@ -214,7 +214,7 @@ public class ValidadorEscala {
         List<ResumoSetor> setores = new ArrayList<>();
         for (Setor setor : ctx.setoresAtivos()) {
             List<Turno> doSetor = turnosDia.stream()
-                    .filter(t -> setor.getId().equals(t.getFuncionario().getSetor().getId()))
+                    .filter(t -> t.doSetor(setor.getId()))
                     .toList();
             int ops = (int) doSetor.stream().map(t -> t.getFuncionario().getId()).distinct().count();
             int necessarios = cap.minimoPorSetor().getOrDefault(setor.getId(), 0);

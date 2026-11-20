@@ -91,10 +91,11 @@ public class OtimizadorEscala {
                     continue;
                 }
                 necessariosPorDiaSetor.put(chave(d, setor.getId()), necessarios);
+                // Quem é do setor e quem sabe trabalhar nele (habilidades); a preferência pelo principal é uma restrição soft.
                 List<Funcionario> doSetor = ctx.funcionariosAtivos().stream()
-                        .filter(f -> f.getSetor().getId().equals(setor.getId())).toList();
+                        .filter(f -> f.atuaEm(setor.getId())).toList();
                 int jaEscalados = (int) existentes.stream()
-                        .filter(t -> t.getData().equals(d) && t.getFuncionario().getSetor().getId().equals(setor.getId()))
+                        .filter(t -> t.getData().equals(d) && t.doSetor(setor.getId()))
                         .map(t -> t.getFuncionario().getId()).distinct().count();
                 List<Funcionario> candidatos = doSetor.stream()
                         .filter(f -> f.disponivelEm(d.getDayOfWeek()) && !ctx.ausente(f, d))
@@ -115,9 +116,11 @@ public class OtimizadorEscala {
 
     private static GeradorEscala.ResultadoGeracao resultado(List<Vaga> vagas, List<Turno> existentes,
                                                            Map<String, Integer> necessariosPorDiaSetor, ContextoCalculo ctx) {
+        Map<Long, Setor> setores = new LinkedHashMap<>();
+        ctx.setoresAtivos().forEach(s -> setores.put(s.getId(), s));
         List<Turno> turnos = vagas.stream()
                 .filter(v -> v.getFuncionario() != null)
-                .map(v -> Turno.de(v.getModelo(), v.getFuncionario(), v.getData()))
+                .map(v -> Turno.de(v.getModelo(), v.getFuncionario(), v.getData(), setores.get(v.getSetorId())))
                 .toList();
         Map<String, String> nomes = new LinkedHashMap<>();
         Map<String, Integer> vazias = new LinkedHashMap<>();
