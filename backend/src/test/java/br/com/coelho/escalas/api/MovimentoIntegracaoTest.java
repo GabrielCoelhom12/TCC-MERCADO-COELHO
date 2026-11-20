@@ -162,6 +162,15 @@ class MovimentoIntegracaoTest extends IntegracaoTest {
     }
 
     @Test
+    void assertividadeLimitaOPeriodoATresMeses() throws Exception {
+        // Cada dia refaz a previsão: o intervalo é limitado para não pesar no servidor.
+        get("/api/movimento/assertividade?inicio=2024-01-01&fim=2024-04-01").andExpect(status().isNoContent()); // 92 dias
+        get("/api/movimento/assertividade?inicio=2024-01-01&fim=2024-04-02")
+                .andExpect(status().isUnprocessableEntity())
+                .andExpect(jsonPath("$.mensagem").value("Período inválido (máximo de 92 dias)."));
+    }
+
+    @Test
     void semHistoricoAPrevisaoUsaAConfiguracao() throws Exception {
         get("/api/movimento/previsao?inicio=2024-01-08&fim=2024-01-09")
                 .andExpect(status().isOk())

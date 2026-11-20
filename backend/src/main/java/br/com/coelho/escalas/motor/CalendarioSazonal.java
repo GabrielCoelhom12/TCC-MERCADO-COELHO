@@ -32,23 +32,48 @@ public final class CalendarioSazonal {
         }
     }
 
+    /** Peso padrão da hipótese inicial: ela "vale" 2 ocorrências na média com o histórico da loja. */
+    public static final int PESO_HIPOTESE_PADRAO = 2;
+    /**
+     * Peso maior para as datas com poucos dias por ano (Dia das Mães e dos Pais: só sábado e domingo). Com tão poucas
+     * ocorrências, um ano atípico (chuva, campanha da concorrência) mudaria demais a previsão; com peso 4, a primeira
+     * ocorrência responde por 1/5 do efeito, e não por 1/3.
+     */
+    public static final int PESO_HIPOTESE_POUCAS_OCORRENCIAS = 4;
+
     public enum DataComemorativa {
         SEMANA_DO_NATAL("Semana do Natal", Tendencia.MUITO_ALTA),
         VESPERAS_DE_ANO_NOVO("Vésperas de Ano-Novo", Tendencia.ALTA),
+        /**
+         * Só os dias seguintes ao Natal e ao Ano-Novo (26/12 e 02/01), de propósito: são os dias de "ressaca" depois
+         * de um feriado, com troca de presentes e reposição de estoque doméstico. 27 e 28/12 já são dias comuns, e 29
+         * a 31/12 entram nas {@linkplain #VESPERAS_DE_ANO_NOVO vésperas de Ano-Novo}.
+         */
         POS_FESTAS("Depois das festas de fim de ano", Tendencia.VARIAVEL),
         SEMANA_SANTA("Semana Santa", Tendencia.ALTA),
         PRE_CARNAVAL("Pré-Carnaval", Tendencia.ALTA),
-        DIA_DAS_MAES("Dia das Mães", Tendencia.ALTA),
-        DIA_DOS_PAIS("Dia dos Pais", Tendencia.ALTA),
+        DIA_DAS_MAES("Dia das Mães", Tendencia.ALTA, PESO_HIPOTESE_POUCAS_OCORRENCIAS),
+        DIA_DOS_PAIS("Dia dos Pais", Tendencia.ALTA, PESO_HIPOTESE_POUCAS_OCORRENCIAS),
         DIA_DOS_NAMORADOS("Dia dos Namorados", Tendencia.VARIAVEL),
         BLACK_FRIDAY("Black Friday", Tendencia.VARIAVEL);
 
         private final String nome;
         private final Tendencia tendencia;
+        private final int pesoHipotese;
 
         DataComemorativa(String nome, Tendencia tendencia) {
+            this(nome, tendencia, PESO_HIPOTESE_PADRAO);
+        }
+
+        DataComemorativa(String nome, Tendencia tendencia, int pesoHipotese) {
             this.nome = nome;
             this.tendencia = tendencia;
+            this.pesoHipotese = pesoHipotese;
+        }
+
+        /** Quantas ocorrências "virtuais" a hipótese inicial vale na média com o histórico da loja. */
+        public int pesoHipotese() {
+            return pesoHipotese;
         }
 
         public String nome() {
@@ -102,9 +127,10 @@ public final class CalendarioSazonal {
         if (mes == Month.JUNE && dia == 12) {
             return Optional.of(DataComemorativa.DIA_DOS_NAMORADOS);
         }
-        LocalDate quartaQuintaDeNovembro = LocalDate.of(ano, Month.NOVEMBER, 1)
+        // Black Friday: a sexta depois do Dia de Ação de Graças (4ª quinta-feira de novembro nos EUA).
+        LocalDate acaoDeGracas = LocalDate.of(ano, Month.NOVEMBER, 1)
                 .with(TemporalAdjusters.dayOfWeekInMonth(4, DayOfWeek.THURSDAY));
-        if (d.equals(quartaQuintaDeNovembro.plusDays(1))) {
+        if (d.equals(acaoDeGracas.plusDays(1))) {
             return Optional.of(DataComemorativa.BLACK_FRIDAY);
         }
         return Optional.empty();

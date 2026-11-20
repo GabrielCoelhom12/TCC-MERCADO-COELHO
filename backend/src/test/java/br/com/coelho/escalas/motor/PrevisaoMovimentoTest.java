@@ -202,10 +202,26 @@ class PrevisaoMovimentoTest {
 
         PrevisaoMovimento.PrevisaoDia p = previsao.prever(LocalDate.of(2027, 5, 8), c.ctx()); // sábado do Dia das Mães
 
-        // (1 ocorrência × 1,50 + 2 × hipótese 1,15) / 3 = 1,2667
-        assertThat(p.vendas()).isEqualByComparingTo("38000.00");
-        assertThat(p.explicacao()).anyMatch(e -> e.contains("Dia das Mães: +27%")
+        // Dia das Mães tem poucos dias por ano: a hipótese vale 4 ocorrências. (1 × 1,50 + 4 × 1,15) / 5 = 1,22
+        assertThat(p.vendas()).isEqualByComparingTo("36600.00");
+        assertThat(p.explicacao()).anyMatch(e -> e.contains("Dia das Mães: +22%")
                 && e.contains("+15%") && e.contains("1 ocorrência") && e.contains("+50%"));
+    }
+
+    @Test
+    void datasComMaisDiasPorAnoAprendemMaisRapidoQueODiaDasMaes() {
+        Cenario c = new Cenario();
+        c.movimento(LocalDate.of(2025, 12, 23), "45000", 150, 150, 150, 150, 150); // terça da semana do Natal: +50%
+        for (String data : new String[]{"2026-12-15", "2026-12-08", "2026-12-01"}) { // terças comuns
+            c.movimento(LocalDate.parse(data), "30000", 100, 100, 100, 100, 100);
+        }
+        c.movimento(LocalDate.of(2025, 12, 16), "30000", 100, 100, 100, 100, 100); // base de 2025
+
+        PrevisaoMovimento.PrevisaoDia p = previsao.prever(LocalDate.of(2026, 12, 22), c.ctx()); // terça da semana do Natal
+
+        // Peso padrão 2: (1 × 1,50 + 2 × hipótese 1,30) / 3 = 1,3667
+        assertThat(p.vendas()).isEqualByComparingTo("41000.00");
+        assertThat(p.explicacao()).anyMatch(e -> e.contains("Semana do Natal: +37%"));
     }
 
     @Test

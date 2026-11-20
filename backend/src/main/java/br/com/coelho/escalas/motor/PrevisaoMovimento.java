@@ -27,8 +27,9 @@ import java.util.function.Predicate;
  *   <li><b>Feriados:</b> média dos feriados anteriores ou, sem eles, dos domingos;</li>
  *   <li><b>Datas comemorativas</b> ({@link CalendarioSazonal}): Natal, Ano-Novo, Semana Santa, Dia das Mães etc.
  *       Começam pela hipótese inicial do estudo de sazonalidade e passam a pesar o que a loja viveu nas mesmas datas
- *       (média com {@value #PESO_HIPOTESE} ocorrências "virtuais" da hipótese). Prevalecem sobre véspera e início do
- *       mês e ficam fora da média do dia da semana, para não distorcê-la;</li>
+ *       (média com {@value CalendarioSazonal#PESO_HIPOTESE_PADRAO} ocorrências "virtuais" da hipótese, ou
+ *       {@value CalendarioSazonal#PESO_HIPOTESE_POUCAS_OCORRENCIAS} no Dia das Mães e dos Pais, que têm poucos dias por
+ *       ano). Prevalecem sobre véspera e início do mês e ficam fora da média do dia da semana, para não distorcê-la;</li>
  *   <li><b>Faixas:</b> os clientes previstos são distribuídos conforme o perfil horário das mesmas ocorrências.</li>
  * </ol>
  * Cada previsão traz a lista de motivos ({@link PrevisaoDia#explicacao()}) para o gestor entender o número, e
@@ -67,8 +68,6 @@ public class PrevisaoMovimento {
     }
 
     static final int MAX_AMOSTRAS = 8;
-    /** Quantas ocorrências "valem" a hipótese inicial de uma data comemorativa na média com o histórico. */
-    static final int PESO_HIPOTESE = 2;
     static final int DIA_LIMITE_PAGAMENTO = 10;
     static final BigDecimal EFEITO_VESPERA_PADRAO = new BigDecimal("1.15");
     private static final int MIN_VESPERAS = 2;
@@ -219,7 +218,8 @@ public class PrevisaoMovimento {
     }
 
     /**
-     * Aplica a data comemorativa: a hipótese inicial vale como {@value #PESO_HIPOTESE} ocorrências e é combinada com a
+     * Aplica a data comemorativa: a hipótese inicial vale como {@linkplain CalendarioSazonal.DataComemorativa#pesoHipotese() algumas}
+     * ocorrências e é combinada com a
      * mediana das ocorrências da mesma data no histórico. Assim, cada ano vivido pela loja pesa mais na previsão.
      */
     private static Medida aplicarComemorativa(Medida base, CalendarioSazonal.DataComemorativa data, List<MovimentoDiario> historico,
@@ -229,7 +229,8 @@ public class PrevisaoMovimento {
         double hipotese = data.hipoteseInicial();
         int n = razoes.size();
         double medido = n == 0 ? 1 : mediana(razoes);
-        EfeitoComemorativo efeito = new EfeitoComemorativo((n * medido + PESO_HIPOTESE * hipotese) / (n + PESO_HIPOTESE), n, medido);
+        int peso = data.pesoHipotese();
+        EfeitoComemorativo efeito = new EfeitoComemorativo((n * medido + peso * hipotese) / (n + peso), n, medido);
 
         if (Math.abs(efeito.fator() - 1) < EFEITO_MINIMO) {
             motivos.add(data.nome() + ": " + (n == 0
