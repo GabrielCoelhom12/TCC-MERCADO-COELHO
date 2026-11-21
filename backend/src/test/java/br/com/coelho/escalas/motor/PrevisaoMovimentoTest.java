@@ -155,6 +155,26 @@ class PrevisaoMovimentoTest {
     }
 
     @Test
+    void feriadoSemEfeitoMedidoUsaOMesmoDiaDaSemanaENaoODomingo() {
+        Cenario c = new Cenario();
+        LocalDate feriado = LocalDate.of(2026, 11, 20); // sexta-feira
+        c.feriado(feriado);
+        c.movimento(LocalDate.of(2026, 11, 13), "48000", 160, 160, 160, 160, 160); // sextas
+        c.movimento(LocalDate.of(2026, 10, 30), "48000", 160, 160, 160, 160, 160);
+        c.movimento(LocalDate.of(2026, 11, 15), "21000", 90, 90, 0, 0, 0);       // domingo
+        // Um único feriado no histórico, numa quarta: pouco para medir o efeito, e de outro dia da semana.
+        LocalDate feriadoNaQuarta = LocalDate.of(2026, 10, 28);
+        c.feriado(feriadoNaQuarta);
+        c.movimento(feriadoNaQuarta, "30000", 100, 100, 100, 0, 0);
+
+        PrevisaoMovimento.PrevisaoDia p = previsao.prever(feriado, c.ctx());
+
+        assertThat(p.vendas()).isEqualByComparingTo("48000");
+        assertThat(p.explicacao()).anyMatch(e -> e.startsWith("Feriado: média das últimas 2 sextas") && e.contains("poucos feriados"));
+        assertThat(p.explicacao()).noneMatch(e -> e.contains("domingos"));
+    }
+
+    @Test
     void semOcorrenciasDoMesmoDiaUsaAMediaGeral() {
         Cenario c = new Cenario();
         c.movimento(SEXTA.minusDays(1), "20000", 60, 60, 60, 60, 60); // quinta

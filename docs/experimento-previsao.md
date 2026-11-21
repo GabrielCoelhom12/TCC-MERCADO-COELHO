@@ -50,7 +50,8 @@ mvn test -Dtest=ExperimentoPrevisaoTest -Dvendas=C:/caminho/vendas.csv
   recalibradas com o histórico (arredondadas para baixo).
 - `PrevisaoMovimento`:
   - feriado = média do mesmo dia da semana × efeito do feriado medido no histórico, separado em dia útil e fim de semana
-    (com pelo menos 2 feriados do mesmo tipo; senão, o cálculo antigo);
+    (com pelo menos 2 feriados do mesmo tipo); sem feriados suficientes para medir o efeito, a média do mesmo dia da
+    semana sem ajuste, e não mais a média dos domingos ou de feriados de outros dias da semana;
   - efeitos medidos contra os dias comuns **mais próximos** da data, e não os mais recentes;
   - véspera sem efeito relevante não recebe ajuste (correção do bug).
 

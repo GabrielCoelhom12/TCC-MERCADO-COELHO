@@ -26,7 +26,8 @@ import java.util.function.Predicate;
  *       contra os dias normais do mesmo dia da semana mais próximos de cada ocorrência. A véspera usa +15% enquanto
  *       houver poucas vésperas; o início do mês só é aplicado quando há evidência (4 ou mais dias);</li>
  *   <li><b>Feriados:</b> média do mesmo dia da semana × efeito de feriado medido no histórico, separado em dia útil e
- *       fim de semana (com 2 ou mais feriados do mesmo tipo); senão, média dos feriados anteriores ou dos domingos;</li>
+ *       fim de semana (com 2 ou mais feriados do mesmo tipo); senão, a média do mesmo dia da semana sem ajuste; sem
+ *       ocorrências desse dia, a média dos feriados anteriores ou dos domingos;</li>
  *   <li><b>Datas comemorativas</b> ({@link CalendarioSazonal}): Natal, Ano-Novo, quinta-feira Santa, Dia das Mães etc.
  *       Começam pela hipótese inicial de cada data e passam a pesar o que a loja viveu nas mesmas datas
  *       (média com {@value CalendarioSazonal#PESO_HIPOTESE_PADRAO} ocorrências "virtuais" da hipótese, ou
@@ -130,6 +131,16 @@ public class PrevisaoMovimento {
                 base = media(amostras, m -> ajuste(m.getData(), ehVespera, ehPagamento, vespera, pagamento)).multiplicar(fator);
                 motivos.add("Feriado em " + (fimDeSemana ? "fim de semana" : "dia útil") + ": média " + quais(alvo.getDayOfWeek(), amostras.size())
                         + " com " + percentual(fator) + " (aprendido de " + efeitoFeriado.size() + " feriados).");
+            } else if (!mesmoDiaDaSemana.isEmpty()) {
+                // Ainda não dá para medir o efeito do feriado: fica a média do mesmo dia da semana, sem ajuste. No
+                // histórico real, feriado em dia útil vendeu acima do mesmo dia comum, e no fim de semana quase igual;
+                // usar o domingo (ou a média de feriados de dias diferentes) subestimaria um feriado numa sexta.
+                amostras = mesmoDiaDaSemana;
+                perfil = anteriores;
+                base = media(amostras, m -> ajuste(m.getData(), ehVespera, ehPagamento, vespera, pagamento));
+                motivos.add("Feriado: média " + quais(alvo.getDayOfWeek(), amostras.size()) + " ("
+                        + Formato.moeda(dinheiro(base.vendas())) + " e " + Math.round(base.clientes())
+                        + " clientes), sem ajuste: ainda há poucos feriados no histórico para medir o efeito.");
             } else if (!anteriores.isEmpty()) {
                 amostras = anteriores;
                 base = media(anteriores, m -> 1.0);
