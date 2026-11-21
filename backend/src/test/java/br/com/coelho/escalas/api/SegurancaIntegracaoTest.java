@@ -31,6 +31,8 @@ class SegurancaIntegracaoTest extends IntegracaoTest {
         get("/api/funcionarios").andExpect(status().isOk());
         get("/api/parametros").andExpect(status().isOk());
         get("/api/ferias").andExpect(status().isOk());
+        // Mesma regra da previsão: qualquer perfil autenticado consulta (204 = sem fechamentos no período).
+        get("/api/movimento/assertividade?inicio=2032-01-01&fim=2032-01-31").andExpect(status().isNoContent());
 
         String negado = "Seu perfil não permite esta ação.";
         post("/api/escalas", Map.of("dataInicio", "2032-01-05", "dataFim", "2032-01-11"))

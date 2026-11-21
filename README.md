@@ -149,10 +149,12 @@ turno e só entra quem não gera nenhum erro novo. A escolha prioriza o mesmo se
 A previsão é **explicável**: cada número mostra de onde veio.
 
 - **Base:** média ponderada das últimas 8 ocorrências do mesmo dia da semana.
-- **Efeitos aprendidos** dos próprios fechamentos: início do mês (pagamento) e véspera de feriado.
-- **Datas comemorativas** (`CalendarioSazonal`): semana do Natal, vésperas de Ano-Novo, pós-festas, Semana Santa,
-  pré-Carnaval, Dia das Mães, Dia dos Pais, Dia dos Namorados e Black Friday. Elas ficam fora da base e recebem um
-  fator que combina a hipótese inicial (+30% ou +15%) com o que os fechamentos mostrarem:
+- **Efeitos aprendidos** dos próprios fechamentos: início do mês (pagamento), véspera de feriado e feriado (separado
+  em dia útil e fim de semana), cada um medido contra as semanas em volta da data.
+- **Datas comemorativas** (`CalendarioSazonal`): semana do Natal, antevéspera e véspera de Natal, antevéspera e véspera
+  de Ano-Novo, pós-festas, quinta-feira Santa, pré-Carnaval, segunda de Carnaval, Dia das Mães, Dia dos Pais, Dia dos Namorados e Black Friday. Elas ficam fora da base e recebem um
+  fator que combina a hipótese inicial de cada data (calibrada com o histórico real do parceiro) com o que os
+  fechamentos mostrarem:
   `fator = (n × mediana observada + 2 × hipótese) ÷ (n + 2)`.
 - **Pessoas por faixa:** a previsão de clientes por faixa, dividida pela capacidade de atendimento do setor, define
   quantas pessoas cada pico precisa.
@@ -343,9 +345,11 @@ A documentação completa está na **[Wiki do projeto](../../wiki)**, publicada 
 
 ## Limitações conhecidas
 
-- **A previsão ainda não foi medida com dados reais.** O cenário de demonstração usa fechamentos hipotéticos; o selo de
+- **A previsão foi medida com o histórico real do parceiro** (confidencial, fora do repositório): erro médio de 7,3% por
+  dia, 9,8% nos feriados e 8,1% nas datas comemorativas ([experimento](docs/experimento-previsao.md)). O cenário de
+  demonstração continua com fechamentos hipotéticos; o selo de
   assertividade só terá valor depois de semanas de fechamentos lançados pela loja.
-- **Os fatores das datas comemorativas (+30% e +15%) são hipóteses iniciais** e precisam ser confirmados com o parceiro.
+- **Os fatores das datas comemorativas foram calibrados com uma loja só**; em outra loja, valem como hipótese inicial.
   O cálculo reduz o peso delas à medida que os fechamentos dessas datas forem lançados.
 - **Férias:** o sistema não controla o período aquisitivo nem a regra de que um dos períodos fracionados tenha ao menos
   14 dias; o repouso semanal de referência para a regra do início é o **domingo**.

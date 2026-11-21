@@ -17,6 +17,7 @@ e mantém o custo da equipe dentro do limite definido pela gestão.
 | [Deploy](deploy.md) | Ambientes, variáveis, pipeline CI/CD, provisionamento no Azure (Terraform), rollback e monitoramento |
 | [Conformidade](conformidade.md) | LGPD, segurança (OWASP), acessibilidade (WCAG) e licenças |
 | [Experimento de otimização](experimento-otimizacao.md) | Gerador guloso × Timefold em 30 cenários: método, resultados e leitura |
+| [Experimento de previsão](experimento-previsao.md) | Assertividade da previsão contra o histórico real de vendas (confidencial, fora do repositório): método, mudanças e resultados |
 
 ## Visão rápida
 

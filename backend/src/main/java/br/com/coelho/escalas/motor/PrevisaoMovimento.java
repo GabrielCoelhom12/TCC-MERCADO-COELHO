@@ -11,6 +11,7 @@ import java.math.RoundingMode;
 import java.time.DayOfWeek;
 import java.time.LocalDate;
 import java.time.LocalTime;
+import java.time.temporal.ChronoUnit;
 import java.util.*;
 import java.util.function.Predicate;
 
@@ -22,12 +23,20 @@ import java.util.function.Predicate;
  *   <li><b>Base:</b> média ponderada das últimas 8 ocorrências do mesmo dia da semana (a mais recente pesa mais),
  *       com cada ocorrência "limpa" dos efeitos conhecidos (véspera de feriado, início do mês);</li>
  *   <li><b>Efeitos:</b> véspera de feriado e início do mês (dias 1 a 10, pagamento), medidos no próprio histórico
- *       contra dias normais do mesmo dia da semana. A véspera usa +15% enquanto houver poucas vésperas; o início do
- *       mês só é aplicado quando há evidência (4 ou mais dias);</li>
- *   <li><b>Feriados:</b> média dos feriados anteriores ou, sem eles, dos domingos;</li>
+ *       contra os dias normais do mesmo dia da semana mais próximos de cada ocorrência. A véspera usa +15% enquanto
+ *       houver poucas vésperas; o início do mês só é aplicado quando há evidência (4 ou mais dias);</li>
+ *   <li><b>Feriados:</b> média do mesmo dia da semana × efeito de feriado medido no histórico, separado em dia útil e
+ *       fim de semana (com 2 ou mais feriados do mesmo tipo); senão, a média do mesmo dia da semana sem ajuste; sem
+ *       ocorrências desse dia, a média dos feriados anteriores ou dos domingos;</li>
+ *   <li><b>Datas comemorativas</b> ({@link CalendarioSazonal}): Natal, Ano-Novo, quinta-feira Santa, Dia das Mães etc.
+ *       Começam pela hipótese inicial de cada data e passam a pesar o que a loja viveu nas mesmas datas
+ *       (média com {@value CalendarioSazonal#PESO_HIPOTESE_PADRAO} ocorrências "virtuais" da hipótese, ou
+ *       {@value CalendarioSazonal#PESO_HIPOTESE_POUCAS_OCORRENCIAS} no Dia das Mães e dos Pais, que têm poucos dias por
+ *       ano). Prevalecem sobre véspera e início do mês e ficam fora da média do dia da semana, para não distorcê-la;</li>
  *   <li><b>Faixas:</b> os clientes previstos são distribuídos conforme o perfil horário das mesmas ocorrências.</li>
  * </ol>
- * Cada previsão traz a lista de motivos ({@link PrevisaoDia#explicacao()}) para o gestor entender o número.
+ * Cada previsão traz a lista de motivos ({@link PrevisaoDia#explicacao()}) para o gestor entender o número, e
+ * {@link #assertividade} mede o erro das previsões contra os fechamentos reais.
  */
 public class PrevisaoMovimento {
 
@@ -51,11 +60,23 @@ public class PrevisaoMovimento {
         }
     }
 
+    /**
+     * Erro das previsões em um período, refazendo cada uma só com o histórico anterior ao dia.
+     *
+     * @param dias                fechamentos comparados
+     * @param erroMedioPercentual média do erro absoluto, em % das vendas reais
+     * @param viesPercentual      média do erro com sinal: negativo = a previsão costuma ficar abaixo do real
+     */
+    public record Assertividade(int dias, BigDecimal erroMedioPercentual, BigDecimal viesPercentual) {
+    }
+
     static final int MAX_AMOSTRAS = 8;
     static final int DIA_LIMITE_PAGAMENTO = 10;
     static final BigDecimal EFEITO_VESPERA_PADRAO = new BigDecimal("1.15");
     private static final int MIN_VESPERAS = 2;
     private static final int MIN_DIAS_PAGAMENTO = 4;
+    /** Feriados do mesmo tipo (dia útil ou fim de semana) no histórico para medir o efeito do feriado. */
+    private static final int MIN_FERIADOS = 2;
     /** Efeitos aprendidos menores que 3% são tratados como ruído. */
     private static final double EFEITO_MINIMO = 0.03;
 
@@ -66,6 +87,10 @@ public class PrevisaoMovimento {
     }
 
     private record Efeito(double fator, int amostras, boolean padrao) {
+    }
+
+    /** Efeito de uma data comemorativa: hipótese inicial combinada com a mediana medida nas ocorrências. */
+    private record EfeitoComemorativo(double fator, int ocorrencias, double medido) {
     }
 
     public PrevisaoDia prever(LocalDate alvo, ContextoCalculo ctx) {
@@ -80,17 +105,43 @@ public class PrevisaoMovimento {
         Predicate<LocalDate> ehFeriado = feriados::contains;
         Predicate<LocalDate> ehVespera = d -> !ehFeriado.test(d) && feriados.contains(d.plusDays(1));
         Predicate<LocalDate> ehPagamento = d -> d.getDayOfMonth() <= DIA_LIMITE_PAGAMENTO;
+        Predicate<LocalDate> ehComemorativa = d -> !ehFeriado.test(d) && CalendarioSazonal.em(d).isPresent();
+        Predicate<LocalDate> foraDaBase = ehFeriado.or(ehComemorativa);
+        Predicate<LocalDate> normal = foraDaBase.or(ehVespera).or(ehPagamento).negate();
 
-        Efeito vespera = efeito(historico, ehVespera, ehFeriado, ehVespera, ehPagamento, MIN_VESPERAS, EFEITO_VESPERA_PADRAO);
-        Efeito pagamento = efeito(historico, ehPagamento, ehFeriado, ehVespera, ehPagamento, MIN_DIAS_PAGAMENTO, null);
+        Efeito vespera = efeito(historico, ehVespera, foraDaBase, normal, MIN_VESPERAS, EFEITO_VESPERA_PADRAO);
+        Efeito pagamento = efeito(historico, ehPagamento, foraDaBase, normal, MIN_DIAS_PAGAMENTO, null);
 
         List<String> motivos = new ArrayList<>();
         List<MovimentoDiario> amostras;
         Medida base;
 
+        List<MovimentoDiario> perfil = null; // de onde vem a distribuição por faixa, se não for das próprias amostras
         if (ehFeriado.test(alvo)) {
             List<MovimentoDiario> anteriores = historico.stream().filter(m -> ehFeriado.test(m.getData())).limit(4).toList();
-            if (!anteriores.isEmpty()) {
+            boolean fimDeSemana = fimDeSemana(alvo);
+            List<Double> efeitoFeriado = razoes(historico, d -> ehFeriado.test(d) && fimDeSemana(d) == fimDeSemana, normal);
+            List<MovimentoDiario> mesmoDiaDaSemana = mesmoDia(historico, alvo.getDayOfWeek(), foraDaBase);
+            if (efeitoFeriado.size() >= MIN_FERIADOS && !mesmoDiaDaSemana.isEmpty()) {
+                // O feriado muda o movimento do dia da semana em que cai: em dia útil a loja costuma vender mais (as
+                // pessoas estão de folga); no fim de semana, quase nada muda. Por isso o efeito é medido separadamente.
+                amostras = mesmoDiaDaSemana;
+                perfil = anteriores;
+                double fator = mediana(efeitoFeriado);
+                base = media(amostras, m -> ajuste(m.getData(), ehVespera, ehPagamento, vespera, pagamento)).multiplicar(fator);
+                motivos.add("Feriado em " + (fimDeSemana ? "fim de semana" : "dia útil") + ": média " + quais(alvo.getDayOfWeek(), amostras.size())
+                        + " com " + percentual(fator) + " (aprendido de " + efeitoFeriado.size() + " feriados).");
+            } else if (!mesmoDiaDaSemana.isEmpty()) {
+                // Ainda não dá para medir o efeito do feriado: fica a média do mesmo dia da semana, sem ajuste. No
+                // histórico real, feriado em dia útil vendeu acima do mesmo dia comum, e no fim de semana quase igual;
+                // usar o domingo (ou a média de feriados de dias diferentes) subestimaria um feriado numa sexta.
+                amostras = mesmoDiaDaSemana;
+                perfil = anteriores;
+                base = media(amostras, m -> ajuste(m.getData(), ehVespera, ehPagamento, vespera, pagamento));
+                motivos.add("Feriado: média " + quais(alvo.getDayOfWeek(), amostras.size()) + " ("
+                        + Formato.moeda(dinheiro(base.vendas())) + " e " + Math.round(base.clientes())
+                        + " clientes), sem ajuste: ainda há poucos feriados no histórico para medir o efeito.");
+            } else if (!anteriores.isEmpty()) {
                 amostras = anteriores;
                 base = media(anteriores, m -> 1.0);
                 motivos.add("Feriado: média " + (anteriores.size() == 1 ? "do último feriado" : "dos últimos " + anteriores.size() + " feriados")
@@ -105,10 +156,10 @@ public class PrevisaoMovimento {
             }
         } else {
             DayOfWeek dia = alvo.getDayOfWeek();
-            amostras = mesmoDia(historico, dia, ehFeriado);
+            amostras = mesmoDia(historico, dia, foraDaBase);
             String plural = plural(dia);
             if (amostras.isEmpty()) {
-                amostras = historico.stream().filter(m -> !ehFeriado.test(m.getData())).limit(MAX_AMOSTRAS).toList();
+                amostras = historico.stream().filter(m -> !foraDaBase.test(m.getData())).limit(MAX_AMOSTRAS).toList();
                 if (amostras.isEmpty()) {
                     amostras = historico.stream().limit(MAX_AMOSTRAS).toList();
                 }
@@ -116,20 +167,22 @@ public class PrevisaoMovimento {
                 motivos.add("Ainda não há " + plural + " no histórico: usada a média geral dos dias recentes.");
             } else {
                 base = media(amostras, m -> ajuste(m.getData(), ehVespera, ehPagamento, vespera, pagamento));
-                boolean masculino = dia == DayOfWeek.SATURDAY || dia == DayOfWeek.SUNDAY;
-                String quais = amostras.size() == 1
-                        ? (masculino ? "do último " : "da última ") + singular(dia)
-                        : (masculino ? "dos últimos " : "das últimas ") + amostras.size() + " " + plural;
-                motivos.add("Média " + quais + ": " + Formato.moeda(dinheiro(base.vendas())) + " e "
+                motivos.add("Média " + quais(dia, amostras.size()) + ": " + Formato.moeda(dinheiro(base.vendas())) + " e "
                         + Math.round(base.clientes()) + " clientes.");
             }
-            if (ehVespera.test(alvo)) {
+            Optional<CalendarioSazonal.DataComemorativa> comemorativa = CalendarioSazonal.em(alvo);
+            if (comemorativa.isPresent()) {
+                base = aplicarComemorativa(base, comemorativa.get(), historico, normal, motivos);
+            } else if (ehVespera.test(alvo) && vespera == null) {
+                // Há vésperas suficientes no histórico e o efeito medido foi desprezível: nenhum ajuste.
+                motivos.add("Véspera de feriado: sem efeito relevante nas vésperas do histórico.");
+            } else if (ehVespera.test(alvo)) {
                 base = base.multiplicar(vespera.fator());
                 motivos.add("Véspera de feriado: " + percentual(vespera.fator()) + (vespera.padrao()
                         ? " (padrão; ainda há poucas vésperas no histórico)."
                         : " (aprendido de " + vespera.amostras() + " vésperas)."));
             }
-            if (ehPagamento.test(alvo) && pagamento != null) {
+            if (comemorativa.isEmpty() && ehPagamento.test(alvo) && pagamento != null) {
                 base = base.multiplicar(pagamento.fator());
                 motivos.add("Início do mês (pagamento): " + percentual(pagamento.fator())
                         + " (aprendido de " + pagamento.amostras() + " dias).");
@@ -137,7 +190,7 @@ public class PrevisaoMovimento {
         }
 
         int clientes = (int) Math.round(base.clientes());
-        List<FaixaPrevista> faixas = distribuir(clientes, amostras);
+        List<FaixaPrevista> faixas = distribuir(clientes, perfil == null || perfil.isEmpty() ? amostras : perfil);
         PrevisaoDia previsao = new PrevisaoDia(alvo, dinheiro(base.vendas()), clientes, faixas, amostras.size(), motivos);
         FaixaPrevista pico = previsao.pico();
         if (pico != null && pico.clientes() > 0) {
@@ -146,23 +199,49 @@ public class PrevisaoMovimento {
         return previsao;
     }
 
+    private static boolean fimDeSemana(LocalDate d) {
+        return d.getDayOfWeek() == DayOfWeek.SATURDAY || d.getDayOfWeek() == DayOfWeek.SUNDAY;
+    }
+
+    /** "das últimas 8 segundas", "do último sábado"... */
+    private static String quais(DayOfWeek dia, int n) {
+        boolean masculino = dia == DayOfWeek.SATURDAY || dia == DayOfWeek.SUNDAY;
+        return n == 1
+                ? (masculino ? "do último " : "da última ") + singular(dia)
+                : (masculino ? "dos últimos " : "das últimas ") + n + " " + plural(dia);
+    }
+
     // ------------------------------------------------------------------ efeitos
 
     /**
      * Mede um efeito (ex.: véspera) comparando os dias que o têm com a base "normal" do mesmo dia da semana.
      * Retorna o padrão (ou nulo) se houver poucas amostras, e nulo se o efeito medido for desprezível.
      */
-    private static Efeito efeito(List<MovimentoDiario> historico, Predicate<LocalDate> temEfeito, Predicate<LocalDate> ehFeriado,
-                                 Predicate<LocalDate> ehVespera, Predicate<LocalDate> ehPagamento, int minimo, BigDecimal padrao) {
-        Predicate<LocalDate> normal = d -> !ehFeriado.test(d) && !ehVespera.test(d) && !ehPagamento.test(d);
+    private static Efeito efeito(List<MovimentoDiario> historico, Predicate<LocalDate> temEfeito, Predicate<LocalDate> foraDaBase,
+                                 Predicate<LocalDate> normal, int minimo, BigDecimal padrao) {
+        List<Double> razoes = razoes(historico, temEfeito.and(foraDaBase.negate()), normal);
+        if (razoes.size() < minimo) {
+            return padrao == null ? null : new Efeito(padrao.doubleValue(), razoes.size(), true);
+        }
+        double mediana = mediana(razoes);
+        return Math.abs(mediana - 1) < EFEITO_MINIMO ? null : new Efeito(mediana, razoes.size(), false);
+    }
+
+    /**
+     * Vendas de cada dia com o efeito divididas pela base "normal" do mesmo dia da semana. A base usa os dias normais
+     * mais próximos daquela data (antes ou depois), e não os mais recentes: assim o crescimento da loja entre um ano e
+     * outro não se confunde com o efeito (o Natal do ano passado é comparado com as semanas em torno dele).
+     */
+    private static List<Double> razoes(List<MovimentoDiario> historico, Predicate<LocalDate> temEfeito, Predicate<LocalDate> normal) {
         List<Double> razoes = new ArrayList<>();
         for (MovimentoDiario m : historico) {
             LocalDate d = m.getData();
-            if (ehFeriado.test(d) || !temEfeito.test(d)) {
+            if (!temEfeito.test(d)) {
                 continue;
             }
             List<MovimentoDiario> normais = historico.stream()
                     .filter(x -> x.getData().getDayOfWeek() == d.getDayOfWeek() && normal.test(x.getData()))
+                    .sorted(Comparator.comparingLong(x -> Math.abs(ChronoUnit.DAYS.between(x.getData(), d))))
                     .limit(MAX_AMOSTRAS).toList();
             if (normais.isEmpty()) {
                 continue;
@@ -172,13 +251,77 @@ public class PrevisaoMovimento {
                 razoes.add(m.totalVendas().doubleValue() / baseNormal);
             }
         }
-        if (razoes.size() < minimo) {
-            return padrao == null ? null : new Efeito(padrao.doubleValue(), razoes.size(), true);
+        return razoes;
+    }
+
+    private static double mediana(List<Double> valores) {
+        List<Double> ordenados = new ArrayList<>(valores);
+        Collections.sort(ordenados);
+        int meio = ordenados.size() / 2;
+        return ordenados.size() % 2 == 1 ? ordenados.get(meio) : (ordenados.get(meio - 1) + ordenados.get(meio)) / 2;
+    }
+
+    /**
+     * Aplica a data comemorativa: a hipótese inicial vale como {@linkplain CalendarioSazonal.DataComemorativa#pesoHipotese() algumas}
+     * ocorrências e é combinada com a
+     * mediana das ocorrências da mesma data no histórico. Assim, cada ano vivido pela loja pesa mais na previsão.
+     */
+    private static Medida aplicarComemorativa(Medida base, CalendarioSazonal.DataComemorativa data, List<MovimentoDiario> historico,
+                                              Predicate<LocalDate> normal, List<String> motivos) {
+        Predicate<LocalDate> mesmaData = d -> CalendarioSazonal.em(d).filter(data::equals).isPresent();
+        List<Double> razoes = razoes(historico, mesmaData, normal);
+        double hipotese = data.hipoteseInicial();
+        int n = razoes.size();
+        double medido = n == 0 ? 1 : mediana(razoes);
+        int peso = data.pesoHipotese();
+        EfeitoComemorativo efeito = new EfeitoComemorativo((n * medido + peso * hipotese) / (n + peso), n, medido);
+
+        if (Math.abs(efeito.fator() - 1) < EFEITO_MINIMO) {
+            motivos.add(data.nome() + ": " + (n == 0
+                    ? "impacto variável; sem histórico desta data, nenhum ajuste aplicado."
+                    : "sem efeito relevante " + (n == 1 ? "na única ocorrência" : "nas " + n + " ocorrências") + " do histórico."));
+            return base;
         }
-        Collections.sort(razoes);
-        int meio = razoes.size() / 2;
-        double mediana = razoes.size() % 2 == 1 ? razoes.get(meio) : (razoes.get(meio - 1) + razoes.get(meio)) / 2;
-        return Math.abs(mediana - 1) < EFEITO_MINIMO ? null : new Efeito(mediana, razoes.size(), false);
+        motivos.add(data.nome() + ": " + percentual(efeito.fator()) + (n == 0
+                ? " (hipótese inicial do estudo de sazonalidade; ainda sem histórico desta data)."
+                : " (hipótese inicial " + percentual(hipotese) + " combinada com " + n
+                + (n == 1 ? " ocorrência" : " ocorrências") + " no histórico: " + percentual(efeito.medido()) + ")."));
+        return base.multiplicar(efeito.fator());
+    }
+
+    // ------------------------------------------------------------------ assertividade
+
+    /**
+     * Refaz a previsão de cada fechamento entre {@code inicio} e {@code fim} usando só o histórico anterior a ele e
+     * compara com as vendas reais. Retorna nulo se nenhum dia puder ser comparado.
+     */
+    public Assertividade assertividade(LocalDate inicio, LocalDate fim, ContextoCalculo ctx) {
+        double somaAbsoluta = 0;
+        double soma = 0;
+        int dias = 0;
+        for (MovimentoDiario m : ctx.movimentos()) {
+            LocalDate d = m.getData();
+            double real = m.totalVendas().doubleValue();
+            if (d.isBefore(inicio) || d.isAfter(fim) || real <= 0) {
+                continue;
+            }
+            PrevisaoDia p = prever(d, ctx);
+            if (p == null) {
+                continue;
+            }
+            double erro = (p.vendas().doubleValue() - real) / real;
+            somaAbsoluta += Math.abs(erro);
+            soma += erro;
+            dias++;
+        }
+        if (dias == 0) {
+            return null;
+        }
+        return new Assertividade(dias, porcento(somaAbsoluta / dias), porcento(soma / dias));
+    }
+
+    private static BigDecimal porcento(double fracao) {
+        return BigDecimal.valueOf(fracao * 100).setScale(1, RoundingMode.HALF_UP);
     }
 
     /** Fator pelo qual dividir uma ocorrência passada para tirar dela os efeitos conhecidos. */
@@ -196,9 +339,9 @@ public class PrevisaoMovimento {
 
     // ------------------------------------------------------------------ base e faixas
 
-    private static List<MovimentoDiario> mesmoDia(List<MovimentoDiario> historico, DayOfWeek dia, Predicate<LocalDate> ehFeriado) {
+    private static List<MovimentoDiario> mesmoDia(List<MovimentoDiario> historico, DayOfWeek dia, Predicate<LocalDate> foraDaBase) {
         return historico.stream()
-                .filter(m -> m.getData().getDayOfWeek() == dia && !ehFeriado.test(m.getData()))
+                .filter(m -> m.getData().getDayOfWeek() == dia && !foraDaBase.test(m.getData()))
                 .limit(MAX_AMOSTRAS)
                 .toList();
     }

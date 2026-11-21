@@ -18,3 +18,8 @@ infra/terraform/.terraform.lock.hcl
 
 # Roteiro pessoal de estudo para a prova de autoria (não publicar).
 preparacao-prova-autoria.md
+
+# Dados reais de vendas da loja parceira: CONFIDENCIAIS, nunca versionar (usados só para calibrar a previsão)
+*.csv
+*.xlsx
+*.xls
