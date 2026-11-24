@@ -1,12 +1,13 @@
 import { useEffect, useMemo, useState } from 'react';
-import { CalendarCheck, CircleAlert, Sparkles } from 'lucide-react';
+import { CalendarCheck, CircleAlert, Sparkles, Target } from 'lucide-react';
 import { ApiError, api } from '../api';
 import { Carregando, mensagemErro, useCarregar, useToast } from '../components/ui';
 import { DIAS_SEMANA, dataCurta, diaSemanaDe, isoDe, moeda, numero, paraData } from '../format';
-import type { FaixaHoraria, Fechamento, PrevisaoDiaria } from '../types';
+import type { Assertividade, FaixaHoraria, Fechamento, PrevisaoDiaria } from '../types';
 
 const DIAS_RECENTES = 14;
 const DIAS_PREVISAO = 14;
+const DIAS_ASSERTIVIDADE = 28;
 
 const somarDias = (iso: string, dias: number) => {
   const d = paraData(iso);
@@ -18,6 +19,12 @@ const somarDias = (iso: string, dias: number) => {
 export const periodoFechamentos = () => {
   const hoje = isoDe(new Date());
   return { inicio: somarDias(hoje, -(DIAS_RECENTES - 1)), fim: hoje };
+};
+
+/** Últimos 28 dias, até hoje: período em que a previsão é comparada com os fechamentos. */
+export const periodoAssertividade = () => {
+  const hoje = isoDe(new Date());
+  return { inicio: somarDias(hoje, -(DIAS_ASSERTIVIDADE - 1)), fim: hoje };
 };
 
 /** Próximos 14 dias, a partir de amanhã. */
@@ -38,6 +45,9 @@ export default function Movimento() {
   const { dados: faixas, erro } = useCarregar(() => api.get<FaixaHoraria[]>('/movimento/faixas'));
   const recentes = useCarregar(() => api.get<Fechamento[]>(`/movimento/fechamentos?inicio=${periodo.inicio}&fim=${periodo.fim}`));
   const previsao = useCarregar(() => api.get<PrevisaoDiaria[]>(`/movimento/previsao?inicio=${proximos.inicio}&fim=${proximos.fim}`));
+  const medida = useMemo(periodoAssertividade, []);
+  const assertividade = useCarregar(() =>
+    api.get<Assertividade | undefined>(`/movimento/assertividade?inicio=${medida.inicio}&fim=${medida.fim}`));
   const [data, setData] = useState(periodo.fim);
 
   if (!faixas) return <Carregando erro={erro} />;
@@ -45,6 +55,7 @@ export default function Movimento() {
   const atualizar = () => {
     recentes.recarregar();
     previsao.recarregar();
+    assertividade.recarregar();
   };
 
   return (
@@ -68,6 +79,8 @@ export default function Movimento() {
           <span className="spacer" />
           <span className="ajuda">As escalas são geradas com esta previsão; você pode ajustá-las na matriz.</span>
         </div>
+        <SeloAssertividade carregado={assertividade.dados !== null || assertividade.erro !== null}
+          medida={assertividade.dados} falhou={assertividade.erro !== null} />
         {!previsao.dados ? <Carregando erro={previsao.erro} /> : (
           <div className="previsao-grade">
             {previsao.dados.map((d) => <CartaoPrevisao key={d.data} dia={d} />)}
@@ -302,5 +315,25 @@ function CartaoPrevisao({ dia }: { dia: PrevisaoDiaria }) {
         </div>
       )}
     </article>
+  );
+}
+
+/** Quanto a previsão acertou nos últimos fechamentos (erro médio e se costuma ficar acima ou abaixo do real). */
+function SeloAssertividade({ carregado, medida, falhou }: { carregado: boolean; medida: Assertividade | undefined | null; falhou: boolean }) {
+  if (!carregado || falhou) return null;
+  if (!medida) {
+    return <p className="assertividade ajuda">Ainda não há fechamentos suficientes para medir a assertividade.</p>;
+  }
+  const vies = Math.abs(medida.viesPercentual);
+  const tendencia = vies < 1 ? 'sem tendência de ficar acima ou abaixo do real'
+    : `costuma ficar ${numero(vies)}% ${medida.viesPercentual < 0 ? 'abaixo' : 'acima'} do real`;
+  return (
+    <p className="assertividade">
+      <Target size={15} aria-hidden />
+      <span>
+        <strong>Erro médio de {numero(medida.erroMedioPercentual)}% nos últimos {medida.dias} fechamentos</strong>
+        {' '}· a previsão {tendencia}.
+      </span>
+    </p>
   );
 }

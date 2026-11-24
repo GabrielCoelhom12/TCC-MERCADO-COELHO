@@ -16,8 +16,11 @@ import java.util.Map;
 @Service
 public class ContextoService {
 
-    /** Histórico de movimento considerado pela previsão (20 semanas antes do período). */
-    static final int DIAS_DE_HISTORICO = 140;
+    /**
+     * Histórico considerado pela previsão: pouco mais de um ano antes do período, para alcançar a mesma data
+     * comemorativa (Natal, Dia das Mães...) do ano anterior.
+     */
+    static final int DIAS_DE_HISTORICO = 400;
 
     private final ParametrosRepository parametros;
     private final SetorRepository setores;
@@ -46,8 +49,11 @@ public class ContextoService {
 
     @Transactional(readOnly = true)
     public ContextoCalculo carregar(LocalDate inicio, LocalDate fim) {
+        // Feriados de todo o histórico (a previsão separa feriados e vésperas passados) e do dia seguinte ao período
+        // (o último dia pode ser véspera).
         Map<LocalDate, Feriado> mapaFeriados = new HashMap<>();
-        feriados.findByDataBetween(inicio, fim).forEach(f -> mapaFeriados.put(f.getData(), f));
+        feriados.findByDataBetween(inicio.minusDays(DIAS_DE_HISTORICO), fim.plusDays(1))
+                .forEach(f -> mapaFeriados.put(f.getData(), f));
 
         Map<TipoDia, BigDecimal> porTipo = new EnumMap<>(TipoDia.class);
         projecoes.findAll().forEach(p -> porTipo.put(p.getTipoDia(), p.getValor()));

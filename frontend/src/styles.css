@@ -339,6 +339,8 @@ tbody tr:hover td { background: var(--fundo); }
 .dia-fechamento .dia-nome { font-weight: 600; }
 .dia-fechamento.pendente .badge { justify-self: end; grid-column: 3; }
 
+.assertividade { display: flex; align-items: center; gap: 8px; margin: -4px 0 14px; font-size: 13px; color: var(--tinta-2); }
+.assertividade svg { color: var(--laranja-escuro); flex: none; }
 .escala-semana th, .escala-semana td { text-align: center; white-space: nowrap; }
 .escala-semana th[scope="row"], .escala-semana thead th:first-child { text-align: left; }
 .escala-semana th[scope="row"] { font-weight: 500; }

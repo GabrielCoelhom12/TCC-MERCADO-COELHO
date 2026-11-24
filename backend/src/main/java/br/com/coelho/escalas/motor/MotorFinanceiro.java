@@ -1,6 +1,8 @@
 package br.com.coelho.escalas.motor;
 
 import br.com.coelho.escalas.dominio.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
@@ -24,6 +26,8 @@ import java.util.Map;
  */
 @Component
 public class MotorFinanceiro {
+
+    private static final Logger log = LoggerFactory.getLogger(MotorFinanceiro.class);
 
     private final PrevisaoMovimento previsor = new PrevisaoMovimento();
     private final PlanejadorDemanda planejador = new PlanejadorDemanda();
@@ -73,11 +77,22 @@ public class MotorFinanceiro {
         return previsor.prever(data, ctx);
     }
 
+    /** Erro das previsões contra os fechamentos reais do período (nulo se não houver dias comparáveis). */
+    public PrevisaoMovimento.Assertividade assertividade(LocalDate inicio, LocalDate fim, ContextoCalculo ctx) {
+        return previsor.assertividade(inicio, fim, ctx);
+    }
+
     /** Modelos de turno que valem no dia (dias úteis × domingos/feriados); se nenhum se aplica, todos. */
     public List<TurnoModelo> modelosDoDia(LocalDate data, List<TurnoModelo> modelos, ContextoCalculo ctx) {
         boolean especial = domingoOuFeriado(data, ctx);
         List<TurnoModelo> aplicaveis = modelos.stream().filter(m -> m.aplicavel(especial)).toList();
-        return aplicaveis.isEmpty() ? modelos : aplicaveis;
+        if (aplicaveis.isEmpty() && !modelos.isEmpty()) {
+            log.warn("Nenhum modelo de turno cadastrado para {} em {} ({}); usando todos os {} modelos. "
+                            + "Cadastre ao menos um modelo para esse tipo de dia em Turnos.",
+                    especial ? "domingos e feriados" : "dias úteis", data, data.getDayOfWeek(), modelos.size());
+            return modelos;
+        }
+        return aplicaveis;
     }
 
     public PlanejadorDemanda.PlanoSetor planejar(Setor setor, TipoDia tipo, PrevisaoMovimento.PrevisaoDia previsao,
