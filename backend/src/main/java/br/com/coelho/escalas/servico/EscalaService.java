@@ -55,6 +55,17 @@ public class EscalaService {
     public record SubstituicaoRequest(Long funcionarioId) {
     }
 
+    /** Troca registrada: quem saiu, quem entrou, quando e por quem. */
+    public record TrocaDTO(Long id, LocalDate data, LocalTime horaInicio, LocalTime horaFim, Long titularId, String titularNome,
+                           Long substitutoId, String substitutoNome, boolean urgencia, LocalDateTime registradaEm,
+                           String registradaPor) {
+        static TrocaDTO de(TrocaTurno t) {
+            return new TrocaDTO(t.getId(), t.getData(), t.getHoraInicio(), t.getHoraFim(), t.getTitular().getId(),
+                    t.getTitular().getNome(), t.getSubstituto().getId(), t.getSubstituto().getNome(), t.isUrgencia(),
+                    t.getRegistradaEm(), t.getRegistradaPor());
+        }
+    }
+
     private final EscalaRepository escalas;
     private final TurnoRepository turnos;
     private final FuncionarioRepository funcionarios;
@@ -66,11 +77,12 @@ public class EscalaService {
     private final OtimizadorEscala otimizador;
     private final SugestorSubstituicao sugestor;
     private final LimiteOtimizacoes limiteOtimizacoes;
+    private final TrocaTurnoRepository trocas;
 
     public EscalaService(EscalaRepository escalas, TurnoRepository turnos, FuncionarioRepository funcionarios,
                          TurnoModeloRepository modelos, ContextoService contextos, MotorFinanceiro motor,
                          ValidadorEscala validador, GeradorEscala gerador, SugestorSubstituicao sugestor,
-                         OtimizadorEscala otimizador, LimiteOtimizacoes limiteOtimizacoes) {
+                         OtimizadorEscala otimizador, LimiteOtimizacoes limiteOtimizacoes, TrocaTurnoRepository trocas) {
         this.escalas = escalas;
         this.turnos = turnos;
         this.funcionarios = funcionarios;
@@ -82,6 +94,7 @@ public class EscalaService {
         this.limiteOtimizacoes = limiteOtimizacoes;
         this.otimizador = otimizador;
         this.sugestor = sugestor;
+        this.trocas = trocas;
     }
 
     // ------------------------------------------------------------------ CRUD
@@ -239,12 +252,27 @@ public class EscalaService {
                 contextos.carregar(data.minusDays(MARGEM_DIAS), data.plusDays(MARGEM_DIAS)));
     }
 
-    /** Passa o turno (mesmo dia e horário) para outro colaborador, desde que ele esteja apto e o bloqueio financeiro permita. */
+    /**
+     * Passa o turno (mesmo dia e horário) para outro colaborador, desde que ele esteja apto pelas regras da CLT.
+     *
+     * <p>Em escala aprovada, é a troca de urgência (alguém avisou que não vem): vale na hora, sem reabrir a escala, só
+     * para hoje em diante. Toda troca fica registrada em {@link TrocaTurno} (quem saiu, quem entrou, quem trocou e
+     * quando).
+     *
+     * <p>O limite financeiro segue o modo escolhido em Parâmetros, também na urgência: no modo BLOQUEAR, a troca que
+     * aumenta o custo e leva o dia acima do teto é recusada (um substituto que custa o mesmo ou menos passa sempre); no
+     * modo ALERTAR, ela entra e o estouro aparece na validação.
+     *
+     * @param usuario login de quem fez a troca
+     */
     @Transactional
-    public Matriz substituir(Long escalaId, Long turnoId, SubstituicaoRequest req) {
+    public Matriz substituir(Long escalaId, Long turnoId, SubstituicaoRequest req, String usuario) {
         Escala e = buscar(escalaId);
-        exigirEditavel(e);
         Turno turno = turnoDa(e, turnoId);
+        boolean urgencia = !e.editavel();
+        if (urgencia && turno.getData().isBefore(LocalDate.now())) {
+            throw new RegraNegocioException("Este turno já passou e não pode mais ser trocado.");
+        }
         Funcionario novo = funcionarios.findById(req.funcionarioId())
                 .orElseThrow(() -> new NaoEncontradoException("Colaborador", req.funcionarioId()));
 
@@ -256,12 +284,21 @@ public class EscalaService {
             throw new RegraNegocioException(novo.getNome() + " não pode cobrir este turno: " + String.join(" ", candidato.impedimentos()));
         }
 
+        Funcionario titular = turno.getFuncionario();
         ContextoCalculo ctx = contextoDa(e);
         DiaSnapshot antes = snapshot(turno.getData(), ctx);
         turno.setFuncionario(novo);
         turnos.saveAndFlush(turno);
         aplicarBloqueioFinanceiro(turno.getData(), antes, ctx);
+        trocas.save(new TrocaTurno(turno, titular, novo, urgencia, usuario));
         return matriz(escalaId);
+    }
+
+    /** Trocas feitas na escala, da mais recente para a mais antiga. */
+    @Transactional(readOnly = true)
+    public List<TrocaDTO> trocas(Long escalaId) {
+        buscar(escalaId);
+        return trocas.findByEscala_IdOrderByRegistradaEmDescIdDesc(escalaId).stream().map(TrocaDTO::de).toList();
     }
 
     private Turno turnoDa(Escala e, Long turnoId) {

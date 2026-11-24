@@ -1,8 +1,8 @@
-import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import { ApiError } from '../api';
 import type { Violacao } from '../types';
-import { BadgeSituacao, Carregando, ListaViolacoes, Modal, ToastProvider, mensagemErro, useCarregar, useToast } from './ui';
+import { BadgeSituacao, Carregando, ConfirmacaoProvider, ListaViolacoes, Modal, ToastProvider, mensagemErro, useCarregar, useConfirmar, useToast } from './ui';
 
 describe('ui', () => {
   it('extrai a mensagem de erros conhecidos', () => {
@@ -81,5 +81,37 @@ describe('ui', () => {
     expect(screen.getByText('05/10 · Interjornada · Ana')).toBeInTheDocument();
     expect(screen.getByText('05/10 · NOVA')).toBeInTheDocument();
     expect(screen.getByText('Alerta')).toHaveClass('alerta');
+  });
+});
+
+describe('ConfirmacaoProvider', () => {
+  function Pergunta({ onResposta }: { onResposta: (sim: boolean) => void }) {
+    const confirmar = useConfirmar();
+    return <button onClick={async () => onResposta(await confirmar({ titulo: 'Apagar', mensagem: 'Tem certeza?', confirmar: 'Apagar', perigoso: true }))}>Perguntar</button>;
+  }
+
+  it('mostra a pergunta dentro do sistema e responde sim ao confirmar', async () => {
+    const onResposta = vi.fn();
+    render(<ConfirmacaoProvider><Pergunta onResposta={onResposta} /></ConfirmacaoProvider>);
+
+    fireEvent.click(screen.getByText('Perguntar'));
+    const dialogo = screen.getByRole('dialog', { name: 'Apagar' });
+    expect(dialogo).toHaveTextContent('Tem certeza?');
+    const botao = within(dialogo).getByRole('button', { name: 'Apagar' });
+    expect(botao).toHaveClass('perigoso');
+    fireEvent.click(botao);
+
+    await waitFor(() => expect(onResposta).toHaveBeenCalledWith(true));
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+  });
+
+  it('responde não com Esc', async () => {
+    const onResposta = vi.fn();
+    render(<ConfirmacaoProvider><Pergunta onResposta={onResposta} /></ConfirmacaoProvider>);
+
+    fireEvent.click(screen.getByText('Perguntar'));
+    fireEvent.keyDown(window, { key: 'Escape' });
+
+    await waitFor(() => expect(onResposta).toHaveBeenCalledWith(false));
   });
 });

@@ -3,7 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { isoDe } from '../format';
 import { logar, mockFetch, renderizar } from '../test/util';
 import type { FaixaHoraria, Fechamento, PrevisaoDiaria } from '../types';
-import Movimento, { periodoFechamentos, periodoPrevisao } from './Movimento';
+import Movimento, { periodoAssertividade, periodoFechamentos, periodoPrevisao } from './Movimento';
 
 const faixas: FaixaHoraria[] = [
   { id: 1, inicio: '07:00:00', fim: '10:00:00' },
@@ -143,5 +143,22 @@ describe('Movimento', () => {
 
     expect(await screen.findByText('Fechamento do dia')).toBeInTheDocument();
     expect(screen.queryByLabelText('Relatório do PDV')).not.toBeInTheDocument();
+  });
+
+  it('mostra o erro médio da previsão nos últimos fechamentos', async () => {
+    const a = periodoAssertividade();
+    montar({ [`GET /api/movimento/assertividade?inicio=${a.inicio}&fim=${a.fim}`]: { corpo: { dias: 24, erroMedioPercentual: 6.2, viesPercentual: -1.8 } } });
+    renderizar(<Movimento />);
+
+    expect(await screen.findByText(/Erro médio de 6,2% nos últimos 24 fechamentos/)).toBeInTheDocument();
+    expect(screen.getByText(/costuma ficar 1,8% abaixo do real/)).toBeInTheDocument();
+  });
+
+  it('avisa quando ainda não há fechamentos para medir a assertividade', async () => {
+    const a = periodoAssertividade();
+    montar({ [`GET /api/movimento/assertividade?inicio=${a.inicio}&fim=${a.fim}`]: { status: 204 } });
+    renderizar(<Movimento />);
+
+    expect(await screen.findByText('Ainda não há fechamentos suficientes para medir a assertividade.')).toBeInTheDocument();
   });
 });

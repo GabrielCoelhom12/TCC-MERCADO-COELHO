@@ -2,7 +2,7 @@
 
 ## Contexto
 
-O Supermercado Coelho (Joinville/SC) monta as escalas de trabalho manualmente. Isso gera quadros superdimensionados
+O Supermercado Coelho (Indaial/SC) monta as escalas de trabalho manualmente. Isso gera quadros superdimensionados
 em dias de baixo movimento, falta de pessoal em picos e risco de infração trabalhista (interjornada, repouso semanal,
 folga dominical). O sistema gera e valida as escalas, respeitando a CLT, cobrindo o movimento previsto e mantendo o custo da equipe
 dentro do teto de folha definido sobre a receita projetada de cada dia.
@@ -27,7 +27,7 @@ O sistema tem três fluxos de negócio completos, cada um coberto por testes de 
 | RF03 | Manter colaboradores com setor, cargo, salário mensal, carga horária, % de encargos, dias disponíveis e situação. Um colaborador com histórico de escala é desativado em vez de excluído. |
 | RF04 | Registrar e remover ausências (férias, atestado, folga acordada) de um colaborador. |
 | RF05 | Manter modelos de turno (horário, intervalo, aplicação em dias úteis ou domingos/feriados). |
-| RF06 | Manter feriados e importar automaticamente os nacionais e os municipais de Joinville de um ano. |
+| RF06 | Manter feriados e importar automaticamente os nacionais e o municipal de Indaial (aniversário da cidade, 21/03) de um ano. |
 | RF07 | Manter projeções de receita padrão por perfil de dia e projeções específicas por data. |
 | RF08 | Manter os parâmetros operacionais: fatores de domingo/feriado, % de teto da folha, limites CLT e comportamento ao ultrapassar o limite de custo (BLOQUEAR/ALERTAR). |
 | RF09 | Criar, renomear e excluir escalas de até 62 dias sem sobreposição de período. |
@@ -43,7 +43,7 @@ O sistema tem três fluxos de negócio completos, cada um coberto por testes de 
 | RF19 | Exigir senha forte (8 a 64 caracteres, com maiúscula, minúscula, número e caractere especial), exibindo os requisitos durante a digitação e avisando quando o Caps Lock estiver ativo. |
 | RF20 | Aceitar foto de usuários e colaboradores em PNG ou JPEG de até 2 MB, verificada pelo conteúdo do arquivo e regravada no servidor como JPEG 256×256 (sem metadados). |
 | RF24 | Registrar o fechamento de cada dia (clientes e vendas por faixa de horário configurável) e corrigi-lo depois, destacando os dias pendentes. |
-| RF25 | Prever o movimento dos próximos dias a partir dos fechamentos (média recente do mesmo dia da semana, efeitos aprendidos de início do mês e véspera de feriado, feriados e pico por faixa), com a explicação de cada previsão. |
+| RF25 | Prever o movimento dos próximos dias a partir dos fechamentos (média recente do mesmo dia da semana, efeitos aprendidos de início do mês e véspera de feriado, feriados, datas comemorativas e pico por faixa), com a explicação de cada previsão e a assertividade medida contra os fechamentos reais. |
 | RF26 | Calcular as pessoas necessárias por faixa nos setores que acompanham o movimento (capacidade de atendimento), escolher os turnos que cobrem os picos e alertar quando uma edição manual deixar um pico descoberto. |
 | RF27 | Criar automaticamente, como rascunho, a escala das próximas semanas (antecedência configurável), sem alterar escalas existentes. |
 | RF28 | No painel, mostrar a semana de quem trabalha no dia (horas escaladas × limite semanal, dias de trabalho e indisponíveis) e trocá-lo por um colega que o sistema valida antes (disponibilidade, ausências, interjornada, jornada e dias seguidos), indicando hora extra e custo de cada opção. |
@@ -174,7 +174,9 @@ Como gerente, quero trocar quem está escalado por outro colaborador direto do p
 - *Quando* clico em um colaborador da equipe do dia, *então* vejo quantas horas ele já tem na semana e em quais dias trabalha.
 - *Quando* peço a troca, *então* vejo só os colegas que podem cobrir o turno (mesmo setor primeiro, com menos horas na semana) e o motivo de quem não pode.
 - *Dado* um colega que fechou a loja na véspera, *então* ele não aparece como opção para abrir no dia seguinte (interjornada de 11h).
-- *Dado* uma escala aprovada, *então* posso ver a disponibilidade, mas a troca exige reabrir a escala.
+- *Dado* uma escala aprovada e um colaborador que avisou que não vem, *quando* troco o turno de hoje ou de um dia futuro, *então* a troca vale na hora, sem reabrir a escala. As regras da CLT continuam valendo, e o limite de custo do dia segue o modo escolhido em Parâmetros: no modo "Bloquear", a troca por alguém mais caro que leve o dia acima do teto é recusada; no modo "Apenas alertar", ela entra e o estouro aparece na validação.
+- *Quando* troco um colaborador (em rascunho ou em escala aprovada), *então* a troca fica registrada no histórico da escala, com dia, horário, quem saiu, quem entrou, quem trocou, quando e se foi de urgência (`GET /api/escalas/{id}/trocas`), e não na observação, que continua livre para o gestor.
+- *Dado* uma escala aprovada, *quando* o turno é de um dia que já passou, *então* a troca é recusada.
 
 **US13 — Programar as férias da equipe** (RF29)
 Como gerente, quero uma tela só para as férias, para programá-las sem ferir a CLT nem desfalcar a operação.

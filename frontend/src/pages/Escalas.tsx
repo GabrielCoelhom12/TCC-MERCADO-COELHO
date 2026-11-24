@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { api } from '../api';
 import { usePermissoes } from '../auth';
 import ExportarEscala from '../components/ExportarEscala';
-import { Carregando, Modal, mensagemErro, useCarregar, useToast } from '../components/ui';
+import { Carregando, Modal, mensagemErro, useCarregar, useConfirmar, useToast } from '../components/ui';
 import { dataLonga, isoDe } from '../format';
 import type { Escala, Geracao } from '../types';
 
@@ -20,6 +20,7 @@ export default function Escalas() {
   const [form, setForm] = useState({ nome: '', dataInicio: '', dataFim: '', observacao: '', gerar: true });
   const [salvando, setSalvando] = useState(false);
   const toast = useToast();
+  const confirmar = useConfirmar();
   const navegar = useNavigate();
 
   const abrir = () => {
@@ -50,7 +51,7 @@ export default function Escalas() {
   };
 
   const excluir = async (e: Escala) => {
-    if (!window.confirm(`Excluir "${e.nome}" e todos os seus turnos?`)) return;
+    if (!(await confirmar({ titulo: 'Excluir escala', mensagem: `Excluir "${e.nome}" e todos os seus turnos?`, confirmar: 'Excluir', perigoso: true }))) return;
     try {
       await api.del(`/escalas/${e.id}`);
       recarregar();

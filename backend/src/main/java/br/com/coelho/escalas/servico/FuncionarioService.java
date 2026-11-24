@@ -5,6 +5,7 @@ import br.com.coelho.escalas.dominio.Funcionario;
 import br.com.coelho.escalas.repositorio.AusenciaRepository;
 import br.com.coelho.escalas.repositorio.FuncionarioRepository;
 import br.com.coelho.escalas.repositorio.SetorRepository;
+import br.com.coelho.escalas.repositorio.TrocaTurnoRepository;
 import br.com.coelho.escalas.repositorio.TurnoRepository;
 import jakarta.validation.constraints.DecimalMax;
 import jakarta.validation.constraints.DecimalMin;
@@ -50,15 +51,18 @@ public class FuncionarioService {
     private final SetorRepository setores;
     private final AusenciaRepository ausencias;
     private final TurnoRepository turnos;
+    private final TrocaTurnoRepository trocas;
     private final FeriasService ferias;
     private final AfastamentoService afastamentos;
 
     public FuncionarioService(FuncionarioRepository funcionarios, SetorRepository setores, AusenciaRepository ausencias,
-                              TurnoRepository turnos, FeriasService ferias, AfastamentoService afastamentos) {
+                              TurnoRepository turnos, TrocaTurnoRepository trocas, FeriasService ferias,
+                              AfastamentoService afastamentos) {
         this.funcionarios = funcionarios;
         this.setores = setores;
         this.ausencias = ausencias;
         this.turnos = turnos;
+        this.trocas = trocas;
         this.ferias = ferias;
         this.afastamentos = afastamentos;
     }
@@ -84,7 +88,7 @@ public class FuncionarioService {
     @Transactional
     public ResultadoExclusao excluir(Long id) {
         Funcionario f = buscar(id);
-        if (turnos.existsByFuncionario_Id(id)) {
+        if (turnos.existsByFuncionario_Id(id) || trocas.existsByTitular_IdOrSubstituto_Id(id, id)) {
             f.setAtivo(false);
             return ResultadoExclusao.DESATIVADO;
         }

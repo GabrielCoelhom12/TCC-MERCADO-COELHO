@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { api } from '../api';
 import { usePermissoes } from '../auth';
-import { AvisoConsulta, Carregando, Modal, mensagemErro, useCarregar, useToast } from '../components/ui';
+import { AvisoConsulta, Carregando, Modal, mensagemErro, useCarregar, useConfirmar, useToast } from '../components/ui';
 import { hora, horas } from '../format';
 import type { Aplicacao, TurnoModelo } from '../types';
 
@@ -17,6 +17,7 @@ export default function Turnos() {
   const { dados, erro, recarregar } = useCarregar(() => api.get<TurnoModelo[]>('/turnos-modelo'));
   const [form, setForm] = useState<Form | null>(null);
   const toast = useToast();
+  const confirmar = useConfirmar();
   const { podeEditar } = usePermissoes();
 
   if (!dados) return <Carregando erro={erro} />;
@@ -34,7 +35,7 @@ export default function Turnos() {
   };
 
   const excluir = async (t: TurnoModelo) => {
-    if (!window.confirm(`Excluir o modelo ${t.nome}? Turnos já lançados não são afetados.`)) return;
+    if (!(await confirmar({ titulo: 'Excluir modelo de turno', mensagem: `Excluir o modelo ${t.nome}? Turnos já lançados não são afetados.`, confirmar: 'Excluir', perigoso: true }))) return;
     await api.del(`/turnos-modelo/${t.id}`);
     recarregar();
   };

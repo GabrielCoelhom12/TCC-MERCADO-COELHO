@@ -235,6 +235,11 @@ tbody tr:hover td { background: var(--fundo); }
 .modal { background: #fff; border: 1px solid var(--borda); border-radius: 10px; width: min(560px, 100%); max-height: 90vh; overflow: auto; padding: 22px; box-shadow: 0 12px 40px rgba(0, 0, 0, 0.12); }
 .modal h2 { margin-bottom: 14px; }
 .modal .acoes { display: flex; justify-content: flex-end; gap: 8px; margin-top: 18px; }
+.modal .confirmacao-texto { line-height: 1.5; }
+.modal .confirmacao-texto p { margin: 0 0 10px; }
+.modal .confirmacao-texto p:last-child { margin-bottom: 0; }
+button.primario.perigoso { background: var(--erro); border-color: var(--erro); color: #fff; }
+button.primario.perigoso:hover:not(:disabled) { background: #a51f25; border-color: #a51f25; box-shadow: 0 4px 14px rgba(192, 38, 45, 0.3); }
 
 /* ---------- toast ---------- */
 .toast { position: fixed; right: 20px; bottom: 20px; z-index: 60; max-width: 440px; padding: 10px 14px; border-radius: 6px; color: #fff; background: var(--tinta); border-left: 3px solid; font-weight: 500; box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12); }
@@ -339,6 +344,8 @@ tbody tr:hover td { background: var(--fundo); }
 .dia-fechamento .dia-nome { font-weight: 600; }
 .dia-fechamento.pendente .badge { justify-self: end; grid-column: 3; }
 
+.assertividade { display: flex; align-items: center; gap: 8px; margin: -4px 0 14px; font-size: 13px; color: var(--tinta-2); }
+.assertividade svg { color: var(--laranja-escuro); flex: none; }
 .escala-semana th, .escala-semana td { text-align: center; white-space: nowrap; }
 .escala-semana th[scope="row"], .escala-semana thead th:first-child { text-align: left; }
 .escala-semana th[scope="row"] { font-weight: 500; }
