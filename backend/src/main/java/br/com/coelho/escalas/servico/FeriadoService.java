@@ -47,7 +47,7 @@ public class FeriadoService {
     }
 
     /**
-     * Importa os feriados nacionais e municipais (Joinville) do ano, ignorando datas já cadastradas.
+     * Importa os feriados nacionais e municipais (Indaial) do ano, ignorando datas já cadastradas.
      *
      * @return quantidade de feriados incluídos
      */

@@ -7,7 +7,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 @Controller
 public class SpaController {
 
-    @GetMapping({"/{rota:^(?!ws$)[^.]*}", "/{rota:^(?!api$|ws$)[^.]*}/{sub:[^.]*}", "/{rota:^(?!api$|ws$)[^.]*}/{sub:[^.]*}/{x:[^.]*}"})
+    @GetMapping({"/{rota:[^.]*}", "/{rota:^(?!api$)[^.]*}/{sub:[^.]*}", "/{rota:^(?!api$)[^.]*}/{sub:[^.]*}/{x:[^.]*}"})
     public String encaminhar() {
         return "forward:/index.html";
     }

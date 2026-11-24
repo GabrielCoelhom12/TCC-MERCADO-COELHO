@@ -14,7 +14,8 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Motor de Cálculo e Otimização Financeira (2º pilar do projeto).
+ * Motor de cálculo do custo da escala (2º pilar do projeto): custo de cada turno e do dia, teto de custo e quadro
+ * mínimo e máximo de pessoas.
  *
  * <pre>
  *   C_escala(d) = Σ [ S_i × H_{i,d} × F_d ]

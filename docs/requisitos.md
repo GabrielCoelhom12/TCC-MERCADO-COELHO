@@ -2,7 +2,7 @@
 
 ## Contexto
 
-O Supermercado Coelho (Joinville/SC) monta as escalas de trabalho manualmente. Isso gera quadros superdimensionados
+O Supermercado Coelho (Indaial/SC) monta as escalas de trabalho manualmente. Isso gera quadros superdimensionados
 em dias de baixo movimento, falta de pessoal em picos e risco de infração trabalhista (interjornada, repouso semanal,
 folga dominical). O sistema gera e valida as escalas, respeitando a CLT, cobrindo o movimento previsto e mantendo o custo da equipe
 dentro do teto de folha definido sobre a receita projetada de cada dia.
@@ -27,7 +27,7 @@ O sistema tem três fluxos de negócio completos, cada um coberto por testes de 
 | RF03 | Manter colaboradores com setor, cargo, salário mensal, carga horária, % de encargos, dias disponíveis e situação. Um colaborador com histórico de escala é desativado em vez de excluído. |
 | RF04 | Registrar e remover ausências (férias, atestado, folga acordada) de um colaborador. |
 | RF05 | Manter modelos de turno (horário, intervalo, aplicação em dias úteis ou domingos/feriados). |
-| RF06 | Manter feriados e importar automaticamente os nacionais e os municipais de Joinville de um ano. |
+| RF06 | Manter feriados e importar automaticamente os nacionais e o municipal de Indaial (aniversário da cidade, 21/03) de um ano. |
 | RF07 | Manter projeções de receita padrão por perfil de dia e projeções específicas por data. |
 | RF08 | Manter os parâmetros operacionais: fatores de domingo/feriado, % de teto da folha, limites CLT e comportamento ao ultrapassar o limite de custo (BLOQUEAR/ALERTAR). |
 | RF09 | Criar, renomear e excluir escalas de até 62 dias sem sobreposição de período. |

@@ -1,7 +1,7 @@
 # Escalas · Supermercado Coelho — Documentação
 
 Trabalho de Conclusão de Curso — Gabriel Coelho — Engenharia de Software (Católica SC) — 2026.
-Linha de projeto: **Web Apps**. Parceiro: **Supermercado Coelho** (Joinville/SC).
+Linha de projeto: **Web Apps**. Parceiro: **Supermercado Coelho** (Indaial/SC).
 
 Sistema web que gera e valida as escalas de trabalho da loja: cobre o movimento previsto de cada dia, respeita a CLT
 e mantém o custo da equipe dentro do limite definido pela gestão.
