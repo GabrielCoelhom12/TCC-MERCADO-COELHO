@@ -52,6 +52,7 @@ O sistema tem três fluxos de negócio completos, cada um coberto por testes de 
 | RF31 | Imprimir ou baixar a escala em PDF (A4 deitado) com a logo do supermercado: colaboradores por setor, turnos com a sigla, folgas, férias e ausências (sem o motivo de atestados e licenças), feriados destacados, total de pessoas por dia, legenda dos turnos e espaço para a assinatura da gerência, sem custos nem salários. |
 | RF32 | Anexar documentos a um afastamento (atestado, declaração, certidão) em PDF, JPG ou PNG de até 5 MB, no máximo 10 por afastamento, verificados pelo conteúdo; fotos são regravadas em JPEG. Qualquer perfil envia; só a gerência abre ou remove. Registra quem enviou e quando, e apaga os documentos junto com o afastamento. |
 | RF33 | Gerar a escala com otimização (Timefold Solver), escolhendo quem ocupa cada vaga olhando a semana inteira: regras da CLT como restrições obrigatórias, cobertura das vagas em seguida e, por último, menor custo e horas equilibradas; e comparar, sem alterar a escala, o gerador guloso e o otimizado (vagas descobertas, custo, erros, alertas, equilíbrio de horas e tempo). |
+| RF35 | Importar o relatório de vendas diárias do PDV (CSV com Data, Venda Líquida, Qtde. Cupom e Qtde. Cancelado; UTF-8 ou Windows-1252): cada dia vira ou atualiza o fechamento, com vendas = venda líquida e clientes = cupons válidos, distribuídos pelas faixas conforme a divisão já lançada no dia, a média dos fechamentos lançados à mão no mesmo tipo de dia ou um perfil horário padrão. Ignora dias sem venda e futuros; só a gerência importa. |
 
 ## Requisitos não funcionais
 
@@ -208,3 +209,9 @@ Como supervisor ou gerente, quero anexar a foto ou o PDF do atestado ao registra
 Como gerente, quero que o sistema procure a melhor escala da semana, e não só uma escala válida, e me mostre a diferença.
 - *Quando* clico em "Otimizar com Timefold", *então* em alguns segundos a matriz é preenchida sem ferir nenhuma regra da CLT.
 - *Quando* clico em "Comparar algoritmos", *então* vejo lado a lado o gerador rápido e o otimizado (vagas sem ninguém, custo, alertas, equilíbrio de horas e tempo), sem que a escala mude.
+
+**US19 — Enviar o relatório de vendas do PDV** (RF35)
+Como gerente, quero enviar o relatório de vendas que o PDV já gera, para a previsão aprender com o movimento real sem eu digitar faixa por faixa.
+- *Quando* envio o relatório do dia (ou de meses), *então* cada dia vira um fechamento e a previsão dos próximos dias é recalculada.
+- *Dado* um dia que eu já tinha lançado por faixa, *quando* envio o relatório, *então* os totais passam a ser os do PDV e a minha divisão por horário é mantida.
+- *Dado* um dia de teste do PDV (sem venda líquida), *então* ele é ignorado e aparece no resumo da importação.

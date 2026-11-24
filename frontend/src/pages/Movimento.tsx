@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useState } from 'react';
-import { CalendarCheck, CircleAlert, Sparkles, Target } from 'lucide-react';
+import { CalendarCheck, CircleAlert, FileUp, Sparkles, Target } from 'lucide-react';
 import { ApiError, api } from '../api';
 import { Carregando, mensagemErro, useCarregar, useToast } from '../components/ui';
+import { usePermissoes } from '../auth';
 import { DIAS_SEMANA, dataCurta, diaSemanaDe, isoDe, moeda, numero, paraData } from '../format';
-import type { Assertividade, FaixaHoraria, Fechamento, PrevisaoDiaria } from '../types';
+import type { Assertividade, FaixaHoraria, Fechamento, PrevisaoDiaria, ResultadoImportacao } from '../types';
 
 const DIAS_RECENTES = 14;
 const DIAS_PREVISAO = 14;
@@ -39,6 +40,69 @@ const rotuloDia = (iso: string) => `${DIAS_SEMANA.find((d) => d.dia === diaSeman
 
 type Linha = { inicio: string; fim: string; clientes: string; vendas: string };
 
+/**
+ * Envio do relatório de vendas diárias do PDV: cada dia do arquivo vira (ou atualiza) um fechamento, e a previsão passa
+ * a aprender com ele. Serve tanto para o relatório do dia quanto para carregar meses de histórico de uma vez.
+ */
+function ImportarRelatorio({ onImportado }: { onImportado: () => void }) {
+  const toast = useToast();
+  const [enviando, setEnviando] = useState(false);
+  const [resultado, setResultado] = useState<ResultadoImportacao | null>(null);
+
+  const enviar = async (arquivo: File | undefined) => {
+    if (!arquivo) return;
+    setEnviando(true);
+    setResultado(null);
+    try {
+      const dados = new FormData();
+      dados.append('arquivo', arquivo);
+      const r = await api.anexar<ResultadoImportacao>('/movimento/importar', dados);
+      setResultado(r);
+      const dias = r.criados + r.atualizados;
+      toast('ok', `${dias} ${dias === 1 ? 'dia importado' : 'dias importados'} do relatório do PDV.`);
+      onImportado();
+    } catch (e) {
+      toast('erro', mensagemErro(e));
+    } finally {
+      setEnviando(false);
+    }
+  };
+
+  return (
+    <section className="card importar-pdv">
+      <div className="row">
+        <FileUp size={20} aria-hidden />
+        <div>
+          <h2>Importar relatório do PDV</h2>
+          <p className="ajuda">
+            Envie o relatório de vendas diárias do PDV (CSV com <em>Data</em>, <em>Venda Líquida</em> e <em>Qtde. Cupom</em>).
+            Cada dia vira um fechamento e a previsão do dia seguinte já aprende com ele. Pode ser só o dia de hoje ou meses
+            de histórico; enviar de novo atualiza os dias, sem duplicar.
+          </p>
+        </div>
+        <span className="spacer" />
+        <label className={`btn primario botao-arquivo${enviando ? ' desabilitado' : ''}`} aria-disabled={enviando}>
+          {enviando ? 'Importando…' : 'Escolher arquivo'}
+          <input type="file" accept=".csv,.txt,text/csv" disabled={enviando} aria-label="Relatório do PDV"
+            onChange={(e) => { enviar(e.target.files?.[0]); e.target.value = ''; }} />
+        </label>
+      </div>
+      {resultado && (
+        <div className="aviso info" role="status" style={{ marginTop: 12 }}>
+          <strong>{resultado.criados + resultado.atualizados} dias</strong> de {dataCurta(resultado.primeiroDia)} a{' '}
+          {dataCurta(resultado.ultimoDia)}: {resultado.criados} novos, {resultado.atualizados} atualizados
+          {resultado.ignorados > 0 && `, ${resultado.ignorados} ignorados`}.
+          {resultado.avisos.length > 0 && (
+            <ul className="small" style={{ margin: '6px 0 0', paddingLeft: 18 }}>
+              {resultado.avisos.slice(0, 5).map((a) => <li key={a}>{a}</li>)}
+            </ul>
+          )}
+        </div>
+      )}
+    </section>
+  );
+}
+
 export default function Movimento() {
   const periodo = useMemo(periodoFechamentos, []);
   const proximos = useMemo(periodoPrevisao, []);
@@ -49,6 +113,7 @@ export default function Movimento() {
   const assertividade = useCarregar(() =>
     api.get<Assertividade | undefined>(`/movimento/assertividade?inicio=${medida.inicio}&fim=${medida.fim}`));
   const [data, setData] = useState(periodo.fim);
+  const { podeEditar } = usePermissoes();
 
   if (!faixas) return <Carregando erro={erro} />;
 
@@ -66,6 +131,8 @@ export default function Movimento() {
           <p>Lance o fechamento de cada dia. O sistema aprende o movimento da loja e prevê os próximos dias.</p>
         </div>
       </div>
+
+      {podeEditar && <ImportarRelatorio onImportado={atualizar} />}
 
       <div className="movimento-topo">
         <FormularioFechamento faixas={faixas} periodo={periodo} data={data} onData={setData} recentes={recentes.dados}

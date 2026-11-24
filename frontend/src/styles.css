@@ -150,13 +150,13 @@ button, .btn {
 button:hover:not(:disabled), .btn:hover { border-color: #d5d3cc; background: #fbfaf8; box-shadow: 0 2px 6px rgba(29, 30, 25, 0.08); text-decoration: none; }
 button:active:not(:disabled), .btn:active { transform: translateY(1px); box-shadow: none; }
 button:disabled { opacity: 0.45; cursor: not-allowed; box-shadow: none; }
-button.primario {
+button.primario, .btn.primario {
   background: linear-gradient(180deg, #ff8a45, var(--laranja));
   border-color: #f26a1b;
   color: #fff;
   box-shadow: 0 1px 2px rgba(224, 99, 26, 0.3), inset 0 1px 0 rgba(255, 255, 255, 0.22);
 }
-button.primario:hover:not(:disabled) { background: linear-gradient(180deg, #ff7e31, var(--laranja-escuro)); border-color: var(--laranja-escuro); box-shadow: 0 4px 14px rgba(255, 126, 49, 0.35); }
+button.primario:hover:not(:disabled), .btn.primario:hover:not(.desabilitado) { background: linear-gradient(180deg, #ff7e31, var(--laranja-escuro)); border-color: var(--laranja-escuro); box-shadow: 0 4px 14px rgba(255, 126, 49, 0.35); }
 button.perigo { color: var(--erro); }
 button.perigo:hover:not(:disabled) { border-color: #f0b9bb; background: var(--erro-fundo); }
 button.link, button.link:hover:not(:disabled) { border: none; background: none; box-shadow: none; padding: 2px 4px; color: var(--laranja-escuro); }
@@ -536,3 +536,8 @@ iframe.impressao { position: fixed; right: 0; bottom: 0; width: 0; height: 0; bo
 .modal:has(.comparacao) { width: min(680px, 100%); }
 .comparacao th[scope="row"] { font-weight: 600; white-space: normal; }
 .comparacao .melhor { color: var(--ok); font-weight: 700; }
+.btn.desabilitado { opacity: 0.6; pointer-events: none; }
+.importar-pdv .row { align-items: flex-start; flex-wrap: nowrap; gap: 12px; }
+.importar-pdv h2 { margin-bottom: 4px; }
+.importar-pdv .ajuda { max-width: 760px; }
+@media (max-width: 720px) { .importar-pdv .row { flex-wrap: wrap; } }
