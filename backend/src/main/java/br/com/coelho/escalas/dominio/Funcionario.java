@@ -12,6 +12,7 @@ import java.math.RoundingMode;
 import java.time.DayOfWeek;
 import java.util.Base64;
 import java.util.EnumSet;
+import java.util.HashSet;
 import java.util.Set;
 
 @Entity
@@ -34,6 +35,15 @@ public class Funcionario {
 
     @ManyToOne(optional = false, fetch = FetchType.EAGER)
     private Setor setor;
+
+    /**
+     * Habilidades: outros setores em que o colaborador também sabe trabalhar (ex.: um operador de caixa que repõe
+     * mercadoria). O gerador e o Timefold podem escalá-lo nesses setores quando falta gente, preferindo o principal.
+     */
+    @ManyToMany(fetch = FetchType.EAGER)
+    @JoinTable(name = "funcionario_habilidade", joinColumns = @JoinColumn(name = "funcionario_id"),
+            inverseJoinColumns = @JoinColumn(name = "setor_id"))
+    private Set<Setor> habilidades = new HashSet<>();
 
     /** Salário bruto mensal (R$). */
     @Column(nullable = false, precision = 12, scale = 2)
@@ -81,6 +91,12 @@ public class Funcionario {
                 .divide(BigDecimal.valueOf(cargaHorariaMensal), 6, RoundingMode.HALF_UP)
                 .multiply(multiplicador)
                 .setScale(4, RoundingMode.HALF_UP);
+    }
+
+    /** Se o colaborador pode trabalhar no setor: o principal ou um dos setores das habilidades. */
+    public boolean atuaEm(Long setorId) {
+        return setorId != null && ((setor != null && setorId.equals(setor.getId()))
+                || habilidades.stream().anyMatch(s -> setorId.equals(s.getId())));
     }
 
     public boolean disponivelEm(DayOfWeek dia) {

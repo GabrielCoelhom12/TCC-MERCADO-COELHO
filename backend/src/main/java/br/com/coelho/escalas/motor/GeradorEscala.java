@@ -40,7 +40,6 @@ public class GeradorEscala {
         if (modelos.isEmpty()) {
             throw new IllegalArgumentException("Cadastre ao menos um modelo de turno antes de gerar a escala.");
         }
-        ParametrosOperacionais p = ctx.parametros();
         Map<Long, List<Turno>> agenda = new HashMap<>();
         for (Turno t : turnosExistentes) {
             agenda.computeIfAbsent(t.getFuncionario().getId(), k -> new ArrayList<>()).add(t);
@@ -56,48 +55,73 @@ public class GeradorEscala {
             PrevisaoMovimento.PrevisaoDia previsao = motor.previsao(dia, ctx);
 
             List<Setor> setores = ctx.setoresAtivos().stream().sorted(Comparator.comparing(Setor::getId)).toList();
-            for (Setor setor : setores) {
-                // Pessoas e turnos que cobrem o movimento previsto (ou só o mínimo fixo, sem histórico).
-                PlanejadorDemanda.PlanoSetor plano = motor.planejar(setor, tipo, previsao, modelosDia);
-                int necessarios = plano.necessarios();
-                if (necessarios <= 0) {
-                    continue;
-                }
-                List<Funcionario> doSetor = ctx.funcionariosAtivos().stream()
-                        .filter(f -> f.getSetor().getId().equals(setor.getId()))
-                        .toList();
-                int alocados = (int) doSetor.stream().filter(f -> trabalhaNoDia(agenda, f, dia)).count();
+            // Pessoas e turnos que cobrem o movimento previsto (ou só o mínimo fixo, sem histórico).
+            Map<Long, PlanejadorDemanda.PlanoSetor> planos = new HashMap<>();
+            setores.forEach(s -> planos.put(s.getId(), motor.planejar(s, tipo, previsao, modelosDia)));
 
-                for (int k = alocados; k < necessarios; k++) {
-                    Turno escolhido = null;
-                    List<TurnoModelo> preferencia = preferencia(plano, modelosDia, k);
-                    for (int j = 0; j < preferencia.size() && escolhido == null; j++) {
-                        TurnoModelo modelo = preferencia.get(j);
-                        escolhido = doSetor.stream()
-                                .filter(f -> f.disponivelEm(dia.getDayOfWeek()))
-                                .filter(f -> !ctx.ausente(f, dia))
-                                .filter(f -> !trabalhaNoDia(agenda, f, dia))
-                                .map(f -> Turno.de(modelo, f, dia))
-                                .filter(t -> podeAlocar(agenda.getOrDefault(t.getFuncionario().getId(), List.of()), t, p))
-                                .min(Comparator
-                                        .comparing((Turno t) -> horasNaSemana(agenda, t.getFuncionario(), dia))
-                                        .thenComparing(t -> t.getFuncionario().getCustoHora())
-                                        .thenComparing(t -> t.getFuncionario().getId()))
-                                .orElse(null);
+            // 1ª passada: cada setor com a própria equipe. 2ª: o que faltou, com quem tem a habilidade do setor. Assim
+            // ninguém é deslocado para outro setor enquanto o próprio ainda precisa dele.
+            for (boolean habilidade : new boolean[]{false, true}) {
+                for (Setor setor : setores) {
+                    PlanejadorDemanda.PlanoSetor plano = planos.get(setor.getId());
+                    int necessarios = plano.necessarios();
+                    int alocados = alocadosNoSetor(agenda, setor, dia);
+                    for (int k = alocados; k < necessarios; k++) {
+                        Turno escolhido = escolher(agenda, setor, habilidade, preferencia(plano, modelosDia, k), dia, ctx);
+                        if (escolhido == null) {
+                            break;
+                        }
+                        agenda.computeIfAbsent(escolhido.getFuncionario().getId(), x -> new ArrayList<>()).add(escolhido);
+                        novos.add(escolhido);
                     }
-                    if (escolhido == null) {
-                        break;
-                    }
-                    agenda.computeIfAbsent(escolhido.getFuncionario().getId(), x -> new ArrayList<>()).add(escolhido);
-                    novos.add(escolhido);
-                    alocados++;
                 }
+            }
+            for (Setor setor : setores) {
+                int necessarios = planos.get(setor.getId()).necessarios();
+                int alocados = alocadosNoSetor(agenda, setor, dia);
                 if (alocados < necessarios) {
                     deficits.add(new Deficit(dia, setor.getId(), setor.getNome(), necessarios, alocados));
                 }
             }
         }
         return new ResultadoGeracao(novos, deficits);
+    }
+
+    /**
+     * Melhor pessoa para a próxima vaga do setor: do próprio setor ({@code habilidade = false}) ou de outro setor com a
+     * habilidade deste ({@code true}). Entre as aptas, a de menos horas na semana e, em empate, a mais barata.
+     */
+    private static Turno escolher(Map<Long, List<Turno>> agenda, Setor setor, boolean habilidade, List<TurnoModelo> preferencia,
+                                  LocalDate dia, ContextoCalculo ctx) {
+        for (TurnoModelo modelo : preferencia) {
+            Turno escolhido = ctx.funcionariosAtivos().stream()
+                    .filter(f -> habilidade
+                            ? !f.getSetor().getId().equals(setor.getId()) && f.atuaEm(setor.getId())
+                            : f.getSetor().getId().equals(setor.getId()))
+                    .filter(f -> f.disponivelEm(dia.getDayOfWeek()))
+                    .filter(f -> !ctx.ausente(f, dia))
+                    .filter(f -> !trabalhaNoDia(agenda, f, dia))
+                    .map(f -> Turno.de(modelo, f, dia, setor))
+                    .filter(t -> podeAlocar(agenda.getOrDefault(t.getFuncionario().getId(), List.of()), t, ctx.parametros()))
+                    .min(Comparator
+                            .comparing((Turno t) -> horasNaSemana(agenda, t.getFuncionario(), dia))
+                            // Em empate, quem sabe menos setores primeiro: os versáteis ficam livres para cobrir os outros.
+                            .thenComparing(t -> t.getFuncionario().getHabilidades().size())
+                            .thenComparing(t -> t.getFuncionario().getCustoHora())
+                            .thenComparing(t -> t.getFuncionario().getId()))
+                    .orElse(null);
+            if (escolhido != null) {
+                return escolhido;
+            }
+        }
+        return null;
+    }
+
+    /** Pessoas já escaladas no dia cobrindo o setor (inclusive as de outras escalas e as vindas por habilidade). */
+    private static int alocadosNoSetor(Map<Long, List<Turno>> agenda, Setor setor, LocalDate dia) {
+        return (int) agenda.values().stream().flatMap(List::stream)
+                .filter(t -> t.getData().equals(dia) && t.doSetor(setor.getId()))
+                .map(t -> t.getFuncionario().getId()).distinct().count();
     }
 
     /** O turno sugerido para a k-ésima pessoa vem primeiro; os demais modelos servem de alternativa (em rodízio). */

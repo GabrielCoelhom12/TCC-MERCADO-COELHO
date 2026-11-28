@@ -88,7 +88,8 @@ que o sistema já validou e registra férias, atestados e licenças com a substi
 
 **Cadastros e regras**
 - Setores com demanda mínima por tipo de dia e capacidade de atendimento; colaboradores com salário, encargos,
-  disponibilidade, ausências e foto; modelos de turno; feriados (importação dos nacionais e do aniversário de Indaial);
+  disponibilidade, ausências, foto e **habilidades** (outros setores em que sabem trabalhar, usados pelo gerador e pelo
+  Timefold para cobrir um setor desfalcado); modelos de turno; feriados (importação dos nacionais e do aniversário de Indaial);
   projeções de receita; parâmetros da CLT e da convenção coletiva.
 - **Simulador de custos:** compara um quadro montado "no olho" com o recomendado pelo motor e mostra a economia.
 
@@ -131,7 +132,7 @@ Regras validadas a cada alteração:
 |---|---|---|
 | Como decide | Dia a dia, setor a setor: cada vaga vai para quem pode trabalhar e tem menos horas na semana (empate: menor custo-hora) | Monta todas as vagas da semana e busca a melhor atribuição de uma vez (heurística de construção + busca local do Timefold Solver) |
 | Regras da CLT | Conferidas antes de cada escolha | Restrições *hard*: nunca violadas |
-| O que otimiza | Nada além da escolha local | *Medium*: vagas sem ninguém; *soft*: custo (R$) e equilíbrio das horas entre as pessoas |
+| O que otimiza | Nada além da escolha local | *Medium*: vagas sem ninguém e, com peso menor, turnos fora do setor principal (a habilidade só cobre vaga que ficaria vazia); *soft*: custo (R$) e equilíbrio das horas entre as pessoas |
 | Tempo | Milissegundos | Até 5 s (para antes se parar de melhorar; `APP_OTIMIZACAO_SEGUNDOS`) |
 | Uso | Geração automática diária das próximas semanas | Sob demanda, na matriz da escala |
 

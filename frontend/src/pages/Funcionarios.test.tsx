@@ -80,4 +80,29 @@ describe('Funcionarios', () => {
     expect(await screen.findByRole('status')).toHaveTextContent('Colaborador salvo.');
     expect(fetch.mock.calls.some(([url]) => String(url).endsWith('/foto'))).toBe(false);
   });
+
+  it('cadastra as habilidades em outros setores e mostra na lista', async () => {
+    const reposicao: Setor = { ...caixa, id: 2, nome: 'Reposição' };
+    const enviados: Record<string, unknown>[] = [];
+    mockFetch({
+      ...rotasBase,
+      'GET /api/funcionarios': { corpo: [{ ...ana, habilidades: [reposicao] }, bruno] },
+      'GET /api/setores': { corpo: [caixa, reposicao] },
+      'PUT /api/funcionarios/6': (corpo) => (enviados.push(corpo as Record<string, unknown>), { corpo: bruno }),
+    });
+    renderizar(<Funcionarios />);
+
+    const linhaAna = (await screen.findByText('Ana Souza')).closest('tr')!;
+    expect(within(linhaAna).getByText('+ Reposição')).toBeInTheDocument();
+
+    const linhaBruno = screen.getByText('Bruno Lima').closest('tr')!;
+    fireEvent.click(within(linhaBruno).getByRole('button', { name: 'Editar' }));
+    const habilidades = within(screen.getByRole('dialog')).getByRole('group', { name: 'Habilidades' });
+    expect(within(habilidades).queryByLabelText('Frente de Caixa')).not.toBeInTheDocument(); // o setor principal não aparece
+    fireEvent.click(within(habilidades).getByLabelText('Reposição'));
+    fireEvent.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Salvar' }));
+
+    await waitFor(() => expect(enviados).toHaveLength(1));
+    expect(enviados[0].habilidades).toEqual([2]);
+  });
 });

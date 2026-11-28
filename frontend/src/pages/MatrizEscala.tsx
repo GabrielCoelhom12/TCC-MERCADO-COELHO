@@ -9,7 +9,9 @@ import { AvisoConsulta, BadgeSituacao, Carregando, ListaViolacoes, Modal, mensag
 import { dataCurta, dataLonga, diaSemanaDe, hora, horas, isoDe, moeda, moedaConfidencial, paraData, pct } from '../format';
 import type { Escala, Geracao, LinhaFuncionario, Matriz, TurnoDTO, TurnoModelo, Violacao } from '../types';
 
-type MenuCelula = { x: number; y: number; funcionario: LinhaFuncionario; data: string } | null;
+/** setorId: setor que o turno vai cobrir (o principal ou um das habilidades do colaborador). */
+type MenuCelula = { x: number; y: number; funcionario: LinhaFuncionario; data: string; setorId: number } | null;
+type InfoSetor = { nome: string; cor: string };
 type Bloqueio = { mensagem: string; violacoes: Violacao[] } | null;
 type Filtro = 'TODAS' | 'ERRO' | 'ALERTA';
 
@@ -49,7 +51,7 @@ export default function MatrizEscala() {
   const { id } = useParams();
   const { dados: m, setDados, erro, recarregar } = useCarregar(() => api.get<Matriz>(`/escalas/${id}/matriz`), [id]);
   const [menu, setMenu] = useState<MenuCelula>(null);
-  const [personalizado, setPersonalizado] = useState<{ funcionario: LinhaFuncionario; data: string } | null>(null);
+  const [personalizado, setPersonalizado] = useState<{ funcionario: LinhaFuncionario; data: string; setorId: number } | null>(null);
   const [bloqueio, setBloqueio] = useState<Bloqueio>(null);
   const [filtro, setFiltro] = useState<Filtro>('TODAS');
   const [ocupado, setOcupado] = useState(false);
@@ -99,6 +101,7 @@ export default function MatrizEscala() {
     });
     return [...grupos.entries()];
   }, [m]);
+  const infoSetor = useMemo(() => new Map<number, InfoSetor>(setoresAgrupados.map(([id, g]) => [id, g])), [setoresAgrupados]);
 
   if (!m) return <Carregando erro={erro} />;
 
@@ -264,7 +267,7 @@ export default function MatrizEscala() {
                       <div className="small muted">{f.cargo}{f.custoHora != null && ` · ${moeda(f.custoHora)}/h`}</div>
                     </td>
                     {dias.map((d) => (
-                      <Celula key={d} f={f} data={d} cor={g.cor} editavel={editavel && !ocupado}
+                      <Celula key={d} f={f} data={d} cor={g.cor} infoSetor={infoSetor} editavel={editavel && !ocupado}
                         turnos={turnoDe.get(`${f.id}|${d}`) ?? []}
                         violacoes={violacoesCelula.get(`${f.id}|${d}`) ?? []}
                         ausencia={m.ausencias.find((a) => a.funcionarioId === f.id && a.inicio <= d && a.fim >= d)?.motivo}
@@ -272,7 +275,8 @@ export default function MatrizEscala() {
                           e.stopPropagation();
                           if (!editavel || ocupado) return;
                           const r = (e.currentTarget as HTMLElement).getBoundingClientRect();
-                          setMenu({ x: Math.min(r.left, window.innerWidth - 240), y: Math.min(r.bottom + 4, window.innerHeight - 260), funcionario: f, data: d });
+                          const atual = turnoDe.get(`${f.id}|${d}`)?.[0]?.setorId ?? f.setorId;
+                          setMenu({ x: Math.min(r.left, window.innerWidth - 240), y: Math.min(r.bottom + 4, window.innerHeight - 300), funcionario: f, data: d, setorId: atual });
                         }} />
                     ))}
                   </tr>
@@ -320,18 +324,28 @@ export default function MatrizEscala() {
       {menu && (
         <div className="menu-celula" style={{ left: menu.x, top: menu.y }} onClick={(e) => e.stopPropagation()}>
           <div className="titulo">{menu.funcionario.nome} · {dataCurta(menu.data)}</div>
+          {!!menu.funcionario.habilidades?.length && (
+            <div className="setores-celula" role="group" aria-label="Setor do turno">
+              {[menu.funcionario.setorId, ...menu.funcionario.habilidades].map((sid) => (
+                <button key={sid} className={menu.setorId === sid ? 'ativo' : ''} aria-pressed={menu.setorId === sid}
+                  onClick={() => setMenu({ ...menu, setorId: sid })}>
+                  <span className="ponto" style={{ background: infoSetor.get(sid)?.cor }} /> {infoSetor.get(sid)?.nome ?? 'Setor'}
+                </button>
+              ))}
+            </div>
+          )}
           {ordenarModelos(m.modelos, resumoDia.get(menu.data)!).map((mod) => (
-            <button key={mod.id} onClick={() => definir(menu.funcionario, menu.data, { turnoModeloId: mod.id })}>
+            <button key={mod.id} onClick={() => definir(menu.funcionario, menu.data, { turnoModeloId: mod.id, setorId: menu.setorId })}>
               <strong>{mod.sigla}</strong>&nbsp;{mod.nome} <span className="muted small">{hora(mod.horaInicio)}–{hora(mod.horaFim)}</span>
             </button>
           ))}
-          <button onClick={() => { setPersonalizado({ funcionario: menu.funcionario, data: menu.data }); setMenu(null); }}>Horário personalizado…</button>
+          <button onClick={() => { setPersonalizado({ funcionario: menu.funcionario, data: menu.data, setorId: menu.setorId }); setMenu(null); }}>Horário personalizado…</button>
           <button onClick={() => definir(menu.funcionario, menu.data, {})}>Folga (remover turno)</button>
         </div>
       )}
 
       <ModalPersonalizado alvo={personalizado} onFechar={() => setPersonalizado(null)}
-        onSalvar={(corpo) => { const p = personalizado!; setPersonalizado(null); definir(p.funcionario, p.data, corpo); }} />
+        onSalvar={(corpo) => { const p = personalizado!; setPersonalizado(null); definir(p.funcionario, p.data, { ...corpo, setorId: p.setorId }); }} />
 
       <Modal titulo="Alocação bloqueada" aberto={!!bloqueio} onFechar={() => setBloqueio(null)}
         acoes={<button className="primario" onClick={() => setBloqueio(null)}>Entendi</button>}>
@@ -352,10 +366,11 @@ function ordenarModelos(modelos: TurnoModelo[], dia: { tipoDia: string; feriado:
 
 const ROTULO_AUSENCIA: Record<string, string> = { FERIAS: 'Férias', ATESTADO: 'Atestado', FOLGA_ACORDADA: 'Folga', OUTRO: 'Ausente' };
 
-function Celula({ f, data, cor, turnos, violacoes, ausencia, editavel, onClick }: {
+function Celula({ f, data, cor, infoSetor, turnos, violacoes, ausencia, editavel, onClick }: {
   f: LinhaFuncionario;
   data: string;
   cor: string;
+  infoSetor: Map<number, InfoSetor>;
   turnos: TurnoDTO[];
   violacoes: Violacao[];
   ausencia?: string;
@@ -373,12 +388,17 @@ function Celula({ f, data, cor, turnos, violacoes, ausencia, editavel, onClick }
   return (
     <td className={`celula ${editavel ? '' : 'bloqueada'} ${temErro ? 'com-erro' : ''} ${temAlerta ? 'com-alerta' : ''}`}
       onClick={onClick} title={dica || undefined}>
-      {turnos.length > 0 ? turnos.map((t) => (
-        <div key={t.id} className="turno" style={{ background: cor }}>
-          {t.rotulo}
-          <small>{hora(t.horaInicio)}–{hora(t.horaFim)}</small>
-        </div>
-      )) : ausencia ? (
+      {turnos.length > 0 ? turnos.map((t) => {
+        // Turno coberto pela habilidade: na cor e com o nome do setor onde a pessoa vai trabalhar.
+        const outro = t.setorId != null && t.setorId !== f.setorId ? infoSetor.get(t.setorId) : undefined;
+        return (
+          <div key={t.id} className={`turno${outro ? ' outro-setor' : ''}`} style={{ background: outro?.cor ?? cor }}>
+            {t.rotulo}
+            <small>{hora(t.horaInicio)}–{hora(t.horaFim)}</small>
+            {outro && <small className="setor-turno">↪ {outro.nome}</small>}
+          </div>
+        );
+      }) : ausencia ? (
         <div className="ausente">{ROTULO_AUSENCIA[ausencia]}</div>
       ) : indisponivel ? (
         <span className="indisp">indisponível</span>

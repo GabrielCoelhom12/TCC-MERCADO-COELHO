@@ -126,6 +126,33 @@ class ValidadorEscalaTest {
     }
 
     @Test
+    void turnoEmOutroSetorContaNaCargaSemanalDaPessoa() {
+        Setor reposicao = c.setor("Reposição", 0);
+        ana.getHabilidades().add(reposicao);
+        List<Turno> turnos = new ArrayList<>();
+        for (int i = 0; i < 5; i++) {
+            turnos.add(turno(ana, SEGUNDA.plusDays(i), "07:00", "16:00", 60)); // 40h no caixa
+        }
+        Turno remanejado = turno(ana, SEGUNDA.plusDays(5), "07:00", "13:00", 15); // + 5h45 na reposição
+        remanejado.setSetor(reposicao);
+        turnos.add(remanejado);
+        var r = validar(SEGUNDA, SEGUNDA.plusDays(6), turnos);
+        // a habilidade não abre uma segunda carga semanal: as horas dos dois setores somam para a mesma pessoa
+        assertThat(regras(r)).containsExactly(Regra.HORA_EXTRA_SEMANAL);
+    }
+
+    @Test
+    void turnoEmOutroSetorCobreOSetorDoTurnoSemErro() {
+        Setor reposicao = c.setor("Reposição", 1);
+        ana.getHabilidades().add(reposicao);
+        Turno remanejado = turno(ana, SEGUNDA, "07:00", "15:20", 60);
+        remanejado.setSetor(reposicao);
+        var r = validar(SEGUNDA, SEGUNDA, List.of(remanejado));
+        assertThat(r.violacoes()).isEmpty(); // conta para o mínimo da reposição, não do caixa
+        assertThat(r.aprovavel()).isTrue();
+    }
+
+    @Test
     void sobreposicaoDeTurnos() {
         var r = validar(SEGUNDA, SEGUNDA, List.of(
                 turno(ana, SEGUNDA, "07:00", "11:00", 0),

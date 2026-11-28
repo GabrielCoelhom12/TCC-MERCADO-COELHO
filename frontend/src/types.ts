@@ -18,6 +18,8 @@ export interface Funcionario {
   matricula: string | null;
   cargo: string | null;
   setor: Setor;
+  /** Outros setores em que o colaborador também sabe trabalhar. */
+  habilidades?: Setor[];
   salarioMensal: number | null;
   cargaHorariaMensal: number;
   percentualEncargos: number | null;
@@ -177,6 +179,8 @@ export interface TurnoDTO {
   rotulo: string;
   horas: number;
   custo: number | null;
+  /** Setor que o turno cobre (o principal do colaborador ou um das habilidades). */
+  setorId?: number;
 }
 
 export interface LinhaFuncionario {
@@ -189,6 +193,8 @@ export interface LinhaFuncionario {
   custoHora: number | null;
   diasDisponiveis: DiaSemana[];
   ativo: boolean;
+  /** Ids dos outros setores em que sabe trabalhar. */
+  habilidades?: number[];
 }
 
 export interface Matriz {

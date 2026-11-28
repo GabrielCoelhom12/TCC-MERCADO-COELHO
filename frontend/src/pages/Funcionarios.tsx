@@ -18,6 +18,8 @@ type Form = {
   percentualEncargos: number;
   ativo: boolean;
   diasDisponiveis: DiaSemana[];
+  /** Ids dos outros setores em que sabe trabalhar. */
+  habilidades: number[];
   foto: EstadoFoto;
 };
 
@@ -38,13 +40,14 @@ export default function Funcionarios() {
   const novo = () => setForm({
     nome: '', matricula: '', cargo: '', setorId: setores[0]?.id ?? 0, salarioMensal: 1950,
     cargaHorariaMensal: 220, percentualEncargos: 38, ativo: true, diasDisponiveis: DIAS_SEMANA.map((d) => d.dia),
-    foto: fotoInicial(),
+    habilidades: [], foto: fotoInicial(),
   });
 
   const editar = (f: Funcionario) => setForm({
     id: f.id, nome: f.nome, matricula: f.matricula ?? '', cargo: f.cargo ?? '', setorId: f.setor.id,
     salarioMensal: f.salarioMensal ?? 0, cargaHorariaMensal: f.cargaHorariaMensal, percentualEncargos: f.percentualEncargos ?? 0,
-    ativo: f.ativo, diasDisponiveis: f.diasDisponiveis, foto: fotoInicial(f.foto),
+    ativo: f.ativo, diasDisponiveis: f.diasDisponiveis, habilidades: (f.habilidades ?? []).map((s) => s.id),
+    foto: fotoInicial(f.foto),
   });
 
   const salvar = async () => {
@@ -117,7 +120,14 @@ export default function Funcionarios() {
                       </div>
                     </div>
                   </td>
-                  <td><span className="ponto" style={{ background: f.setor.cor }} /> {f.setor.nome}</td>
+                  <td>
+                    <span className="ponto" style={{ background: f.setor.cor }} /> {f.setor.nome}
+                    {!!f.habilidades?.length && (
+                      <div className="small muted" title="Também sabe trabalhar em">
+                        + {f.habilidades.map((s) => s.nome).join(', ')}
+                      </div>
+                    )}
+                  </td>
                   <td className="num">{moedaConfidencial(f.salarioMensal)}</td>
                   <td className="num">{f.percentualEncargos == null ? '—' : `${f.percentualEncargos}%`}</td>
                   <td className="num"><strong>{moedaConfidencial(f.custoHora)}</strong></td>
@@ -153,7 +163,10 @@ export default function Funcionarios() {
               <label className="campo">Matrícula<input value={form.matricula} onChange={(e) => setForm({ ...form, matricula: e.target.value })} /></label>
               <label className="campo">Cargo<input value={form.cargo} onChange={(e) => setForm({ ...form, cargo: e.target.value })} /></label>
               <label className="campo">Setor
-                <select value={form.setorId} onChange={(e) => setForm({ ...form, setorId: Number(e.target.value) })}>
+                <select value={form.setorId} onChange={(e) => {
+                  const setorId = Number(e.target.value);
+                  setForm({ ...form, setorId, habilidades: form.habilidades.filter((h) => h !== setorId) });
+                }}>
                   {setores.map((s) => <option key={s.id} value={s.id}>{s.nome}</option>)}
                 </select>
               </label>
@@ -165,6 +178,27 @@ export default function Funcionarios() {
                 <span className="ajuda">INSS patronal, FGTS, provisões de férias e 13º…</span></label>
             </div>
             <div className="aviso info">Custo por hora com encargos: <strong>{moeda(custoHoraPrevia)}</strong></div>
+            {setores.length > 1 && (
+              <div className="campo">
+                <span className="campo">Também sabe trabalhar em</span>
+                <div className="dias-check" role="group" aria-label="Habilidades">
+                  {setores.filter((s) => s.id !== form.setorId).map((s) => {
+                    const marcado = form.habilidades.includes(s.id);
+                    return (
+                      <label key={s.id} className={marcado ? 'marcado' : ''}>
+                        <input type="checkbox" checked={marcado} onChange={() => setForm({
+                          ...form,
+                          habilidades: marcado ? form.habilidades.filter((x) => x !== s.id) : [...form.habilidades, s.id],
+                        })} />
+                        {s.nome}
+                      </label>
+                    );
+                  })}
+                </div>
+                <span className="ajuda">O gerador e o Timefold podem escalar o colaborador nesses setores quando faltar gente,
+                  sempre preferindo o setor principal.</span>
+              </div>
+            )}
             <div className="campo">
               <span className="campo">Dias disponíveis</span>
               <div className="dias-check">
