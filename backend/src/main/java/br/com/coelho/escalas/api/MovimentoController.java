@@ -1,6 +1,8 @@
 package br.com.coelho.escalas.api;
 
 import br.com.coelho.escalas.dominio.FaixaHoraria;
+import br.com.coelho.escalas.motor.PrevisaoMovimento;
+import br.com.coelho.escalas.servico.ImportacaoPdvService;
 import br.com.coelho.escalas.servico.MovimentoService;
 import br.com.coelho.escalas.servico.MovimentoService.Fechamento;
 import br.com.coelho.escalas.servico.MovimentoService.PrevisaoDiaria;
@@ -11,9 +13,12 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalTime;
@@ -35,9 +40,18 @@ public class MovimentoController {
     }
 
     private final MovimentoService movimento;
+    private final ImportacaoPdvService importacao;
 
-    public MovimentoController(MovimentoService movimento) {
+    public MovimentoController(MovimentoService movimento, ImportacaoPdvService importacao) {
         this.movimento = movimento;
+        this.importacao = importacao;
+    }
+
+    /** Relatório de vendas diárias do PDV (CSV): lança ou atualiza o fechamento de cada dia do arquivo. */
+    @PostMapping("/importar")
+    public ImportacaoPdvService.ResultadoImportacao importar(@RequestParam("arquivo") MultipartFile arquivo, Authentication auth)
+            throws IOException {
+        return importacao.importar(arquivo.getBytes(), auth.getName());
     }
 
     @GetMapping("/faixas")
@@ -79,5 +93,14 @@ public class MovimentoController {
     public List<PrevisaoDiaria> previsao(@RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate inicio,
                                          @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fim) {
         return movimento.previsao(inicio, fim);
+    }
+
+    /** Erro médio da previsão contra os fechamentos do período; 204 se não houver dias para comparar. */
+    @GetMapping("/assertividade")
+    public ResponseEntity<PrevisaoMovimento.Assertividade> assertividade(
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate inicio,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fim) {
+        PrevisaoMovimento.Assertividade a = movimento.assertividade(inicio, fim);
+        return a == null ? ResponseEntity.noContent().build() : ResponseEntity.ok(a);
     }
 }

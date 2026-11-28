@@ -3,7 +3,7 @@ import type { ReactElement } from 'react';
 import { MemoryRouter } from 'react-router-dom';
 import { vi } from 'vitest';
 import { AuthProvider } from '../auth';
-import { ToastProvider } from '../components/ui';
+import { ConfirmacaoProvider, ToastProvider } from '../components/ui';
 
 type Resposta = { status?: number; corpo?: unknown };
 
@@ -34,7 +34,9 @@ export function renderizar(ui: ReactElement, rota = '/') {
   return render(
     <MemoryRouter initialEntries={[rota]}>
       <AuthProvider>
-        <ToastProvider>{ui}</ToastProvider>
+        <ToastProvider>
+          <ConfirmacaoProvider>{ui}</ConfirmacaoProvider>
+        </ToastProvider>
       </AuthProvider>
     </MemoryRouter>,
   );

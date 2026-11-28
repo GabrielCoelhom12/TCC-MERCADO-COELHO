@@ -318,6 +318,14 @@ export interface DemandaSetor {
   turnosSugeridos: string[];
 }
 
+/** Erro das previsões contra os fechamentos reais (cada dia previsto só com o histórico anterior a ele). */
+export interface Assertividade {
+  dias: number;
+  erroMedioPercentual: number;
+  /** Negativo: a previsão costuma ficar abaixo do real. */
+  viesPercentual: number;
+}
+
 export interface PrevisaoDiaria {
   data: string;
   tipoDia: string;
@@ -422,4 +430,14 @@ export interface ComparacaoAlgoritmos {
   fim: string;
   guloso: MetricasAlgoritmo;
   otimizado: MetricasAlgoritmo;
+}
+
+/** Resultado do envio do relatório de vendas do PDV. */
+export interface ResultadoImportacao {
+  criados: number;
+  atualizados: number;
+  ignorados: number;
+  primeiroDia: string;
+  ultimoDia: string;
+  avisos: string[];
 }

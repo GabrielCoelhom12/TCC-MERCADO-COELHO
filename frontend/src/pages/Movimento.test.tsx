@@ -1,9 +1,9 @@
 import { fireEvent, screen, waitFor, within } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 import { isoDe } from '../format';
-import { mockFetch, renderizar } from '../test/util';
+import { logar, mockFetch, renderizar } from '../test/util';
 import type { FaixaHoraria, Fechamento, PrevisaoDiaria } from '../types';
-import Movimento, { periodoFechamentos, periodoPrevisao } from './Movimento';
+import Movimento, { periodoAssertividade, periodoFechamentos, periodoPrevisao } from './Movimento';
 
 const faixas: FaixaHoraria[] = [
   { id: 1, inicio: '07:00:00', fim: '10:00:00' },
@@ -110,5 +110,55 @@ describe('Movimento', () => {
     fireEvent.change(await screen.findByLabelText('Clientes 07:00–10:00'), { target: { value: '-5' } });
     expect(screen.getByRole('button', { name: 'Salvar fechamento' })).toBeDisabled();
     expect(fetch.mock.calls.some(([, init]) => init?.method === 'PUT')).toBe(false);
+  });
+
+  it('importa o relatório de vendas do PDV e atualiza a previsão', async () => {
+    const arquivos: FormData[] = [];
+    const fetch = montar({
+      'POST /api/movimento/importar': (corpo) => (arquivos.push(corpo as FormData), {
+        corpo: { criados: 2, atualizados: 1, ignorados: 1, primeiroDia: '2026-11-01', ultimoDia: '2026-11-03',
+          avisos: ['1 dia sem venda líquida foi ignorado (testes do PDV ou só cancelamentos).'] },
+      }),
+    });
+    renderizar(<Movimento />);
+
+    const relatorio = new File(['Data;Venda Líquida;Qtde. Cupom\n'], 'vendas.csv', { type: 'text/csv' });
+    fireEvent.change(await screen.findByLabelText('Relatório do PDV'), { target: { files: [relatorio] } });
+
+    await waitFor(() => expect(arquivos).toHaveLength(1));
+    expect(arquivos[0].get('arquivo')).toBe(relatorio);
+    expect(await screen.findByText(/3 dias importados do relatório do PDV/)).toBeInTheDocument();
+    expect(screen.getByText(/2 novos, 1 atualizados, 1 ignorados/)).toBeInTheDocument();
+    expect(screen.getByText(/dia sem venda líquida/)).toBeInTheDocument();
+    // A previsão é recarregada depois da importação.
+    const p = periodoPrevisao();
+    await waitFor(() => expect(fetch.mock.calls.filter(([url]) => url === `/api/movimento/previsao?inicio=${p.inicio}&fim=${p.fim}`))
+      .toHaveLength(2));
+  });
+
+  it('o supervisor lança o fechamento mas não importa o relatório', async () => {
+    logar('SUPERVISOR');
+    montar();
+    renderizar(<Movimento />);
+
+    expect(await screen.findByText('Fechamento do dia')).toBeInTheDocument();
+    expect(screen.queryByLabelText('Relatório do PDV')).not.toBeInTheDocument();
+  });
+
+  it('mostra o erro médio da previsão nos últimos fechamentos', async () => {
+    const a = periodoAssertividade();
+    montar({ [`GET /api/movimento/assertividade?inicio=${a.inicio}&fim=${a.fim}`]: { corpo: { dias: 24, erroMedioPercentual: 6.2, viesPercentual: -1.8 } } });
+    renderizar(<Movimento />);
+
+    expect(await screen.findByText(/Erro médio de 6,2% nos últimos 24 fechamentos/)).toBeInTheDocument();
+    expect(screen.getByText(/costuma ficar 1,8% abaixo do real/)).toBeInTheDocument();
+  });
+
+  it('avisa quando ainda não há fechamentos para medir a assertividade', async () => {
+    const a = periodoAssertividade();
+    montar({ [`GET /api/movimento/assertividade?inicio=${a.inicio}&fim=${a.fim}`]: { status: 204 } });
+    renderizar(<Movimento />);
+
+    expect(await screen.findByText('Ainda não há fechamentos suficientes para medir a assertividade.')).toBeInTheDocument();
   });
 });

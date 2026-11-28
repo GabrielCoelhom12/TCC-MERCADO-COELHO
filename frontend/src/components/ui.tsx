@@ -82,6 +82,55 @@ export function Modal({ titulo, aberto, onFechar, children, acoes }: {
   );
 }
 
+// ---------------------------------------------------------------- confirmação
+
+export type OpcoesConfirmacao = {
+  titulo: string;
+  mensagem: ReactNode;
+  /** Texto do botão que confirma (padrão "Confirmar"). */
+  confirmar?: string;
+  /** Ação destrutiva (excluir, apagar): o botão de confirmar fica em vermelho. */
+  perigoso?: boolean;
+};
+
+type Pedido = OpcoesConfirmacao & { responder: (sim: boolean) => void };
+const ConfirmacaoCtx = createContext<(opcoes: OpcoesConfirmacao) => Promise<boolean>>(async () => false);
+
+/**
+ * Confirmações dentro do próprio sistema, no lugar do window.confirm do navegador:
+ * `if (!(await confirmar({ titulo, mensagem }))) return;`. Esc, clicar fora ou "Cancelar" respondem "não".
+ */
+export function ConfirmacaoProvider({ children }: { children: ReactNode }) {
+  const [pedido, setPedido] = useState<Pedido | null>(null);
+  const confirmar = useCallback(
+    (opcoes: OpcoesConfirmacao) => new Promise<boolean>((resolve) => setPedido({ ...opcoes, responder: resolve })),
+    [],
+  );
+  const responder = useCallback((sim: boolean) => {
+    setPedido((atual) => {
+      atual?.responder(sim);
+      return null;
+    });
+  }, []);
+  const cancelar = useCallback(() => responder(false), [responder]);
+  return (
+    <ConfirmacaoCtx.Provider value={confirmar}>
+      {children}
+      <Modal titulo={pedido?.titulo ?? ''} aberto={pedido !== null} onFechar={cancelar}
+        acoes={<>
+          <button onClick={cancelar}>Cancelar</button>
+          <button className={pedido?.perigoso ? 'primario perigoso' : 'primario'} autoFocus onClick={() => responder(true)}>
+            {pedido?.confirmar ?? 'Confirmar'}
+          </button>
+        </>}>
+        <div className="confirmacao-texto">{pedido?.mensagem}</div>
+      </Modal>
+    </ConfirmacaoCtx.Provider>
+  );
+}
+
+export const useConfirmar = () => useContext(ConfirmacaoCtx);
+
 // ---------------------------------------------------------------- status
 
 const SITUACAO: Record<Situacao, { classe: string; texto: string }> = {

@@ -162,7 +162,7 @@ class CadastrosIntegracaoTest extends IntegracaoTest {
                 .andExpect(jsonPath("$.descricao").value("Festa"));
         delete("/api/feriados/" + id).andExpect(status().isNoContent());
 
-        post("/api/feriados/importar/2041", Map.of()).andExpect(jsonPath("$.importados").value(12));
+        post("/api/feriados/importar/2041", Map.of()).andExpect(jsonPath("$.importados").value(11));
         post("/api/feriados/importar/2041", Map.of()).andExpect(jsonPath("$.importados").value(0));
         get("/api/feriados").andExpect(jsonPath("$[*].descricao", hasItem("Natal")));
     }

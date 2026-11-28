@@ -17,7 +17,7 @@ import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
 
-/** Exposição direta do Motor de Cálculo e Otimização Financeira. */
+/** Consultas diretas ao motor de cálculo do custo da escala: capacidade do dia, simulador e painel. */
 @RestController
 @RequestMapping("/api/motor")
 public class MotorController {

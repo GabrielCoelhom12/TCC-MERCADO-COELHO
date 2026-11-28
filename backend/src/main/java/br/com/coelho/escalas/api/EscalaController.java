@@ -83,8 +83,15 @@ public class EscalaController {
     }
 
     @PostMapping("/{id}/turnos/{turnoId}/substituir")
-    public Matriz substituir(@PathVariable Long id, @PathVariable Long turnoId, @RequestBody SubstituicaoRequest req) {
-        return servico.substituir(id, turnoId, req);
+    public Matriz substituir(@PathVariable Long id, @PathVariable Long turnoId, @RequestBody SubstituicaoRequest req,
+                             Authentication auth) {
+        return servico.substituir(id, turnoId, req, auth.getName());
+    }
+
+    /** Histórico de trocas de colaborador da escala (quem saiu, quem entrou, quem trocou e quando). */
+    @GetMapping("/{id}/trocas")
+    public List<EscalaService.TrocaDTO> trocas(@PathVariable Long id) {
+        return servico.trocas(id);
     }
 
     @PostMapping("/{id}/gerar")

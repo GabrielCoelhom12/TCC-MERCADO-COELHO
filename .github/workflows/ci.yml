@@ -16,7 +16,7 @@ permissions:
 
 jobs:
   backend:
-    name: Backend (testes + cobertura ≥ 75%)
+    name: Backend
     runs-on: ubuntu-latest
     services:
       postgres:
@@ -54,7 +54,7 @@ jobs:
             backend/target/site/jacoco/jacoco.xml
 
   frontend:
-    name: Frontend (tipos + lint + testes + cobertura ≥ 25%)
+    name: Frontend
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -135,7 +135,7 @@ jobs:
           cache-to: type=gha,mode=max
 
   infra:
-    name: Infraestrutura (Terraform fmt + validate)
+    name: Infraestrutura
     runs-on: ubuntu-latest
     defaults:
       run:
