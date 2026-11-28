@@ -142,12 +142,31 @@ class OtimizadorEscalaTest {
                 .singleElement().satisfies(t -> assertThat(t.setorEfetivo()).isSameAs(caixa));
     }
 
-    /** Com gente sobrando no próprio setor, ninguém é deslocado (a troca de setor tem um custo soft). */
+    /** Com gente sobrando no próprio setor, ninguém é deslocado (estar fora do setor pesa no nível medium). */
     @Test
     void prefereOSetorPrincipalQuandoNaoFaltaGente() {
         Setor reposicao = c.setor("Reposição", 1);
         c.funcionario("Operador 1", caixa, "10");
         c.funcionario("Operador 2", caixa, "10");
+        Funcionario versatil = c.funcionario("Repositor versátil", reposicao, "10");
+        versatil.getHabilidades().add(caixa);
+        c.funcionario("Repositor", reposicao, "10");
+
+        var r = otimizador.gerar(SEGUNDA, SEGUNDA, List.of(), c.modelos, c.ctx());
+
+        assertThat(r.deficits()).isEmpty();
+        assertThat(r.turnos()).hasSize(3).allMatch(t -> t.setorEfetivo() == t.getFuncionario().getSetor());
+    }
+
+    /**
+     * A habilidade é só reforço: nem quando sai bem mais barato o Timefold tira a vaga de quem é do setor e está livre.
+     * Aqui, levar o repositor (R$ 10/h) para o caixa no lugar de um operador (R$ 40/h) economizaria mais de R$ 200.
+     */
+    @Test
+    void naoUsaAHabilidadeComoAtalhoMesmoQuandoSaiMaisBarato() {
+        Setor reposicao = c.setor("Reposição", 1);
+        c.funcionario("Operador 1", caixa, "40");
+        c.funcionario("Operador 2", caixa, "40");
         Funcionario versatil = c.funcionario("Repositor versátil", reposicao, "10");
         versatil.getHabilidades().add(caixa);
         c.funcionario("Repositor", reposicao, "10");

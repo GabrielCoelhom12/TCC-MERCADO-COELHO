@@ -22,15 +22,19 @@ import java.util.stream.Collectors;
  *   <li><b>hard</b> — regras da CLT (as mesmas que o gerador guloso respeita): um turno por dia, descanso de 11 h entre
  *       jornadas (art. 66), jornada semanal, dias seguidos (art. 67) e domingos seguidos (Lei 10.101/2000), contando os
  *       turnos das escalas vizinhas;</li>
- *   <li><b>medium</b> — cada vaga sem ninguém: o otimizador só deixa uma vaga vazia se não houver como preenchê-la;</li>
+ *   <li><b>medium</b> — cobertura: cada vaga sem ninguém pesa 2 e cada turno fora do setor principal pesa 1. O
+ *       otimizador só deixa uma vaga vazia se não houver como preenchê-la, e só usa uma habilidade para preencher uma
+ *       vaga que ficaria vazia, nunca no lugar de alguém do próprio setor que está livre, por mais barato que saia;</li>
  *   <li><b>soft</b> — o custo da escala (R$) e o equilíbrio de horas entre as pessoas (soma dos quadrados das horas
  *       semanais de cada uma, que cresce quando a carga se concentra em poucos).</li>
  * </ul>
  */
 public class RestricoesEscala implements ConstraintProvider {
 
-    /** Peso de escalar alguém fora do setor principal, na mesma escala do custo (equivale a R$ 30 por turno). */
-    static final int PENALIDADE_FORA_DO_SETOR = 30;
+    /** Peso (medium) de uma vaga sem ninguém: o dobro de um turno fora do setor principal. */
+    static final int PESO_VAGA_SEM_NINGUEM = 2;
+    /** Peso (medium) de um turno fora do setor principal: menor que uma vaga vazia, maior que qualquer economia (soft). */
+    static final int PESO_FORA_DO_SETOR = 1;
 
     @Override
     public Constraint[] defineConstraints(ConstraintFactory f) {
@@ -107,7 +111,7 @@ public class RestricoesEscala implements ConstraintProvider {
     Constraint vagaSemNinguem(ConstraintFactory f) {
         return f.forEachIncludingUnassigned(Vaga.class)
                 .filter(v -> v.getFuncionario() == null)
-                .penalize(HardMediumSoftScore.ONE_MEDIUM)
+                .penalize(HardMediumSoftScore.ofMedium(PESO_VAGA_SEM_NINGUEM))
                 .asConstraint("Vaga sem ninguem");
     }
 
@@ -120,13 +124,14 @@ public class RestricoesEscala implements ConstraintProvider {
     }
 
     /**
-     * Escalar alguém fora do setor principal (pela habilidade) custa um pouco: o Timefold só desloca a pessoa quando
-     * isso preenche uma vaga que ficaria vazia (medium) ou quando a economia compensa.
+     * A habilidade é só reforço. Escalar alguém fora do setor principal pesa 1 medium, menos que a vaga vazia (2): o
+     * Timefold desloca a pessoa quando isso preenche uma vaga que ficaria vazia, mas nunca para economizar ou equilibrar
+     * horas (soft) no lugar de alguém do próprio setor que está livre.
      */
     Constraint foraDoSetorPrincipal(ConstraintFactory f) {
         return f.forEach(Vaga.class)
                 .filter(Vaga::foraDoSetorPrincipal)
-                .penalize(HardMediumSoftScore.ONE_SOFT, v -> PENALIDADE_FORA_DO_SETOR)
+                .penalize(HardMediumSoftScore.ofMedium(PESO_FORA_DO_SETOR))
                 .asConstraint("Fora do setor principal");
     }
 
